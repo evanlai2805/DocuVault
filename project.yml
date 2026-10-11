@@ -21,7 +21,8 @@ packages:
     path: DocuVaultCore
   mlx-swift-lm:
     url: https://github.com/ml-explore/mlx-swift-lm
-    from: "3.32.3"
+    # 3.32+ pulls mlx-swift ≥ 0.31.5, which needs Swift 6.3 (Xcode 26.4). Stay on 3.31.x until the toolchain moves.
+    upToNextMinorVersion: "3.31.3"
   swift-huggingface:
     url: https://github.com/huggingface/swift-huggingface
     from: "0.9.0"
