@@ -52,6 +52,12 @@ struct DocumentDetailView: View {
                     }
                 }
 
+                if !doc.fields.isEmpty {
+                    fieldsCard(doc.orderedFields.filter { $0.section == .main }, title: "Fields")
+                    let secondary = doc.orderedFields.filter { $0.section == .secondary }
+                    if !secondary.isEmpty { fieldsCard(secondary, title: "Secondary") }
+                }
+
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text("Text").font(.system(size: 14)).textCase(.uppercase).tracking(0.5).foregroundStyle(Theme.Colors.ink2)
@@ -116,6 +122,27 @@ struct DocumentDetailView: View {
             .font(.system(size: 17))
             .textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func fieldsCard(_ fields: [StoredField], title: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text(title).font(.system(size: 14)).textCase(.uppercase).tracking(0.5).foregroundStyle(Theme.Colors.ink2)
+                Spacer()
+                if title == "Fields" {
+                    StatusPill(text: doc.checksTotal == 0 ? "no checks" : "\(doc.checksPassed)/\(doc.checksTotal) checks",
+                               tone: doc.checksTotal == 0 ? .neutral : (doc.allChecksPassed ? .verified : .missing))
+                }
+            }
+            .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 4)
+            ForEach(fields) { f in
+                FieldRow(field: f.asExtracted)
+                    .contextMenu { Button { UIPasteboard.general.string = f.value } label: { Label("Copy", systemImage: "doc.on.doc") } }
+                if f.id != fields.last?.id { Divider().padding(.leading, 16) }
+            }
+        }
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     private var metaCard: some View {

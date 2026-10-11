@@ -61,7 +61,7 @@ struct SaveDocumentView: View {
                         }
                         .labelsHidden().tint(Theme.Colors.ink)
                     }
-                    if capture.looksSensitive || type.isSensitiveByDefault {
+                    if capture.isSensitive || type.isSensitiveByDefault {
                         Divider().padding(.leading, 16)
                         HStack {
                             Text("Sensitive").font(.system(size: 17))
@@ -74,7 +74,18 @@ struct SaveDocumentView: View {
                 .background(Theme.Colors.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
-                if capture.looksSensitive {
+                if let ex = capture.extraction, !ex.fields.isEmpty {
+                    HStack {
+                        Text("\(ex.fields.count - ex.missingCount) of \(ex.fields.count) fields filled").font(.system(size: 16))
+                        Spacer()
+                        StatusPill(text: ex.checksTotal == 0 ? "no checks" : "\(ex.checksPassed)/\(ex.checksTotal) checks",
+                                   tone: ex.checksTotal == 0 ? .neutral : (ex.allChecksPassed ? .verified : .missing))
+                    }
+                    .padding(16).background(Theme.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+
+                if capture.isSensitive {
                     HintBanner(badge: "SENSITIVE", title: "Looks like an ID or card",
                                detail: "It is saved in the Library for now. Phase 4 moves it into the Face ID vault automatically.")
                 }
@@ -96,6 +107,7 @@ struct SaveDocumentView: View {
         .onAppear {
             if title.isEmpty { title = capture.guessedTitle }
             language = capture.detectedLanguage
+            type = capture.chosenType
         }
     }
 
@@ -126,9 +138,13 @@ struct SaveDocumentView: View {
                 storedPages.append(StoredPage(index: i, imageFileName: fileName, ocrJSON: json,
                                               text: p.text, meanConfidence: p.meanConfidence))
             }
+            let storedFields = (capture.extraction?.fields ?? []).enumerated().map { StoredField(order: $0.offset, field: $0.element) }
             let doc = StoredDocument(title: title.trimmingCharacters(in: .whitespaces), type: type, language: language,
-                                     sensitive: capture.looksSensitive || type.isSensitiveByDefault,
-                                     source: capture.source, fullText: capture.fullText, pages: storedPages)
+                                     sensitive: capture.isSensitive || type.isSensitiveByDefault,
+                                     source: capture.source, fullText: capture.fullText, pages: storedPages,
+                                     fields: storedFields,
+                                     checksPassed: capture.extraction?.checksPassed ?? 0,
+                                     checksTotal: capture.extraction?.checksTotal ?? 0)
             context.insert(doc)
             try context.save()
             capture.reset()

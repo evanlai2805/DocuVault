@@ -26,7 +26,7 @@ struct PagesEditorView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 if capture.ocrComplete && !capture.isRunningOCR {
-                    Button("Next") { goToSave = true }.fontWeight(.semibold)
+                    Button("Review") { capture.classifyAndExtract(); goToSave = true }.fontWeight(.semibold)
                 } else {
                     Button(capture.isRunningOCR ? "Reading…" : "Run OCR") {
                         Task { await capture.runOCR() }
@@ -36,7 +36,7 @@ struct PagesEditorView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: $goToSave) { SaveDocumentView(onDone: onDone) }
+        .navigationDestination(isPresented: $goToSave) { ReviewView(onDone: onDone) }
         .onAppear { if selected == nil { selected = capture.pages.first?.id } }
         .onChange(of: capture.pages.map(\.id)) { _, ids in
             if let s = selected, !ids.contains(s) { selected = ids.first }

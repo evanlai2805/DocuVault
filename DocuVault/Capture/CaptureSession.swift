@@ -53,12 +53,51 @@ final class CaptureSession {
     var source: CaptureSource = .camera
     var isRunningOCR = false
 
+    // Phase 3: classification + extraction, editable on the review screen.
+    var verdict: Classifier.Verdict?
+    var chosenType: DocumentType = .other
+    var extraction: ExtractionResult?
+
     var hasPages: Bool { !pages.isEmpty }
 
     func reset() {
         pages = []
         isRunningOCR = false
+        verdict = nil
+        chosenType = .other
+        extraction = nil
     }
+
+    /// Run after OCR. Rules pick the type; the user can override with `changeType`.
+    func classifyAndExtract() {
+        let v = Classifier.classify(lines: allTextLines)
+        verdict = v
+        chosenType = v.type
+        extraction = Extractor.extract(type: v.type, lines: allTextLines)
+    }
+
+    /// Re-extract with another type. Edits are kept where the field key matches.
+    func changeType(_ t: DocumentType) {
+        let previous = extraction?.fields ?? []
+        var next = Extractor.extract(type: t, lines: allTextLines)
+        for (i, f) in next.fields.enumerated() {
+            if let old = previous.first(where: { $0.key == f.key }), old.check == .user {
+                next.fields[i].value = old.value
+                next.fields[i].check = .user
+            }
+        }
+        chosenType = t
+        extraction = next
+    }
+
+    func editField(key: String, value: String) {
+        guard var e = extraction, let i = e.fields.firstIndex(where: { $0.key == key }) else { return }
+        e.fields[i].value = value
+        e.fields[i].check = value.isEmpty ? .missing : .user
+        extraction = e
+    }
+
+    var isSensitive: Bool { chosenType.isSensitiveByDefault || looksSensitive }
 
     func add(_ images: [CGImage], source: CaptureSource) {
         self.source = source

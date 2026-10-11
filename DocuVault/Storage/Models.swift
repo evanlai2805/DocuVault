@@ -15,9 +15,14 @@ final class StoredDocument {
     var fullText: String                // all pages joined; drives search
     @Relationship(deleteRule: .cascade, inverse: \StoredPage.document)
     var pages: [StoredPage]
+    @Relationship(deleteRule: .cascade, inverse: \StoredField.document)
+    var fields: [StoredField]
+    var checksPassed: Int
+    var checksTotal: Int
 
     init(id: UUID = UUID(), title: String, type: DocumentType, language: String, sensitive: Bool,
-         capturedAt: Date = Date(), source: CaptureSource, fullText: String, pages: [StoredPage] = []) {
+         capturedAt: Date = Date(), source: CaptureSource, fullText: String, pages: [StoredPage] = [],
+         fields: [StoredField] = [], checksPassed: Int = 0, checksTotal: Int = 0) {
         self.id = id
         self.title = title
         self.typeRaw = type.rawValue
@@ -27,6 +32,9 @@ final class StoredDocument {
         self.sourceRaw = source.rawValue
         self.fullText = fullText
         self.pages = pages
+        self.fields = fields
+        self.checksPassed = checksPassed
+        self.checksTotal = checksTotal
     }
 
     var type: DocumentType {
@@ -35,6 +43,39 @@ final class StoredDocument {
     }
     var source: CaptureSource { CaptureSource(rawValue: sourceRaw) ?? .files }
     var orderedPages: [StoredPage] { pages.sorted { $0.index < $1.index } }
+    var orderedFields: [StoredField] { fields.sorted { $0.order < $1.order } }
+    var allChecksPassed: Bool { checksTotal == 0 || checksPassed == checksTotal }
+}
+
+/// One extracted field. Secondary-section fields (race, blood group, CVV…) are stored apart from the main block.
+@Model
+final class StoredField {
+    @Attribute(.unique) var id: UUID
+    var order: Int
+    var key: String
+    var labelEN: String
+    var labelZH: String?
+    var value: String
+    var checkRaw: String        // FieldCheck.rawValue
+    var sectionRaw: String      // FieldSection.rawValue
+    var document: StoredDocument?
+
+    init(id: UUID = UUID(), order: Int, field: ExtractedField) {
+        self.id = id
+        self.order = order
+        self.key = field.key
+        self.labelEN = field.labelEN
+        self.labelZH = field.labelZH
+        self.value = field.value
+        self.checkRaw = field.check.rawValue
+        self.sectionRaw = field.section.rawValue
+    }
+
+    var check: FieldCheck { FieldCheck(rawValue: checkRaw) ?? .ocr }
+    var section: FieldSection { FieldSection(rawValue: sectionRaw) ?? .main }
+    var asExtracted: ExtractedField {
+        ExtractedField(key: key, labelEN: labelEN, labelZH: labelZH, value: value, check: check, section: section)
+    }
 }
 
 @Model
