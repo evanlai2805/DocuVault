@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import DocuVaultCore
 #if canImport(MLXLLM)
-import MLX
+
 import MLXLLM
 import MLXLMCommon
 #endif
@@ -89,7 +89,6 @@ final class LocalModelManager {
     func load(progressHandler: ((Double) -> Void)? = nil) async throws -> ModelContainer {
         if let c = container { return c }
         if case .downloading = state {} else { state = .loading }
-        MLX.GPU.set(cacheLimit: 32 * 1024 * 1024)
         let config = ModelConfiguration(id: Self.modelID)
         let c = try await LLMModelFactory.shared.loadContainer(configuration: config) { progress in
             progressHandler?(progress.fractionCompleted)
