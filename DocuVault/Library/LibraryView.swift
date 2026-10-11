@@ -3,11 +3,12 @@ import SwiftData
 import DocuVaultCore
 
 struct LibraryView: View {
-    @Query(sort: \StoredDocument.capturedAt, order: .reverse) private var docs: [StoredDocument]
+    @Query(filter: #Predicate<StoredDocument> { !$0.sensitive }, sort: \StoredDocument.capturedAt, order: .reverse) private var docs: [StoredDocument]
+    @Query(filter: #Predicate<StoredDocument> { $0.sensitive }) private var vaultDocs: [StoredDocument]
     @State private var filter: Filter = .all
 
-    enum Filter: Hashable { case all, contracts, receipts, chinese, sensitive }
-    private let chips: [(Filter, String)] = [(.all, "All"), (.contracts, "Contracts"), (.receipts, "Receipts"), (.chinese, "中文"), (.sensitive, "Sensitive")]
+    enum Filter: Hashable { case all, contracts, receipts, chinese, cards }
+    private let chips: [(Filter, String)] = [(.all, "All"), (.contracts, "Contracts"), (.receipts, "Receipts"), (.chinese, "中文"), (.cards, "Business cards")]
 
     private var filtered: [StoredDocument] {
         switch filter {
@@ -15,13 +16,13 @@ struct LibraryView: View {
         case .contracts: docs.filter { $0.type == .contract || $0.type == .letter }
         case .receipts: docs.filter { $0.type == .receipt }
         case .chinese: docs.filter { $0.language != "en" }
-        case .sensitive: docs.filter(\.sensitive)
+        case .cards: docs.filter { $0.type == .businessCard }
         }
     }
 
     var body: some View {
         Group {
-            if docs.isEmpty {
+            if docs.isEmpty && vaultDocs.isEmpty {
                 emptyState
             } else {
                 ScrollView {
@@ -51,8 +52,8 @@ struct LibraryView: View {
 
     private var summaryCard: some View {
         let pages = docs.reduce(0) { $0 + $1.pages.count }
-        let sensitive = docs.filter(\.sensitive).count
         let zh = docs.filter { $0.language != "en" }.count
+        let receipts = docs.filter { $0.type == .receipt }.count
         return GradientCard(style: .navy) {
             CardHeader(title: "All-time DocuVault", subtitle: "Documents · 文件 · Pages")
             HStack(alignment: .top, spacing: 10) {
@@ -60,8 +61,8 @@ struct LibraryView: View {
                 StatBlock(label: "Pages read", value: "\(pages)", footnote: "0 uploads")
             }
             HStack(alignment: .top, spacing: 10) {
-                StatBlock(label: "Sensitive", value: "\(sensitive)", small: true)
-                StatBlock(label: "Vault", value: "—", footnote: "Phase 4", small: true)
+                StatBlock(label: "Receipts", value: "\(receipts)", small: true)
+                StatBlock(label: "In vault", value: "\(vaultDocs.count)", footnote: "Face ID", small: true)
             }
             .padding(.top, 14)
         }

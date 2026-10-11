@@ -7,6 +7,7 @@ struct SettingsView: View {
     @Query private var docs: [StoredDocument]
     @Environment(\.modelContext) private var context
     @State private var confirmWipe = false
+    @State private var confirmResetKey = false
 
     var body: some View {
         List {
@@ -19,20 +20,26 @@ struct SettingsView: View {
                 row("Cloud sends", "0 — none configured")
                 row("Storage", "App Group, Data Protection: Complete")
             }
-            Section("Vault (Phase 4)") {
+            Section("Vault") {
                 row("Client retention", "\(RetentionPolicy.clientDefaultDays) days, warn \(RetentionPolicy.warnDaysBefore) before")
+                row("Auto-lock", "\(Int(VaultSession.autoLockSeconds)) s in background")
+                NavigationLink { ExportView() } label: { Text("Export") }
+                Button(role: .destructive) { confirmResetKey = true } label: { Text("Reset vault key") }
             }
             Section {
                 Button(role: .destructive) { confirmWipe = true } label: { Text("Delete all documents (\(docs.count))") }
             }
             Section("About") {
-                row("Version", "0.2.0 · Phase 2")
+                row("Version", "0.4.0 · Phase 4")
                 row("Bundle", "com.evanlai.docuvault")
             }
         }
         .scrollContentBackground(.hidden)
         .background(Theme.Colors.canvas)
         .navigationTitle("Settings")
+        .confirmationDialog("Reset the vault key? Every sealed document becomes unreadable. Delete them first.", isPresented: $confirmResetKey, titleVisibility: .visible) {
+            Button("Reset key", role: .destructive) { VaultKeychain.deleteKey() }
+        }
         .confirmationDialog("Delete every document and page image?", isPresented: $confirmWipe, titleVisibility: .visible) {
             Button("Delete all", role: .destructive) {
                 for d in docs { for p in d.pages { PageStore.delete(p.imageFileName) }; context.delete(d) }

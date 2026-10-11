@@ -1,20 +1,25 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 enum AppTab: Hashable { case library, vault, settings, scan, search }
 
 /// Root: content switches by tab; the floating two-pill bar sits over it.
 struct RootView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.modelContext) private var context
     @State private var tab: AppTab = .library
     @State private var capture = CaptureSession()
+    @State private var vault = VaultSession()
     @State private var showScan = false
     @State private var showSearch = false
+    @State private var screenshotToast = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 switch tab {
                 case .library: NavigationStack { LibraryView() }
-                case .vault: NavigationStack { VaultPlaceholderView() }
+                case .vault: NavigationStack { VaultView() }
                 case .settings: NavigationStack { SettingsView() }
                 case .scan, .search: NavigationStack { LibraryView() }
                 }
@@ -22,8 +27,34 @@ struct RootView: View {
             .safeAreaPadding(.bottom, 92)   // room for the floating bar
 
             FloatingTabBar(tab: $tab, onScan: { showScan = true }, onSearch: { showSearch = true })
+
+            if screenshotToast {
+                Text("Screenshot taken — it is not protected by the vault")
+                    .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Theme.Colors.danger).clipShape(Capsule())
+                    .padding(.bottom, 100)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .overlay {
+            // Privacy shield in the app switcher while the vault is open.
+            if scenePhase != .active && vault.isUnlocked {
+                Rectangle().fill(.ultraThinMaterial).ignoresSafeArea()
+                    .overlay(Image(systemName: "lock.shield.fill").font(.system(size: 48)).foregroundStyle(Theme.Colors.ink2))
+            }
         }
         .environment(capture)
+        .environment(vault)
+        .onChange(of: scenePhase) { _, phase in
+            vault.sceneDidChange(phase)
+            if phase == .active { RetentionManager.sweep(context: context) }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.userDidTakeScreenshotNotification)) { _ in
+            guard vault.isUnlocked || tab == .vault else { return }
+            withAnimation { screenshotToast = true }
+            Task { try? await Task.sleep(for: .seconds(3)); withAnimation { screenshotToast = false } }
+        }
         .fullScreenCover(isPresented: $showScan) {
             NavigationStack { ScanHomeView(onDone: { showScan = false }) }
                 .environment(capture)
@@ -106,13 +137,14 @@ struct FloatingTabBar: View {
     }
 }
 
-/// Phase 4 replaces this.
-struct VaultPlaceholderView: View {
-    var body: some View {
-        ContentUnavailableView("Vault — coming in Phase 4",
-                               systemImage: "lock.shield",
-                               description: Text("Sensitive documents will be stored here behind Face ID."))
-        .navigationTitle("Vault")
-        .background(Theme.Colors.canvas)
+/// Clipboard helper: vault copies expire after 60 s and are kept out of Universal Clipboard.
+enum Clipboard {
+    static func copy(_ text: String, sensitive: Bool) {
+        if sensitive {
+            UIPasteboard.general.setItems([[UTType.utf8PlainText.identifier: text]],
+                                          options: [.expirationDate: Date().addingTimeInterval(60), .localOnly: true])
+        } else {
+            UIPasteboard.general.string = text
+        }
     }
 }

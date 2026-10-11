@@ -1,6 +1,8 @@
 import Foundation
 import SwiftData
 import CoreGraphics
+import CryptoKit
+import DocuVaultCore
 import DocuVaultOCR
 
 /// Where everything lives: the App Group container, so the keyboard extension (Phase 5) can read it.
@@ -23,7 +25,7 @@ enum AppFiles {
         try FileManager.default.createDirectory(at: pagesDirectory, withIntermediateDirectories: true,
                                                 attributes: [.protectionKey: FileProtectionType.complete])
         let config = ModelConfiguration(url: storeURL)
-        let container = try ModelContainer(for: StoredDocument.self, StoredPage.self, StoredField.self, configurations: config)
+        let container = try ModelContainer(for: StoredDocument.self, StoredPage.self, StoredField.self, StoredPerson.self, StoredTombstone.self, configurations: config)
         applyProtection(to: storeURL)
         return container
     }
@@ -34,17 +36,42 @@ enum AppFiles {
 }
 
 /// Page images on disk. JPEG, long edge ≤ 3000 px, Complete protection.
+/// Vault pages are additionally sealed with the vault key and stored as `.jpg.enc`.
 enum PageStore {
-    static func save(_ image: CGImage) throws -> String {
-        guard let data = ImageNormalizer.jpegData(image) else { throw OCRError.noImage }
-        let name = UUID().uuidString + ".jpg"
+    static func save(_ image: CGImage, vaultKey: SymmetricKey? = nil) throws -> String {
+        guard var data = ImageNormalizer.jpegData(image) else { throw OCRError.noImage }
+        var name = UUID().uuidString + ".jpg"
+        if let key = vaultKey {
+            data = try VaultCrypto.seal(data, key: key)
+            name += ".enc"
+        }
         let url = AppFiles.pagesDirectory.appendingPathComponent(name)
         try data.write(to: url, options: [.atomic, .completeFileProtection])
         return name
     }
 
-    static func load(_ fileName: String) -> CGImage? {
-        ImageNormalizer.load(url: AppFiles.pagesDirectory.appendingPathComponent(fileName))
+    static func isSealed(_ fileName: String) -> Bool { fileName.hasSuffix(".enc") }
+
+    /// Plain pages load directly. Sealed pages need the vault key; nil when locked.
+    static func load(_ fileName: String, vaultKey: SymmetricKey? = nil) -> CGImage? {
+        let url = AppFiles.pagesDirectory.appendingPathComponent(fileName)
+        if isSealed(fileName) {
+            guard let key = vaultKey, let sealed = try? Data(contentsOf: url),
+                  let plain = try? VaultCrypto.open(sealed, key: key) else { return nil }
+            return ImageNormalizer.load(data: plain)
+        }
+        return ImageNormalizer.load(url: url)
+    }
+
+    /// Raw JPEG bytes (decrypted) for export.
+    static func jpegBytes(_ fileName: String, vaultKey: SymmetricKey?) -> Data? {
+        let url = AppFiles.pagesDirectory.appendingPathComponent(fileName)
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        if isSealed(fileName) {
+            guard let key = vaultKey else { return nil }
+            return try? VaultCrypto.open(data, key: key)
+        }
+        return data
     }
 
     static func delete(_ fileName: String) {

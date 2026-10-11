@@ -6,6 +6,7 @@ import DocuVaultOCR
 /// Pages on top, selectable text below. Tap a page thumbnail to switch. Low-confidence lines are underlined amber.
 struct DocumentDetailView: View {
     @Bindable var doc: StoredDocument
+    @Environment(VaultSession.self) private var vault
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var pageIndex = 0
@@ -22,7 +23,10 @@ struct DocumentDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                if let page, let cg = PageStore.load(page.imageFileName) {
+                if doc.sensitive && !vault.isUnlocked {
+                    HintBanner(badge: "LOCKED", title: "Vault is locked", detail: "Open the Vault tab and pass Face ID to see this document.")
+                }
+                if let page, let cg = PageStore.load(page.imageFileName, vaultKey: vault.key) {
                     ZStack(alignment: .topLeading) {
                         Image(decorative: cg, scale: 1).resizable().scaledToFit()
                         if let ocr {
@@ -66,7 +70,7 @@ struct DocumentDetailView: View {
                             StatusPill(text: page.ocrJSON == nil ? "PDF text" : "OCR \(Int(page.meanConfidence * 100))%",
                                        tone: page.ocrJSON == nil ? .info : (page.meanConfidence >= OCRLine.lowConfidenceThreshold ? .verified : .unverified))
                         }
-                        Button { UIPasteboard.general.string = page?.text ?? "" } label: {
+                        Button { Clipboard.copy(pageText, sensitive: doc.sensitive) } label: {
                             Image(systemName: "doc.on.doc").font(.system(size: 15, weight: .medium))
                         }
                     }
@@ -87,7 +91,7 @@ struct DocumentDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button { showImage.toggle() } label: { Label(showImage ? "Hide image" : "Show image", systemImage: "photo") }
-                    ShareLink(item: doc.fullText) { Label("Share text", systemImage: "square.and.arrow.up") }
+                    ShareLink(item: vault.revealText(doc) ?? "") { Label("Share text", systemImage: "square.and.arrow.up") }
                     Button(role: .destructive) { confirmDelete = true } label: { Label("Delete document", systemImage: "trash") }
                 } label: { Image(systemName: "ellipsis.circle") }
             }
@@ -102,10 +106,16 @@ struct DocumentDetailView: View {
         }
     }
 
+    /// Current page text; for sealed documents the whole text is one blob, so show it on page 1.
+    private var pageText: String {
+        if doc.sealedText != nil { return pageIndex == 0 ? (vault.revealText(doc) ?? "") : "" }
+        return page?.text ?? ""
+    }
+
     /// Selectable text. Low-confidence lines get an amber underline via AttributedString.
     private var textBody: some View {
         let attributed: AttributedString = {
-            guard let ocr else { return AttributedString(page?.text ?? "") }
+            guard let ocr else { return AttributedString(pageText) }
             var out = AttributedString()
             for (i, line) in ocr.readingOrder.enumerated() {
                 var a = AttributedString(line.text)
@@ -136,8 +146,13 @@ struct DocumentDetailView: View {
             }
             .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 4)
             ForEach(fields) { f in
-                FieldRow(field: f.asExtracted)
-                    .contextMenu { Button { UIPasteboard.general.string = f.value } label: { Label("Copy", systemImage: "doc.on.doc") } }
+                let shown: ExtractedField = {
+                    var e = f.asExtracted
+                    e.value = vault.reveal(f) ?? "••••••"
+                    return e
+                }()
+                FieldRow(field: shown)
+                    .contextMenu { Button { Clipboard.copy(vault.reveal(f) ?? "", sensitive: doc.sensitive) } label: { Label("Copy", systemImage: "doc.on.doc") } }
                 if f.id != fields.last?.id { Divider().padding(.leading, 16) }
             }
         }

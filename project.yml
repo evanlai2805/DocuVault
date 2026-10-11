@@ -35,12 +35,14 @@ targets:
       path: DocuVault/Info.plist
       properties:
         CFBundleDisplayName: DocuVault
-        CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.4.0"
+        CFBundleVersion: "4"
+        DocuVaultKeychainSharing: false
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         NSCameraUsageDescription: DocuVault scans documents with the camera. Images stay on this device.
         NSPhotoLibraryUsageDescription: DocuVault imports document photos you choose. Images stay on this device.
+        NSFaceIDUsageDescription: Face ID opens your vault of sensitive documents.
         LSSupportsOpeningDocumentsInPlace: false
         UIFileSharingEnabled: false
         ITSAppUsesNonExemptEncryption: false

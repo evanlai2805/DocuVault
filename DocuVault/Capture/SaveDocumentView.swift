@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import CryptoKit
 import DocuVaultCore
 import DocuVaultOCR
 
@@ -7,7 +8,11 @@ import DocuVaultOCR
 struct SaveDocumentView: View {
     let onDone: () -> Void
     @Environment(CaptureSession.self) private var capture
+    @Environment(VaultSession.self) private var vault
     @Environment(\.modelContext) private var context
+    @Query(sort: \StoredPerson.createdAt) private var people: [StoredPerson]
+    @State private var ownerID: UUID?
+    @State private var showAddPerson = false
     @State private var title = ""
     @State private var type: DocumentType = .other
     @State private var language = "en"
@@ -61,14 +66,27 @@ struct SaveDocumentView: View {
                         }
                         .labelsHidden().tint(Theme.Colors.ink)
                     }
-                    if capture.isSensitive || type.isSensitiveByDefault {
+                    if isSensitive {
+                        Divider().padding(.leading, 16)
+                        field("Owner") {
+                            Picker("Owner", selection: $ownerID) {
+                                Text("Choose…").tag(Optional<UUID>.none)
+                                ForEach(people) { p in Text("\(p.name) · \(p.kind.displayName)").tag(Optional(p.id)) }
+                            }
+                            .labelsHidden().tint(Theme.Colors.ink)
+                            Button { showAddPerson = true } label: { Image(systemName: "plus.circle.fill") }
+                        }
                         Divider().padding(.leading, 16)
                         HStack {
-                            Text("Sensitive").font(.system(size: 17))
+                            Text("Vault").font(.system(size: 17))
                             Spacer()
-                            StatusPill(text: "Vault — Phase 4", tone: .info)
+                            StatusPill(text: vault.isUnlocked ? "Unlocked · will seal" : "Face ID on save", tone: .info)
                         }
                         .padding(16)
+                        if let p = people.first(where: { $0.id == ownerID }), let days = p.retentionDays {
+                            Divider().padding(.leading, 16)
+                            HStack { Text("Retention").font(.system(size: 17)); Spacer(); Text("deletes after \(days) d").foregroundStyle(Theme.Colors.ink2) }.padding(16)
+                        }
                     }
                 }
                 .background(Theme.Colors.surface)
@@ -85,9 +103,9 @@ struct SaveDocumentView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
 
-                if capture.isSensitive {
-                    HintBanner(badge: "SENSITIVE", title: "Looks like an ID or card",
-                               detail: "It is saved in the Library for now. Phase 4 moves it into the Face ID vault automatically.")
+                if isSensitive {
+                    HintBanner(badge: "VAULT", title: "Sealed on this device",
+                               detail: "Fields, text and page images are encrypted with the vault key. Face ID opens them. Nothing is uploaded.")
                 }
 
                 if let error { Text(error).foregroundStyle(Theme.Colors.danger).font(.footnote) }
@@ -99,17 +117,20 @@ struct SaveDocumentView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button(saving ? "Saving…" : "Save") { Task { await save() } }
+                Button(saving ? "Saving…" : (isSensitive ? "Save to Vault" : "Save")) { Task { await save() } }
                     .fontWeight(.semibold)
-                    .disabled(saving || title.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(saving || title.trimmingCharacters(in: .whitespaces).isEmpty || (isSensitive && ownerID == nil))
             }
         }
+        .sheet(isPresented: $showAddPerson) { AddPersonSheet() }
         .onAppear {
             if title.isEmpty { title = capture.guessedTitle }
             language = capture.detectedLanguage
             type = capture.chosenType
         }
     }
+
+    private var isSensitive: Bool { capture.isSensitive || type.isSensitiveByDefault }
 
     private func field<C: View>(_ label: String, @ViewBuilder _ content: () -> C) -> some View {
         HStack {
@@ -129,24 +150,37 @@ struct SaveDocumentView: View {
         saving = true
         defer { saving = false }
         do {
+            var key: SymmetricKey? = nil
+            if isSensitive {
+                if !vault.isUnlocked { await vault.unlock(reason: "Seal this document in your vault") }
+                guard let k = vault.key else { error = vault.lastError ?? "Face ID is required to save to the vault."; return }
+                key = k
+            }
             var storedPages: [StoredPage] = []
             let encoder = JSONEncoder()
             for (i, p) in capture.pages.enumerated() {
-                let fileName = try PageStore.save(p.processed())
+                let fileName = try PageStore.save(p.processed(), vaultKey: key)
                 var json: Data? = nil
-                if case .done(let ocr) = p.ocr { json = try? encoder.encode(ocr) }
+                if case .done(let ocr) = p.ocr, key == nil { json = try? encoder.encode(ocr) }   // boxes carry text; skip for sealed docs
                 storedPages.append(StoredPage(index: i, imageFileName: fileName, ocrJSON: json,
-                                              text: p.text, meanConfidence: p.meanConfidence))
+                                              text: key == nil ? p.text : "", meanConfidence: p.meanConfidence))
             }
-            let storedFields = (capture.extraction?.fields ?? []).enumerated().map { StoredField(order: $0.offset, field: $0.element) }
+            let storedFields = try (capture.extraction?.fields ?? []).enumerated().map { i, f in
+                StoredField(order: i, field: f, sealedValue: key.map { try VaultCrypto.seal(f.value, key: $0) })
+            }
+            let owner = people.first { $0.id == ownerID }
             let doc = StoredDocument(title: title.trimmingCharacters(in: .whitespaces), type: type, language: language,
-                                     sensitive: capture.isSensitive || type.isSensitiveByDefault,
-                                     source: capture.source, fullText: capture.fullText, pages: storedPages,
+                                     sensitive: isSensitive,
+                                     source: capture.source, fullText: key == nil ? capture.fullText : "", pages: storedPages,
                                      fields: storedFields,
                                      checksPassed: capture.extraction?.checksPassed ?? 0,
-                                     checksTotal: capture.extraction?.checksTotal ?? 0)
+                                     checksTotal: capture.extraction?.checksTotal ?? 0,
+                                     person: owner,
+                                     expiresAt: Retention.expiryDate(capturedAt: Date(), retentionDays: owner?.retentionDays),
+                                     sealedText: try key.map { try VaultCrypto.seal(capture.fullText, key: $0) })
             context.insert(doc)
             try context.save()
+            if ExportManager.shared.syncFolder { ExportManager.shared.exportAll(context: context, vaultKey: vault.key) }
             capture.reset()
             onDone()
         } catch {
