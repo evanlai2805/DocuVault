@@ -97,6 +97,12 @@ final class CaptureSession {
         extraction = e
     }
 
+    func applyPinyin(_ split: Pinyin.NameSplit) {
+        editField(key: "namePinyin", value: split.formatted)
+        editField(key: "surnamePinyin", value: split.surname)
+        editField(key: "givenNamePinyin", value: split.givenName)
+    }
+
     var isSensitive: Bool { chosenType.isSensitiveByDefault || looksSensitive }
 
     func add(_ images: [CGImage], source: CaptureSource) {

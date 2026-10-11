@@ -7,6 +7,7 @@ struct ReviewView: View {
     let onDone: () -> Void
     @Environment(CaptureSession.self) private var capture
     @State private var editing: ExtractedField?
+    @State private var editingPinyin = false
     @State private var showChangeType = false
     @State private var goToSave = false
 
@@ -56,6 +57,10 @@ struct ReviewView: View {
             FieldEditSheet(field: f, hints: hints(for: f)) { newValue in capture.editField(key: f.key, value: newValue) }
                 .presentationDetents([.medium])
         }
+        .sheet(isPresented: $editingPinyin) {
+            PinyinSheet(chineseName: chineseName ?? "", initial: nil) { capture.applyPinyin($0) }
+                .presentationDetents([.medium, .large])
+        }
         .sheet(isPresented: $showChangeType) {
             ChangeTypeSheet(verdict: capture.verdict, current: capture.chosenType) { capture.changeType($0) }
                 .presentationDetents([.large])
@@ -64,6 +69,11 @@ struct ReviewView: View {
     }
 
     // MARK: - Pieces
+
+    private var chineseName: String? {
+        guard let n = ex?.fields.first(where: { $0.key == "name" })?.value, Pinyin.split(n) != nil else { return nil }
+        return n
+    }
 
     private var cardStyle: Theme.CardStyle {
         guard let ex else { return .graphite }
@@ -104,7 +114,9 @@ struct ReviewView: View {
     private func fieldList(_ fields: [ExtractedField]) -> some View {
         VStack(spacing: 0) {
             ForEach(fields) { f in
-                Button { editing = f } label: { FieldRow(field: f) }
+                Button {
+                    if f.key == "namePinyin", chineseName != nil { editingPinyin = true } else { editing = f }
+                } label: { FieldRow(field: f) }
                     .buttonStyle(.plain)
                 if f.id != fields.last?.id { Divider().padding(.leading, 16) }
             }
@@ -132,7 +144,7 @@ struct ReviewView: View {
         if f.key == "namePinyin" {
             out.append("Hanyu Pinyin, upper case. Surname first (WANG WEI) or given name first (WEI WANG) — choose per person.")
         }
-        if f.key == "category" { out.append("One of: " + ReceiptExtractor.categories.joined(separator: " · ")) }
+        if f.key == "category" { out.append("Categories: " + ExpenseCategories.names.prefix(8).joined(separator: " · ") + " …") }
         return out
     }
 }

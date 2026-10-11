@@ -128,7 +128,9 @@ final class ExtractorTests: XCTestCase {
         XCTAssertEqual(value(r, "issuer"), "西安市公安局雁塔分局")
         XCTAssertEqual(value(r, "validFrom"), "2015-06-15"); XCTAssertEqual(value(r, "validTo"), "2035-06-15")
         XCTAssertEqual(value(r, "ethnicity"), "汉"); XCTAssertEqual(r.fields.first { $0.key == "ethnicity" }?.section, .secondary)
-        XCTAssertEqual(check(r, "namePinyin"), .missing)
+        XCTAssertEqual(value(r, "namePinyin"), "WANG WEI")
+        XCTAssertEqual(value(r, "surnamePinyin"), "WANG")
+        XCTAssertEqual(value(r, "givenNamePinyin"), "WEI")
         XCTAssertEqual(r.checksPassed, 3); XCTAssertEqual(r.checksTotal, 3)
         XCTAssertTrue(r.warnings.isEmpty, r.warnings.joined(separator: " | "))
     }
@@ -161,9 +163,9 @@ final class ExtractorTests: XCTestCase {
         XCTAssertEqual(value(r, "cardLast4"), "4417")
         XCTAssertEqual(value(r, "paymentMethod"), "Visa")
         XCTAssertEqual(value(r, "reference"), "7XK2PQ")
-        XCTAssertEqual(value(r, "category"), "Travel")
+        XCTAssertEqual(value(r, "category"), "Flights")
         XCTAssertEqual(r.checksPassed, 1); XCTAssertEqual(r.checksTotal, 1)
-        XCTAssertEqual(ReceiptExtractor.csvRow(r), "2026-10-10,SINGAPORE AIRLINES,Travel,SGD,412.00,32.00,4417,7XK2PQ")
+        XCTAssertEqual(ReceiptExtractor.csvRow(r), "2026-10-10,SINGAPORE AIRLINES,Flights,SGD,412.00,32.00,4417,7XK2PQ")
     }
 
     func testReceiptLinesNotSummingIsUnverifiedNotFailed() {
@@ -204,5 +206,51 @@ final class ExtractorTests: XCTestCase {
         XCTAssertEqual(Extractor.extract(type: .passport, lines: ClassifierTests.passport).type, .passport)
         XCTAssertEqual(Extractor.extract(type: .other, lines: ["x"]).fields.count, 0)
         XCTAssertEqual(Extractor.extract(type: .letter, lines: ClassifierTests.letter).type, .letter)
+    }
+}
+
+
+final class PinyinTests: XCTestCase {
+    func testSimpleName() {
+        let s = Pinyin.split("王伟")!
+        XCTAssertEqual(s.syllables, ["WANG", "WEI"])
+        XCTAssertEqual(s.surnameCount, 1)
+        XCTAssertEqual(s.formatted, "WANG WEI")
+        var g = s; g.surnameFirst = false
+        XCTAssertEqual(g.formatted, "WEI WANG")
+    }
+    func testThreeCharacterAndCompoundSurname() {
+        let s = Pinyin.split("李某某")!
+        XCTAssertEqual(s.surname, "LI")
+        XCTAssertEqual(s.givenName, "MOU MOU")
+        let c = Pinyin.split("欧阳修")!
+        XCTAssertEqual(c.surnameCount, 2)
+        XCTAssertEqual(c.surname, "OUYANG")
+        XCTAssertEqual(c.givenName, "XIU")
+    }
+    func testUserCanMoveTheSplit() {
+        var s = Pinyin.split("张三丰")!
+        s.surnameCount = 2
+        XCTAssertEqual(s.surname, "ZHANGSAN")
+        XCTAssertEqual(s.givenName, "FENG")
+    }
+    func testNonChineseReturnsNil() {
+        XCTAssertNil(Pinyin.split("TAN EVAN"))
+    }
+}
+
+final class ExpenseCategoryTests: XCTestCase {
+    func testGuesses() {
+        XCTAssertEqual(ExpenseCategories.guess(from: "SINGAPORE AIRLINES SIN-XIY"), "Flights")
+        XCTAssertEqual(ExpenseCategories.guess(from: "Grab ride to Changi"), "Taxi & Ride-hail")
+        XCTAssertEqual(ExpenseCategories.guess(from: "NTUC FairPrice Bedok"), "Groceries")
+        XCTAssertEqual(ExpenseCategories.guess(from: "西安某某酒店 住宿费"), "Hotel")
+        XCTAssertEqual(ExpenseCategories.guess(from: "顺丰速运 快递费"), "Courier & Postage")
+        XCTAssertEqual(ExpenseCategories.guess(from: "random text"), "Other")
+    }
+    func testListIsComplete() {
+        XCTAssertGreaterThanOrEqual(ExpenseCategories.all.count, 25)
+        XCTAssertEqual(Set(ExpenseCategories.all.map(\.group)), Set(ExpenseCategories.groups))
+        XCTAssertEqual(Set(ExpenseCategories.names).count, ExpenseCategories.names.count)   // unique
     }
 }

@@ -109,7 +109,11 @@ public enum ChinaIDExtractor {
         }
         let name = LabelReader.value(after: ["姓名", "Name"], in: lines).map { $0.replacingOccurrences(of: " ", with: "") }
         fields.append(LabelReader.field("name", "Name", "姓名", name, .ocr))
-        fields.append(LabelReader.field("namePinyin", "Pinyin", "拼音", nil, .missing))     // user supplies; order asked once per person (Phase 4)
+        // Pinyin guess from the characters; the review screen lets the user mark surname vs given name and the order.
+        let split = name.flatMap(Pinyin.split)
+        fields.append(LabelReader.field("namePinyin", "Pinyin", "拼音", split?.formatted, .ocr))
+        fields.append(LabelReader.field("surnamePinyin", "Surname (pinyin)", "姓", split?.surname, .ocr))
+        fields.append(LabelReader.field("givenNamePinyin", "Given name (pinyin)", "名", split?.givenName, .ocr))
         fields.append(LabelReader.field("idNumber", "ID number", "公民身份号码", id?.value, (id?.checksumOK ?? false) ? .cnid : .ocr))
 
         let printedDOB = LabelReader.value(after: ["出生", "Date of birth"], in: lines).flatMap(TextRules.firstISODate)

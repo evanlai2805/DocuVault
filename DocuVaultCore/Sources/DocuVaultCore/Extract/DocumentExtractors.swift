@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Receipt
 
 public enum ReceiptExtractor {
-    public static let categories = ["Travel", "Meals", "Transport", "Office", "Software", "Medical", "Other"]
+    public static var categories: [String] { ExpenseCategories.names }
 
     public static func extract(lines: [String]) -> ExtractionResult {
         var fields: [ExtractedField] = []
@@ -72,19 +72,8 @@ public enum ReceiptExtractor {
         let ref = LabelReader.value(after: ["Booking ref", "Reference", "Ref No", "Receipt No", "Invoice No", "订单号", "发票号码", "Order"], in: lines)
             .map { String($0.prefix(while: { !$0.isWhitespace })) }
         fields.append(LabelReader.field("reference", "Reference", "单号", ref, .ocr))
-        fields.append(LabelReader.field("category", "Category", "类别", guessCategory(upper), .ocr))
+        fields.append(LabelReader.field("category", "Category", "类别", ExpenseCategories.guess(from: text), .ocr))
         return ExtractionResult(type: .receipt, fields: fields, warnings: warnings, checksPassed: passed, checksTotal: total)
-    }
-
-    static func guessCategory(_ upper: [String]) -> String {
-        let j = upper.joined(separator: " ")
-        if ["AIRLINES", "AIRWAYS", "HOTEL", "FLIGHT", "BOOKING", "酒店", "航空"].contains(where: j.contains) { return "Travel" }
-        if ["GRAB", "TAXI", "COMFORT", "MRT", "BUS", "滴滴", "出租"].contains(where: j.contains) { return "Transport" }
-        if ["RESTAURANT", "CAFE", "KOPITIAM", "FOOD", "DINING", "餐", "饭店"].contains(where: j.contains) { return "Meals" }
-        if ["CLINIC", "PHARMACY", "HOSPITAL", "GUARDIAN", "WATSONS", "医院", "药"].contains(where: j.contains) { return "Medical" }
-        if ["APPLE.COM", "GOOGLE", "OPENAI", "ANTHROPIC", "SUBSCRIPTION", "LICENSE"].contains(where: j.contains) { return "Software" }
-        if ["POPULAR", "STATIONERY", "PRINTING", "OFFICE"].contains(where: j.contains) { return "Office" }
-        return "Other"
     }
 
     static func money(_ d: Decimal) -> String {
