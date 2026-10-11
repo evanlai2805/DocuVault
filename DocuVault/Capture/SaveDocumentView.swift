@@ -183,6 +183,12 @@ struct SaveDocumentView: View {
             context.insert(doc)
             try context.save()
             if ExportManager.shared.syncFolder { ExportManager.shared.exportAll(context: context, vaultKey: vault.key) }
+            // Auto-summarise contracts and letters in the background (Evan: on). Mixed-language docs wait for a language pick.
+            if SummaryService.shared.autoSummarise, SummarySpec.supportsSummary(type), key == nil {
+                let text = capture.fullText
+                let ctx = context
+                Task { await SummaryService.shared.summarise(doc, text: text, context: ctx) }
+            }
             capture.reset()
             onDone()
         } catch {

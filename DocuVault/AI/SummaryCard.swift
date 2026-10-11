@@ -17,6 +17,7 @@ struct SummaryCard: View {
     var body: some View {
         VStack(spacing: 16) {
             card
+            if state == .askLanguage { languageAsk }
             if let s = summary, state == .idle {
                 if s.format == .unsure || askFormat { formatAsk } else { contentBox(s) }
             }
@@ -35,6 +36,8 @@ struct SummaryCard: View {
                     StatBlock(label: "Model", value: "Apple", footnote: "on-device", small: true)
                 }
                 ProgressView(value: total > 0 ? Double(done) / Double(total) : 0).tint(.white).padding(.top, 12)
+            case .askLanguage:
+                Text("This document mixes Chinese and English. Pick the summary language below.").font(.system(size: 15)).opacity(0.9)
             case .failed(let msg):
                 Text(msg).font(.system(size: 15)).opacity(0.9)
                 if msg.contains("Apple Intelligence") {
@@ -47,7 +50,8 @@ struct SummaryCard: View {
                 if let s = summary {
                     HStack(alignment: .top, spacing: 10) {
                         StatBlock(label: "Format", value: formatLabel(s), footnote: s.length == .short ? "short" : "long", small: true)
-                        StatBlock(label: "Model", value: "Apple", footnote: String(format: "%.1f s · %@", s.seconds, s.chunks > 1 ? "\(s.chunks) chunks" : "no upload"), small: true)
+                        StatBlock(label: "Model", value: s.model.hasPrefix("mlx") ? "Qwen" : "Apple",
+                                  footnote: String(format: "%.1f s · %@", s.seconds, s.model.contains("failed") ? "Qwen failed" : (s.chunks > 1 ? "\(s.chunks) chunks" : "no upload")), small: true)
                     }
                     if s.partial { Text("Partial: only the first \(SummarySpec.maxChunks) chunks were read.").font(.system(size: 13)).opacity(0.8).padding(.top, 8) }
                     regenerateMenu(s)
@@ -144,6 +148,21 @@ struct SummaryCard: View {
                 HStack(alignment: .top, spacing: 8) { Text("•").font(.system(size: 16, weight: .bold)); Text(b).font(.system(size: 16)).lineSpacing(2) }
             }
         }
+    }
+
+    /// Mixed-language document: which language should the summary use?
+    private var languageAsk: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Summary language · 摘要语言").font(.system(size: 18, weight: .bold))
+            HStack(spacing: 6) {
+                Button { run(language: "en") } label: { Text("English").font(.chip).padding(.horizontal, 18).frame(height: 40).background(Theme.Colors.canvas).clipShape(Capsule()) }
+                Button { run(language: "zh-Hans") } label: { Text("中文").font(.chip).padding(.horizontal, 18).frame(height: 40).background(Theme.Colors.canvas).clipShape(Capsule()) }
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     /// The model (or you) is unsure: pick once; remembered for this document type.

@@ -19,6 +19,9 @@ settings:
 packages:
   DocuVaultCore:
     path: DocuVaultCore
+  mlx-swift-lm:
+    url: https://github.com/ml-explore/mlx-swift-lm
+    from: "3.31.3"
 
 targets:
   DocuVault:
@@ -31,6 +34,10 @@ targets:
         product: DocuVaultCore
       - package: DocuVaultCore
         product: DocuVaultOCR
+      - package: mlx-swift-lm
+        product: MLXLLM
+      - package: mlx-swift-lm
+        product: MLXLMCommon
       - target: DocuVaultKeyboard
         embed: true
     info:

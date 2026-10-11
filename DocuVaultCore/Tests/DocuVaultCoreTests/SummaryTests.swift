@@ -97,3 +97,44 @@ final class SummarySpecTests: XCTestCase {
         XCTAssertTrue(r.contains("Facts: k=v"))
     }
 }
+
+final class SummaryJSONTests: XCTestCase {
+    func testCleanJSON() {
+        let reply = #"{"headline":"厂房租赁合同","format":"bullets","body":["租期三年。","总价125万元。"],"keyFacts":[{"label":"金额","value":"人民币1,250,000元"}],"actions":["核对付款日期"]}"#
+        let s = SummaryJSON.parse(reply, language: "zh-Hans")!
+        XCTAssertEqual(s.headline, "厂房租赁合同")
+        XCTAssertEqual(s.format, .bullets)
+        XCTAssertEqual(s.body.count, 2)
+        XCTAssertEqual(s.keyFacts.first?.value, "人民币1,250,000元")
+        XCTAssertEqual(s.actions, ["核对付款日期"])
+        XCTAssertEqual(s.model, "mlx")
+    }
+    func testFencesThinkingAndChatter() {
+        let reply = """
+        <think>let me read the document…</think>
+        Sure, here is the summary:
+        ```json
+        {"headline": "Request to extend", "format": "paragraph", "body": ["They ask for two weeks."], "key_facts": [{"key": "Deadline", "value": "2026-11-07"}], "actions": []}
+        ```
+        Let me know if you need more.
+        """
+        let s = SummaryJSON.parse(reply, language: "en")!
+        XCTAssertEqual(s.headline, "Request to extend")
+        XCTAssertEqual(s.format, .paragraph)
+        XCTAssertEqual(s.keyFacts, [.init(label: "Deadline", value: "2026-11-07")])
+    }
+    func testBracesInsideStringsDoNotBreakExtraction() {
+        let reply = #"{"headline":"Clause {3} applies","format":"bullets","body":["Text with } brace"],"keyFacts":[],"actions":[]}"#
+        XCTAssertEqual(SummaryJSON.parse(reply, language: "en")?.headline, "Clause {3} applies")
+    }
+    func testBodyAsStringIsSplit() {
+        let reply = #"{"headline":"H","format":"list","body":"- one\n- two\n• three","keyFacts":[],"actions":[]}"#
+        let s = SummaryJSON.parse(reply, language: "en")!
+        XCTAssertEqual(s.body, ["one", "two", "three"])
+        XCTAssertEqual(s.format, .bullets)
+    }
+    func testGarbageReturnsNil() {
+        XCTAssertNil(SummaryJSON.parse("I cannot do that.", language: "en"))
+        XCTAssertNil(SummaryJSON.parse("{\"unrelated\": 1}", language: "en"))
+    }
+}
