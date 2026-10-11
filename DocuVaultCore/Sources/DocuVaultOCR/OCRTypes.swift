@@ -20,7 +20,9 @@ public struct OCRLine: Codable, Equatable, Sendable, Identifiable {
     }
 
     /// Below this the review UI underlines the line in amber.
-    public static let lowConfidenceThreshold = 0.80
+    /// Vision's confidence is coarse: clean print often reports exactly 0.5, strong matches 1.0,
+    /// poor reads 0.3 or less (observed on macOS 15 / Xcode 16.4 CI). Re-check on device.
+    public static let lowConfidenceThreshold = 0.45
     public var isLowConfidence: Bool { confidence < Self.lowConfidenceThreshold }
 }
 

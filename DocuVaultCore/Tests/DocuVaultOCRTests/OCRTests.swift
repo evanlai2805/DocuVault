@@ -12,7 +12,7 @@ final class OCREngineTests: XCTestCase {
         XCTAssertTrue(text.contains("412.00"), text)
         XCTAssertTrue(text.contains("460123"), text)
         XCTAssertEqual(page.language, "en")
-        XCTAssertGreaterThan(page.meanConfidence, 0.5)
+        XCTAssertGreaterThanOrEqual(page.meanConfidence, OCRLine.lowConfidenceThreshold)
         XCTAssertEqual(page.readingOrder.first?.text.uppercased().contains("SINGAPORE"), true)
     }
 

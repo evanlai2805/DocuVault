@@ -9,8 +9,10 @@ public final class OCREngine: Sendable {
 
     public static let shared = OCREngine()
 
-    /// Requested in this order; Vision uses order as priority when scripts are ambiguous.
-    public static let preferredLanguages = ["zh-Hans", "zh-Hant", "en-US"]
+    /// Vision uses order as priority when scripts are ambiguous.
+    /// Prose: Chinese first (contracts, letters). Identity: English first (MRZ, card numbers, Latin IDs).
+    public static let proseLanguages = ["zh-Hans", "zh-Hant", "en-US"]
+    public static let identityLanguages = ["en-US", "zh-Hans", "zh-Hant"]
 
     /// Domain words Vision should bias toward.
     public static let customWords = [
@@ -28,10 +30,11 @@ public final class OCREngine: Sendable {
         let start = Date()
         var chosen = mode
         if mode == .auto {
-            let quick = try await run(image, level: .fast, languageCorrection: false)
+            let quick = try await run(image, level: .fast, languageCorrection: false, languages: Self.identityLanguages)
             chosen = Self.looksLikeIdentityDocument(quick.textLines) ? .identity : .prose
         }
-        let page = try await run(image, level: .accurate, languageCorrection: chosen == .prose)
+        let page = try await run(image, level: .accurate, languageCorrection: chosen == .prose,
+                                 languages: chosen == .prose ? Self.proseLanguages : Self.identityLanguages)
         let text = page.text
         let ratio = TextRules.cjkRatio(text)
         return OCRPage(
@@ -63,7 +66,7 @@ public final class OCREngine: Sendable {
         var textLines: [String] { lines.map(\.text) }
     }
 
-    private func run(_ image: CGImage, level: VNRequestTextRecognitionLevel, languageCorrection: Bool) async throws -> RawPage {
+    private func run(_ image: CGImage, level: VNRequestTextRecognitionLevel, languageCorrection: Bool, languages: [String]) async throws -> RawPage {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<RawPage, Error>) in
             DispatchQueue.global(qos: .userInitiated).async {
                 let request = VNRecognizeTextRequest()
@@ -72,7 +75,7 @@ public final class OCREngine: Sendable {
                 request.minimumTextHeight = 0.01
                 request.customWords = Self.customWords
                 request.automaticallyDetectsLanguage = false
-                request.recognitionLanguages = Self.supportedPreferredLanguages(for: request)
+                request.recognitionLanguages = Self.supported(languages, for: request)
 
                 let handler = VNImageRequestHandler(cgImage: image, options: [:])
                 do {
@@ -91,10 +94,10 @@ public final class OCREngine: Sendable {
         }
     }
 
-    /// Filter our preferred list to what this OS build supports, keeping order.
-    static func supportedPreferredLanguages(for request: VNRecognizeTextRequest) -> [String] {
+    /// Filter a language list to what this OS build supports, keeping order.
+    static func supported(_ wanted: [String], for request: VNRecognizeTextRequest) -> [String] {
         let supported = (try? request.supportedRecognitionLanguages()) ?? []
-        let filtered = preferredLanguages.filter { supported.contains($0) }
+        let filtered = wanted.filter { supported.contains($0) }
         return filtered.isEmpty ? ["en-US"] : filtered
     }
 }
