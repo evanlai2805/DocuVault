@@ -35,6 +35,6 @@ jobs:
           warnings=$(grep -cE "warning:" test-output.log || true)
           echo "::notice title=Tests::${summary:-no summary line found}"
           echo "::notice title=Compiler::errors=${errors} warnings=${warnings}"
-          grep -E "error:|warning:" test-output.log | head -40 | while read -r l; do echo "::warning::$l"; done
-          grep -E "failed|XCTAssert" test-output.log | head -40 | while read -r l; do echo "::error::$l"; done
+          { grep -E "error:|warning:" test-output.log || true; } | head -40 | while read -r l; do echo "::warning::$l"; done
+          { grep -E "failed \(|XCTAssert" test-output.log || true; } | head -40 | while read -r l; do echo "::error::$l"; done
           if [ -z "$summary" ]; then echo "No tests executed"; exit 1; fi
