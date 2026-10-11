@@ -31,13 +31,15 @@ targets:
         product: DocuVaultCore
       - package: DocuVaultCore
         product: DocuVaultOCR
+      - target: DocuVaultKeyboard
+        embed: true
     info:
       path: DocuVault/Info.plist
       properties:
         CFBundleDisplayName: DocuVault
-        CFBundleShortVersionString: "0.4.0"
-        CFBundleVersion: "4"
-        DocuVaultKeychainSharing: false
+        CFBundleShortVersionString: "0.5.0"
+        CFBundleVersion: "5"
+        DocuVaultKeychainSharing: true
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         NSCameraUsageDescription: DocuVault scans documents with the camera. Images stay on this device.
@@ -57,3 +59,43 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.evanlai.docuvault
         TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+
+  DocuVaultKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: DocuVaultKeyboard
+      # Shared with the app: storage models, file locations, vault key access.
+      - path: DocuVault/Storage/Models.swift
+      - path: DocuVault/Storage/AppFiles.swift
+      - path: DocuVault/Vault/VaultSession.swift
+    dependencies:
+      - package: DocuVaultCore
+        product: DocuVaultCore
+      - package: DocuVaultCore
+        product: DocuVaultOCR
+    info:
+      path: DocuVaultKeyboard/Info.plist
+      properties:
+        CFBundleDisplayName: DocuVault
+        CFBundleShortVersionString: "0.5.0"
+        CFBundleVersion: "5"
+        DocuVaultKeychainSharing: true
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.keyboard-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KeyboardViewController
+          NSExtensionAttributes:
+            IsASCIICapable: false
+            PrefersRightToLeft: false
+            PrimaryLanguage: en-US
+            RequestsOpenAccess: true
+    entitlements:
+      path: DocuVaultKeyboard/DocuVaultKeyboard.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.evanlai.docuvault
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.evanlai.docuvault.keyboard
+        TARGETED_DEVICE_FAMILY: "1"
+        APPLICATION_EXTENSION_API_ONLY: YES

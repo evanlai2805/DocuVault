@@ -144,3 +144,74 @@ final class MarkdownExporterTests: XCTestCase {
         XCTAssertEqual(second.split(separator: "\n").count, 3)
     }
 }
+
+final class FillFormatsTests: XCTestCase {
+    func testDates() {
+        XCTAssertEqual(FillFormats.date("1999-04-12", style: .iso), "1999-04-12")
+        XCTAssertEqual(FillFormats.date("1999-04-12", style: .dmySlash), "12/04/1999")
+        XCTAssertEqual(FillFormats.date("1999-04-12", style: .mdySlash), "04/12/1999")
+        XCTAssertEqual(FillFormats.date("1999-04-12", style: .dMonY), "12 Apr 1999")
+        XCTAssertEqual(FillFormats.date("1999-04-12", style: .digitsDMY), "12041999")
+        XCTAssertEqual(FillFormats.date("1999-04-12", style: .digitsYMD), "19990412")
+        XCTAssertEqual(FillFormats.date("长期", style: .dmySlash), "长期")
+    }
+    func testCardNumbers() {
+        XCTAssertEqual(FillFormats.cardNumber("4111 1111 1111 1111", spaced: false), "4111111111111111")
+        XCTAssertEqual(FillFormats.cardNumber("4111111111111111", spaced: true), "4111 1111 1111 1111")
+        XCTAssertEqual(FillFormats.cardNumber("378282246310005", spaced: true), "3782 822463 10005")
+    }
+    func testExpiry() {
+        XCTAssertEqual(FillFormats.expiry("09/29", style: .mmSlashYY), "09/29")
+        XCTAssertEqual(FillFormats.expiry("09/29", style: .mmSlashYYYY), "09/2029")
+        XCTAssertEqual(FillFormats.expiry("9/2029", style: .mmyy), "0929")
+    }
+    func testPostcode() {
+        XCTAssertEqual(FillFormats.postcode(from: "123 BEDOK NORTH ST 1 #05-123 SINGAPORE 460123"), "460123")
+        XCTAssertEqual(FillFormats.postcode(from: "Blk 10 Jurong West 640010"), "640010")
+        XCTAssertNil(FillFormats.postcode(from: "陕西省西安市雁塔区科技路10号"))
+    }
+    func testKeySpecs() {
+        XCTAssertEqual(FillFormats.keys(for: .bankCard).first?.fieldKey, "pan")
+        XCTAssertEqual(FillFormats.keys(for: .bankCard).first { $0.fieldKey == "cvv" }?.kind, .holdOnly)
+        XCTAssertTrue(FillFormats.keys(for: .chinaID).contains { $0.label == "姓名" })
+        XCTAssertTrue(FillFormats.keys(for: .chinaID).contains { $0.fieldKey == "namePinyin" })
+        XCTAssertTrue(FillFormats.keys(for: .receipt).isEmpty)
+        XCTAssertLessThan(FillFormats.order(.bankCard), FillFormats.order(.passport))
+    }
+}
+
+final class FillInferenceTests: XCTestCase {
+    typealias C = FillInference.Context
+    func testBirthdateComponents() {
+        XCTAssertEqual(FillInference.date(C(contentType: "birthdateDay")).value, .component(.day))
+        XCTAssertEqual(FillInference.date(C(contentType: "birthdateYear")).value, .component(.year))
+        XCTAssertEqual(FillInference.component(.month, of: "1999-04-12"), "04")
+        XCTAssertEqual(FillInference.component(.year, of: "1999-04-12"), "1999")
+    }
+    func testNumberPad() {
+        XCTAssertEqual(FillInference.date(C(keyboard: .numeric, region: "SG")).value, .full(.digitsDMY))
+        XCTAssertEqual(FillInference.date(C(keyboard: .numeric, region: "CN")).value, .full(.digitsYMD))
+        XCTAssertEqual(FillInference.expiry(C(keyboard: .numeric)).value, .mmyy)
+    }
+    func testSeparatorsNearCursor() {
+        XCTAssertEqual(FillInference.date(C(before: "2026-", region: "SG")).value, .full(.iso))
+        XCTAssertEqual(FillInference.date(C(after: "/", region: "SG")).value, .full(.dmySlash))
+        XCTAssertEqual(FillInference.date(C(after: "/", region: "US")).value, .full(.mdySlash))
+        XCTAssertEqual(FillInference.date(C(before: "DD/MM/YYYY ", region: "US")).value, .full(.dmySlash))
+    }
+    func testRegionDefaults() {
+        XCTAssertEqual(FillInference.date(C(region: "SG")).value, .full(.dmySlash))
+        XCTAssertEqual(FillInference.date(C(region: "CN")).value, .full(.iso))
+        XCTAssertEqual(FillInference.date(C(region: "US")).value, .full(.mdySlash))
+        XCTAssertEqual(FillInference.date(C(region: "SG")).reason, "SG region")
+    }
+    func testExpiryHints() {
+        XCTAssertEqual(FillInference.expiry(C(after: " (MM/YYYY)")).value, .mmSlashYYYY)
+        XCTAssertEqual(FillInference.expiry(C()).value, .mmSlashYY)
+    }
+    func testCardSpacing() {
+        XCTAssertFalse(FillInference.cardSpaced(C()))
+        XCTAssertTrue(FillInference.cardSpaced(C(before: "4111 1111 ")))
+        XCTAssertFalse(FillInference.cardSpaced(C(keyboard: .numeric, before: "4111 1111 ")))
+    }
+}

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 8 · Fill keyboard (Phase 5)</title>
+<style>
+:root{--ink:#000;--ink2:#8A8A8E;--hair:#E5E5EA;--canvas:#F2F2F7;--kb:#D1D4DA;--accent:#2F6BFF;--g:#1B7F4C;--a:#B5731B;--r:#8E1F1F;--graph:#1C1C1E}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+.phone{width:100%;max-width:360px;margin:0 auto;height:640px;border-radius:44px;background:#fff;position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;flex-direction:column}
+.page{flex:1;padding:26px 18px;background:#fff}
+.page h2{font-size:22px;margin:0 0 14px;font-weight:700}
+.inp{border:1px solid var(--hair);border-radius:10px;padding:12px;margin:8px 0;font-size:15px;color:var(--ink2)}
+.inp.on{border:2px solid var(--accent);color:var(--ink)}
+.kb{background:var(--kb);padding:8px 6px 10px;border-radius:0 0 44px 44px}
+.top{display:flex;gap:6px;align-items:center;overflow:auto;padding:2px 2px 8px}
+.top .lock{width:30px;height:30px;border-radius:8px;background:var(--graph);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+.top .lock.g{background:var(--g)}
+.chip{padding:7px 12px;border-radius:16px;font-size:14px;font-weight:600;background:#fff;color:var(--ink);white-space:nowrap;border:1px solid transparent}
+.chip.on{background:var(--accent);color:#fff}.chip.sm{font-size:13px;padding:6px 10px;color:var(--ink2);background:rgba(255,255,255,.6)}.chip.sm.on{background:#fff;color:var(--ink);border-color:var(--hair)}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.key{background:#fff;border-radius:9px;padding:11px 8px;font-size:15px;font-weight:600;text-align:center;box-shadow:0 1px 0 rgba(0,0,0,.25);min-height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.key small{font-size:11px;color:var(--ink2);font-weight:500}
+.key.dim{color:var(--ink2);background:#ECEDF0}.key.chk{position:relative}.key .p{position:absolute;top:4px;right:6px;font-size:9px;font-weight:700;color:var(--g)}
+.bottom{display:grid;grid-template-columns:52px 1fr 52px 70px;gap:6px;margin-top:6px}
+.bottom .key{background:#ADB3BC;font-weight:500;color:#111;min-height:42px}.bottom .key.w{background:#fff}.bottom .key.b{background:var(--accent);color:#fff}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+.steps{background:#fff;border-radius:14px;padding:12px 14px;font-size:14px}.steps li{margin:4px 0}
+</style></head><body>
+<h1>Checkpoint 8 — Fill keyboard</h1>
+<p class="sub">A custom keyboard. You switch to it on any form, pick a person and a document, tap a field name, and the value is typed. Values are never shown on the keys.</p>
+
+<div class="grid">
+
+<div class="phone"><div class="page"><h2>Checkout</h2><div class="inp">Name on card</div><div class="inp on">Card number |</div><div class="inp">MM/YY</div><div class="inp">CVV</div></div>
+<div class="kb">
+<div class="top"><div class="lock">🔒</div><span class="chip">Unlock with Face ID</span><span class="chip sm">Evan</span><span class="chip sm">Mum</span></div>
+<div class="keys"><div class="key dim">Number</div><div class="key dim">Expiry</div><div class="key dim">CVV</div><div class="key dim">Name</div><div class="key dim">Address</div><div class="key dim">Postcode</div></div>
+<div class="bottom"><div class="key">🌐</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Checkout</h2><div class="inp">Name on card</div><div class="inp on">4111 1111 1111 4417|</div><div class="inp">MM/YY</div><div class="inp">CVV</div></div>
+<div class="kb">
+<div class="top"><div class="lock g">✓</div><span class="chip on">Evan</span><span class="chip sm">Mum</span><span class="chip sm">Lee &amp; Co</span></div>
+<div class="top" style="padding-top:0"><span class="chip sm on">DBS Altitude</span><span class="chip sm">OCBC 365</span><span class="chip sm">Passport</span><span class="chip sm">NRIC</span><span class="chip sm">Shared</span></div>
+<div class="keys">
+<div class="key chk"><span class="p">Luhn ✓</span>Number<small>•4417</small></div><div class="key">Expiry<small>MM/YY</small></div><div class="key">CVV<small>hold</small></div>
+<div class="key">Name<small>on card</small></div><div class="key">Address<small>line 1</small></div><div class="key">Postcode</div></div>
+<div class="bottom"><div class="key">🌐</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Visa application</h2><div class="inp">Passport number</div><div class="inp on">Date of birth |</div><div class="inp">Nationality</div><div class="inp">Expiry</div></div>
+<div class="kb">
+<div class="top"><div class="lock g">✓</div><span class="chip on">Evan</span><span class="chip sm">Mum</span></div>
+<div class="top" style="padding-top:0"><span class="chip sm">DBS Altitude</span><span class="chip sm on">Passport</span><span class="chip sm">NRIC</span><span class="chip sm">Shared</span></div>
+<div class="keys">
+<div class="key chk"><span class="p">MRZ ✓</span>Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>1999-04-12 ▾</small></div><div class="key">Expiry<small>2031-02-28 ▾</small></div><div class="key">Nationality<small>SGP</small></div>
+<div class="key">Sex</div><div class="key">Issue date</div><div class="key">Place of birth</div></div>
+<div class="bottom"><div class="key">🌐</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Date format</h2><div class="inp on">12/04/1999|</div><p style="font-size:14px;color:var(--ink2)">Hold a date key to pick the format. Last used is remembered per website… no — remembered globally (see Q2).</p></div>
+<div class="kb">
+<div class="top"><div class="lock g">✓</div><span class="chip on">Evan</span></div>
+<div class="keys" style="grid-template-columns:repeat(2,1fr)">
+<div class="key">1999-04-12<small>ISO</small></div><div class="key">12/04/1999<small>DD/MM/YYYY</small></div><div class="key">04/12/1999<small>MM/DD/YYYY</small></div><div class="key">12 Apr 1999<small>DD Mon YYYY</small></div>
+<div class="key">12041999<small>digits only</small></div><div class="key">19990412<small>YYYYMMDD</small></div></div>
+<div class="bottom"><div class="key">🌐</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Back</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Settings · one-time setup</h2>
+<ol class="steps"><li>Settings → General → Keyboard → Keyboards</li><li>Add New Keyboard → <b>DocuVault</b></li><li>Tap DocuVault → <b>Allow Full Access</b> → Allow</li><li>In any text field: hold 🌐 → DocuVault</li></ol>
+<p style="font-size:13px;color:var(--ink2);margin-top:12px">Apple shows a warning for Full Access. It is needed so the keyboard can read the vault on this phone. The keyboard has no network code; you can read it in the repo.</p></div>
+<div class="kb"><div class="top"><div class="lock">!</div><span class="chip">Full Access is off — open Settings</span></div>
+<div class="keys"><div class="key dim">—</div><div class="key dim">—</div><div class="key dim">—</div></div>
+<div class="bottom"><div class="key">🌐</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+</div>
+
+<h3>Rules</h3>
+<table>
+<tr><th>Rule</th><th>Detail</th></tr>
+<tr><td>Values never on keys</td><td>Keys show the field name and a hint (last 4, format). The value goes straight into the text field.</td></tr>
+<tr><td>Face ID per session</td><td>Keyboard unlocks via the same Keychain key as the app. Locks 60 s after the keyboard closes.</td></tr>
+<tr><td>Number formatting</td><td>Card number typed without spaces (most forms reject spaces). Hold the key for the spaced version.</td></tr>
+<tr><td>Dates</td><td>Hold a date key for 6 formats. The last format used becomes the tap default.</td></tr>
+<tr><td>CVV</td><td>Hold, not tap. Prevents accidental insertion.</td></tr>
+<tr><td>Shared</td><td>Per person: full name, address, postcode (parsed from address), phone, email.</td></tr>
+<tr><td>Secure fields</td><td>Some password fields block custom keyboards. iOS does this, not us; the system keyboard appears instead.</td></tr>
+<tr><td>Ordering</td><td>Person "Me" first. Documents: cards, then passport, NRIC, ID, then Shared.</td></tr>
+</table>
+
+<h3>Questions</h3>
+<div class="q">Q1 · Card number default: no spaces (tap) and spaced on hold. OK?</div>
+<div class="q">Q2 · Date default: last format used, remembered globally. OK, or always ask?</div>
+<div class="q">Q3 · Show Chinese fields (姓名 in characters, 拼音) as separate keys when the document is a 身份证? Default: yes, both keys.</div>
+<div class="q">Q4 · After inserting a value, keep the DocuVault keyboard open, or switch back to the normal keyboard automatically?</div>
+</body></html>
