@@ -1,0 +1,33 @@
+name: DocuVaultCore tests
+
+on:
+  push:
+    paths:
+      - "DocuVaultCore/**"
+      - ".github/workflows/core-tests.yml"
+  pull_request:
+    paths:
+      - "DocuVaultCore/**"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          ls /Applications | grep -i xcode || true
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+          xcodebuild -version
+          swift --version
+      - name: Build and test
+        working-directory: DocuVaultCore
+        run: swift test --parallel 2>&1 | tee ../test-output.log
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output
+          path: test-output.log
