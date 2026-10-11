@@ -176,7 +176,10 @@ public enum BankCardExtractor {
         let issuer = lines.first { l in ["DBS", "OCBC", "UOB", "POSB", "CITI", "HSBC", "STANDARD CHARTERED", "MAYBANK", "ICBC", "中国银行", "建设银行", "工商银行", "招商银行"].contains { l.uppercased().contains($0) } }
         fields.append(LabelReader.field("issuer", "Issuer", "发卡行", issuer, .ocr))
         fields.append(LabelReader.field("cardLabel", "Card name", "卡名", nil, .missing))   // user names it, e.g. "DBS Altitude"
-        let cvv = LabelReader.value(after: ["CVV", "CVC", "CVV2"], in: lines).flatMap { $0.range(of: #"\d{3,4}"#, options: .regularExpression).map { r in String($0[r]) } }
+        let cvv: String? = LabelReader.value(after: ["CVV", "CVC", "CVV2"], in: lines).flatMap { raw -> String? in
+            guard let r = raw.range(of: #"\d{3,4}"#, options: .regularExpression) else { return nil }
+            return String(raw[r])
+        }
         fields.append(LabelReader.field("cvv", "CVV", "安全码", cvv, .ocr, section: .secondary))
         return ExtractionResult(type: .bankCard, fields: fields, warnings: warnings, checksPassed: passed, checksTotal: total)
     }
