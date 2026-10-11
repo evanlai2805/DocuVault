@@ -35,8 +35,8 @@ struct SettingsView: View {
                     }
                 case .downloading(let p):
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Downloading… \(Int(p * 100))%")
-                        ProgressView(value: p)
+                        Text(p < 0 ? "Downloading ~\(String(format: "%.1f", LocalModelManager.approxSizeGB)) GB… keep the app open" : "Downloading… \(Int(p * 100))%")
+                        if p < 0 { ProgressView() } else { ProgressView(value: p) }
                     }
                 case .installed, .ready:
                     row("Status", models.state == .ready ? "Loaded" : String(format: "Installed · %.1f GB", models.installedSizeGB))

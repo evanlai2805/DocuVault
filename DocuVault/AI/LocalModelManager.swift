@@ -89,9 +89,9 @@ final class LocalModelManager {
     func load(progressHandler: ((Double) -> Void)? = nil) async throws -> ModelContainer {
         if let c = container { return c }
         if case .downloading = state {} else { state = .loading }
-        let c = try await loadModel(id: Self.modelID) { progress in
-            progressHandler?(progress.fractionCompleted)
-        }
+        // loadModel(id:) downloads from Hugging Face on first use; no fraction is exposed, so the UI shows an indeterminate bar.
+        progressHandler?(-1)
+        let c = try await loadModel(id: Self.modelID)
         container = c
         state = .ready
         return c
