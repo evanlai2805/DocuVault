@@ -36,7 +36,7 @@ jobs:
           set -o pipefail
           xcodebuild -project DocuVault.xcodeproj -scheme DocuVault \
             -destination 'generic/platform=iOS Simulator' \
-            -configuration Debug \
+            -configuration Debug -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" \
             build 2>&1 | tee build.log | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)|\*\* " || true
           grep -q "BUILD SUCCEEDED" build.log
