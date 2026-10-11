@@ -63,7 +63,7 @@ public enum FillFormats {
     public static func postcode(from address: String) -> String? {
         if let p = NRIC.findPostalCode(in: address) { return p }
         let runs = address.split(whereSeparator: { !$0.isNumber }).filter { $0.count == 6 }
-        return runs.last.map(String.init)
+        return runs.last.map { String($0) }
     }
 
     /// Which keys the keyboard shows for a document type, in order, with their field keys and labels.
