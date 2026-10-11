@@ -17,13 +17,15 @@ public struct ExportDocument: Equatable, Sendable {
     public var expiresAt: Date?
     public var notes: String?
     public var imageFileNames: [String]
+    public var summary: DocumentSummary?
 
     public init(title: String, owner: String, ownerKind: PersonKind, type: DocumentType, sensitive: Bool, capturedAt: Date,
                 source: String, language: String, checksPassed: Int, checksTotal: Int, fields: [ExtractedField],
-                expiresAt: Date? = nil, notes: String? = nil, imageFileNames: [String] = []) {
+                expiresAt: Date? = nil, notes: String? = nil, imageFileNames: [String] = [], summary: DocumentSummary? = nil) {
         self.title = title; self.owner = owner; self.ownerKind = ownerKind; self.type = type; self.sensitive = sensitive
         self.capturedAt = capturedAt; self.source = source; self.language = language; self.checksPassed = checksPassed
         self.checksTotal = checksTotal; self.fields = fields; self.expiresAt = expiresAt; self.notes = notes; self.imageFileNames = imageFileNames
+        self.summary = summary
     }
 }
 
@@ -47,6 +49,11 @@ public enum MarkdownExporter {
             out.append("")
             out.append("## Secondary")
             out.append(contentsOf: table(secondary))
+        }
+
+        if let sum = d.summary {
+            out.append("")
+            out.append(sum.markdown)
         }
 
         let copyBlock = main.filter { !$0.value.isEmpty }.map(\.value).joined(separator: " | ")

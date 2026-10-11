@@ -1,0 +1,177 @@
+import SwiftUI
+import SwiftData
+import DocuVaultCore
+
+/// Summary section on the document detail: graphite card with stats + white box with the content.
+/// States: none (Summarise button), running (progress), ready, unavailable/failed, and the "ask format" case.
+struct SummaryCard: View {
+    @Bindable var doc: StoredDocument
+    let text: String
+    @Environment(\.modelContext) private var context
+    @State private var service = SummaryService.shared
+    @State private var askFormat = false
+
+    private var summary: DocumentSummary? { service.summary(for: doc) }
+    private var state: SummaryService.State { service.state(for: doc) }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            card
+            if let s = summary, state == .idle {
+                if s.format == .unsure || askFormat { formatAsk } else { contentBox(s) }
+            }
+        }
+    }
+
+    // MARK: Card
+
+    private var card: some View {
+        GradientCard(style: .graphite) {
+            CardHeader(title: "Summary", subtitle: subtitle)
+            switch state {
+            case .running(let done, let total):
+                HStack(alignment: .top, spacing: 10) {
+                    StatBlock(label: "Progress", value: total > 1 ? "\(done)/\(total)" : "…", footnote: total > 1 ? "chunks" : "one pass", small: true)
+                    StatBlock(label: "Model", value: "Apple", footnote: "on-device", small: true)
+                }
+                ProgressView(value: total > 0 ? Double(done) / Double(total) : 0).tint(.white).padding(.top, 12)
+            case .failed(let msg):
+                Text(msg).font(.system(size: 15)).opacity(0.9)
+                if msg.contains("Apple Intelligence") {
+                    CardButton(title: "Open Settings", systemImage: "arrow.up.right") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                    }
+                }
+                CardButton(title: "Try again", systemImage: "arrow.clockwise") { run() }
+            case .idle:
+                if let s = summary {
+                    HStack(alignment: .top, spacing: 10) {
+                        StatBlock(label: "Format", value: formatLabel(s), footnote: s.length == .short ? "short" : "long", small: true)
+                        StatBlock(label: "Model", value: "Apple", footnote: String(format: "%.1f s · %@", s.seconds, s.chunks > 1 ? "\(s.chunks) chunks" : "no upload"), small: true)
+                    }
+                    if s.partial { Text("Partial: only the first \(SummarySpec.maxChunks) chunks were read.").font(.system(size: 13)).opacity(0.8).padding(.top, 8) }
+                    regenerateMenu(s)
+                } else {
+                    Text("On-device. The document's language. Nothing is uploaded.").font(.system(size: 15)).opacity(0.85)
+                    CardButton(title: "Summarise", systemImage: "sparkles") { run() }
+                }
+            }
+        }
+    }
+
+    private var subtitle: String {
+        if let s = summary { return "on-device · \(s.language == "zh-Hans" ? "中文" : "English\(s.language == "en" ? " · STE" : "")") · \(doc.pages.count) page\(doc.pages.count == 1 ? "" : "s")" }
+        let lang = SummarySpec.language(for: text) == "zh-Hans" ? "中文" : "English"
+        return "\(lang) · \(doc.pages.count) page\(doc.pages.count == 1 ? "" : "s")"
+    }
+
+    private func formatLabel(_ s: DocumentSummary) -> String {
+        switch s.format {
+        case .bullets: s.language == "zh-Hans" ? "要点" : "Bullets"
+        case .paragraph: s.language == "zh-Hans" ? "段落" : "Paragraph"
+        case .both: "Both"
+        case .unsure: "?"
+        }
+    }
+
+    private func regenerateMenu(_ s: DocumentSummary) -> some View {
+        Menu {
+            Button { run(length: s.length == .short ? .long : .short, format: s.format) } label: { Label(s.length == .short ? "Longer" : "Shorter", systemImage: "text.alignleft") }
+            Button { run(length: s.length, format: s.format == .bullets ? .paragraph : .bullets) } label: { Label(s.format == .bullets ? "Paragraph" : "Bullets", systemImage: "list.bullet") }
+            Button { run(length: s.length, format: s.format, language: s.language == "en" ? "zh-Hans" : "en") } label: { Label(s.language == "en" ? "中文" : "English", systemImage: "character.book.closed") }
+            Divider()
+            Button { askFormat = true } label: { Label("Choose format…", systemImage: "slider.horizontal.3") }
+            Button(role: .destructive) { service.clear(doc, context: context) } label: { Label("Remove summary", systemImage: "trash") }
+        } label: {
+            HStack {
+                Text("Regenerate · \(s.length == .short ? "longer" : "shorter") · \(s.format == .bullets ? "paragraph" : "bullets")").font(.system(size: 18, weight: .medium))
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 16, weight: .semibold))
+            }
+            .padding(.horizontal, 16).padding(.vertical, 14)
+            .background(Color.white.opacity(0.14))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.insetButton, style: .continuous))
+        }
+        .padding(.top, 16)
+    }
+
+    // MARK: Content
+
+    private func contentBox(_ s: DocumentSummary) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(s.headline).font(.system(size: 18, weight: .bold))
+            switch s.format {
+            case .paragraph:
+                Text(s.body.joined(separator: " ")).font(.system(size: 16)).lineSpacing(3)
+            case .both:
+                if let first = s.body.first { Text(first).font(.system(size: 16)).lineSpacing(3) }
+                bullets(Array(s.body.dropFirst()))
+            default:
+                bullets(s.body)
+            }
+            if !s.keyFacts.isEmpty {
+                Divider().padding(.vertical, 4)
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(Array(s.keyFacts.enumerated()), id: \.offset) { _, f in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text(f.label).font(.system(size: 15)).foregroundStyle(Theme.Colors.ink2).frame(width: 110, alignment: .leading)
+                            Text(f.value).font(.system(size: 15, weight: .semibold)).textSelection(.enabled)
+                        }
+                    }
+                }
+            }
+            if !s.actions.isEmpty {
+                Divider().padding(.vertical, 4)
+                Text(s.language == "zh-Hans" ? "待办" : "ACTIONS").font(.system(size: 13)).tracking(0.5).foregroundStyle(Theme.Colors.ink2)
+                ForEach(Array(s.actions.enumerated()), id: \.offset) { _, a in
+                    HStack(alignment: .top, spacing: 8) { Image(systemName: "square").foregroundStyle(Theme.Colors.ink2); Text(a).font(.system(size: 15)) }
+                }
+            }
+            HStack {
+                Spacer()
+                Button { UIPasteboard.general.string = s.markdown } label: { Label("Copy summary", systemImage: "doc.on.doc").font(.system(size: 14, weight: .medium)) }
+            }
+        }
+        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .textSelection(.enabled)
+    }
+
+    private func bullets(_ items: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(items.enumerated()), id: \.offset) { _, b in
+                HStack(alignment: .top, spacing: 8) { Text("•").font(.system(size: 16, weight: .bold)); Text(b).font(.system(size: 16)).lineSpacing(2) }
+            }
+        }
+    }
+
+    /// The model (or you) is unsure: pick once; remembered for this document type.
+    private var formatAsk: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("How should this read?").font(.system(size: 18, weight: .bold))
+            Text("The document mixes narrative and tables. Pick the format that serves you. Remembered for \(doc.type.displayName).")
+                .font(.system(size: 15)).foregroundStyle(Theme.Colors.ink2)
+            HStack(spacing: 6) {
+                ForEach([DocumentSummary.Format.bullets, .paragraph, .both], id: \.self) { f in
+                    Button {
+                        service.setPreferredFormat(f, for: doc.type)
+                        askFormat = false
+                        run(format: f)
+                    } label: {
+                        Text(f == .bullets ? "Bullets" : f == .paragraph ? "Paragraph" : "Both").font(.chip)
+                            .padding(.horizontal, 16).frame(height: 40)
+                            .background(Theme.Colors.canvas).clipShape(Capsule())
+                    }.buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private func run(length: DocumentSummary.Length = .short, format: DocumentSummary.Format? = nil, language: String? = nil) {
+        Task { await service.summarise(doc, text: text, format: format, length: length, language: language, context: context) }
+    }
+}

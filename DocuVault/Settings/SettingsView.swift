@@ -30,7 +30,7 @@ struct SettingsView: View {
                 Button(role: .destructive) { confirmWipe = true } label: { Text("Delete all documents (\(docs.count))") }
             }
             Section("About") {
-                row("Version", "0.4.0 · Phase 4")
+                row("Version", "0.6.0 · Phase 6")
                 row("Bundle", "com.evanlai.docuvault")
             }
         }

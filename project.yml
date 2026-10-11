@@ -4,8 +4,8 @@ name: DocuVault
 options:
   bundleIdPrefix: com.evanlai
   deploymentTarget:
-    iOS: "18.0"
-  xcodeVersion: "16.0"
+    iOS: "26.0"
+  xcodeVersion: "26.0"
   createIntermediateGroups: true
   generateEmptyDirectories: true
 
@@ -37,8 +37,8 @@ targets:
       path: DocuVault/Info.plist
       properties:
         CFBundleDisplayName: DocuVault
-        CFBundleShortVersionString: "0.5.0"
-        CFBundleVersion: "5"
+        CFBundleShortVersionString: "0.6.0"
+        CFBundleVersion: "6"
         DocuVaultKeychainSharing: true
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]

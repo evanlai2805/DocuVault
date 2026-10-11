@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 9 · Summaries (Phase 6)</title>
+<style>
+:root{--ink:#000;--ink2:#8A8A8E;--hair:#E5E5EA;--canvas:#F2F2F7;--accent:#2F6BFF;--g:#1B7F4C;--a:#B5731B;--r:#8E1F1F;--lav-bg:#F4EEFC;--lav-bd:#DCCFF3;--lav-tx:#6E2FC4}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+.phone{width:100%;max-width:360px;margin:0 auto;min-height:680px;border-radius:44px;background:var(--canvas);padding:22px 16px 90px;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:17px}.nav b{font-weight:600}.nav .l{color:var(--accent)}
+.card{border-radius:28px;padding:22px 20px 18px;color:#fff;margin-bottom:14px}
+.card.graph{background:linear-gradient(160deg,#1C1C1E,#3A3A3C)}.card.navy{background:linear-gradient(160deg,#1B0F55,#163C8C)}.card.green{background:linear-gradient(160deg,#0C4A2E,#1B7F4C)}
+.card .ct{font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;font-stretch:condensed}
+.card .cs{font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin:4px 0 14px;font-stretch:condensed}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}.stat .l{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.7;font-stretch:condensed}
+.stat .v{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1.1}.stat .f{font-size:15px;opacity:.75}
+.cbtn{margin-top:14px;background:rgba(255,255,255,.14);border-radius:16px;padding:13px 16px;font-size:17px;font-weight:500;display:flex;justify-content:space-between}
+.sec{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2);margin:14px 4px 6px;display:flex;justify-content:space-between}
+.box{background:#fff;border-radius:20px;padding:16px;font-size:16px;line-height:1.5}
+.box h4{margin:0 0 8px;font-size:18px;font-weight:700}.box ul{margin:0;padding-left:18px}.box li{margin:4px 0}
+.box .kf{display:grid;grid-template-columns:110px 1fr;gap:6px 8px;font-size:15px;margin-top:10px}.box .kf span{color:var(--ink2)}
+.chips{display:flex;gap:4px;overflow:auto;margin:0 -4px 12px}.chip{padding:10px 16px;border-radius:22px;font-size:16px;font-weight:500;color:var(--ink2);white-space:nowrap}.chip.on{background:#fff;color:var(--ink);border:1px solid var(--hair)}
+.p{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}.pg{background:rgba(27,127,76,.14);color:var(--g)}.pa{background:rgba(181,115,27,.14);color:var(--a)}.pb{background:rgba(47,107,255,.14);color:var(--accent)}.pn{background:#EEE;color:var(--ink2)}
+.banner{background:var(--lav-bg);border:1px solid var(--lav-bd);border-radius:20px;padding:14px 16px;margin-bottom:14px;color:var(--lav-tx);font-size:15px}.banner b{font-size:16px}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+.flow{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;align-items:center}.flow span{background:#fff;border:1px solid var(--hair);border-radius:8px;padding:5px 8px}.flow span.k{background:#0B2A4A;color:#fff}.flow i{color:var(--ink2)}
+.menu{background:#fff;border-radius:14px;padding:6px 0;font-size:16px;width:230px;box-shadow:0 8px 24px rgba(0,0,0,.15);margin:8px 0 0 40px}.menu div{padding:9px 16px;border-bottom:1px solid var(--hair)}.menu div:last-child{border:0}
+</style></head><body>
+<h1>Checkpoint 9 — Summaries</h1>
+<p class="sub">Phase 6. Two layers: Apple Writing Tools (free, zero setup) on every text view, and a structured on-device summary built on your rules. Cloud stays off until Phase 7.</p>
+
+<div class="flow"><span>document text</span><i>→</i><span>language: ≥60% CJK → 中文, else English</span><i>→</i><span>chunk if long (map → reduce)</span><i>→</i><span class="k">on-device model · structured output</span><i>→</i><span>format rule: bullets / paragraph / ask</span><i>→</i><span>summary card + key facts + actions</span><i>→</i><span>saved on the document · exported in .md</span></div>
+
+<div class="grid">
+
+<div class="phone"><div class="nav"><span class="l">‹ Library</span><b>租赁合同 — 西安某某</b><span class="l">⋯</span></div>
+<div class="card graph"><div class="ct">Summary</div><div class="cs">on-device · 中文 · 3 pages · 1.9 s</div>
+<div class="stats"><div class="stat"><div class="l">Format</div><div class="v" style="font-size:22px">要点</div><div class="f">auto: contract</div></div><div class="stat"><div class="l">Model</div><div class="v" style="font-size:22px">Apple</div><div class="f">no upload</div></div></div>
+<div class="cbtn"><span>Regenerate · longer · paragraph</span><span>›</span></div></div>
+<div class="box"><h4>厂房租赁合同（2026–2028）</h4>
+<ul><li>甲方西安某某制造有限公司将雁塔区科技路10号厂房出租给乙方李某某。</li><li>租期三年：2026年1月1日至2028年12月31日。</li><li>合同总价人民币1,250,000元，按年支付。</li><li>适用中华人民共和国法律。</li></ul>
+<div class="kf"><span>当事人</span><b>西安某某 · 李某某</b><span>期限</span><b>2026-01-01 → 2028-12-31</b><span>金额</span><b>CNY 1,250,000</b><span>待办</span><b>核对付款日期；确认违约条款</b></div></div>
+<div class="sec"><span>Text</span><span>select → Writing Tools</span></div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Library</span><b>Lee &amp; Co letter</b><span class="l">⋯</span></div>
+<div class="card graph"><div class="ct">Summary</div><div class="cs">on-device · English · STE style · 0.8 s</div>
+<div class="stats"><div class="stat"><div class="l">Format</div><div class="v" style="font-size:22px">Paragraph</div><div class="f">auto: letter</div></div><div class="stat"><div class="l">Length</div><div class="v" style="font-size:22px">Short</div><div class="f">62 words</div></div></div>
+<div class="cbtn"><span>Regenerate · longer · bullets</span><span>›</span></div></div>
+<div class="box"><h4>Request to extend the IM deadline</h4>
+<p style="margin:0">Lee &amp; Co asks for two more weeks on the information memorandum. The accountant delivers audited numbers on 24 October. They want the draft by 7 November. They accept a fee adjustment for the delay. They ask you to confirm by Friday.</p>
+<div class="kf"><span>From</span><b>J. Lee, Lee &amp; Co</b><span>Deadline</span><b>2026-11-07</b><span>Action</span><b>Confirm by Fri 17 Oct</b></div></div>
+<div class="banner"><b>STE applied</b> · one idea per sentence · under 20 words · active voice. Not applied to 中文 output.</div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Library</span><b>Board pack extract</b><span class="l">⋯</span></div>
+<div class="card graph"><div class="ct">Summary</div><div class="cs">on-device · English · 14 pages</div>
+<div class="stats"><div class="stat"><div class="l">Format</div><div class="v" style="font-size:22px">?</div><div class="f">mixed content</div></div><div class="stat"><div class="l">Chunks</div><div class="v" style="font-size:22px">6</div><div class="f">map → reduce</div></div></div></div>
+<div class="box"><h4>How should this read?</h4><p style="margin:0 0 10px;color:var(--ink2);font-size:15px">The document mixes narrative and tables. The model is not sure which format serves you.</p>
+<div class="chips" style="margin:0"><span class="chip on">Bullets</span><span class="chip">Paragraph</span><span class="chip">Both</span></div></div>
+<div class="sec"><span>Remember for</span><span></span></div>
+<div class="box" style="padding:10px 16px;font-size:15px">This type (Other) · <span class="p pb">this document only</span></div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Library</span><b>SIA receipt</b><span class="l">⋯</span></div>
+<div class="card navy"><div class="ct">Receipt</div><div class="cs">no summary needed</div>
+<div class="stats"><div class="stat"><div class="l">Total</div><div class="v">412.00</div><div class="f">SGD · Flights</div></div><div class="stat"><div class="l">Paid</div><div class="v" style="font-size:22px">Visa •4417</div><div class="f">2026-10-10</div></div></div></div>
+<div class="banner"><b>Rule</b> · receipts, cards and IDs get fields, not summaries. The Summarise button is hidden for those types.</div>
+<div class="sec"><span>Text</span><span>select → Writing Tools</span></div>
+<div class="box" style="font-size:14px;color:var(--ink2)">SINGAPORE AIRLINES<br>Booking ref 7XK2PQ<br>…</div>
+<div class="menu"><div>Copy</div><div>Look Up</div><div><b>Writing Tools ›</b></div><div>Translate</div><div>Share…</div></div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Library</span><b>Contract</b><span class="l">⋯</span></div>
+<div class="card graph"><div class="ct">Summary</div><div class="cs">unavailable on this device</div>
+<div class="stats"><div class="stat"><div class="l">Reason</div><div class="v" style="font-size:18px">Apple Intelligence off</div><div class="f">or model downloading</div></div></div>
+<div class="cbtn"><span>Open Settings · Apple Intelligence</span><span>›</span></div></div>
+<div class="banner"><b>Fallbacks</b> · 1. Select text → Writing Tools (works without our model). 2. Phase 7: Claude with your approval. 3. Later: Qwen via MLX for long 中文.</div>
+</div>
+
+</div>
+
+<h3>Summary contract (what the model must return)</h3>
+<table>
+<tr><th>Field</th><th>Rule</th></tr>
+<tr><td>language</td><td>Set by code, not the model: ≥60% CJK → zh-Hans, else en. Mixed (10–60%) → the dominant script; the user can flip.</td></tr>
+<tr><td>headline</td><td>≤ 12 words / ≤ 20 characters 中文. No colon-led "Summary:".</td></tr>
+<tr><td>format</td><td>bullets · paragraph · ask. Defaults by type: contract/letter → bullets for terms, paragraph for letters; Other → model decides; low confidence → ask once.</td></tr>
+<tr><td>body</td><td>Short: 3–5 bullets or ≤ 80 words. Long: 6–10 bullets or ≤ 200 words. English follows STE: one idea per sentence, &lt; 20 words, active voice, one term per concept, keep finance/legal vocabulary.</td></tr>
+<tr><td>keyFacts</td><td>Label → value pairs pulled verbatim from the text (parties, dates, amounts, law, deadlines). Never invented: each value must appear in the source; code verifies by substring and drops any that do not.</td></tr>
+<tr><td>actions</td><td>0–4 items the reader must do, each with a date if the text gives one.</td></tr>
+<tr><td>grounding</td><td>Model is told: "Use only the text. If a fact is absent, omit it. Do not guess." Code re-checks key facts and amounts against the extracted fields from Phase 3.</td></tr>
+</table>
+
+<h3>Long documents</h3>
+<table>
+<tr><th>Step</th><th>Rule</th></tr>
+<tr><td>Chunk</td><td>Split on paragraphs; ~2,000 characters per chunk for 中文, ~3,500 for English (Apple's window is ~4k tokens). Never split inside a table row or a numbered clause.</td></tr>
+<tr><td>Map</td><td>Each chunk → 2–4 bullets + key facts, same contract.</td></tr>
+<tr><td>Reduce</td><td>Chunk outputs → one final summary. Key facts merged and de-duplicated. Shows "6 chunks" on the card.</td></tr>
+<tr><td>Cap</td><td>Over 40 chunks (~100 pages) → summarise first 40, flag "partial" on the card.</td></tr>
+</table>
+
+<h3>Questions</h3>
+<div class="q">Q1 · Auto-summarise on save for contracts and letters, or only when you tap Summarise? Auto costs ~1–3 s per document on the A19 Pro.</div>
+<div class="q">Q2 · When the format is uncertain and the model asks, remember your pick per document type, or ask every time?</div>
+<div class="q">Q3 · Mixed-language documents (10–60% CJK): summarise in the dominant script, or produce both languages?</div>
+<div class="q">Q4 · Qwen via MLX for long Chinese contracts means a ~2.5 GB one-time model download inside the app. Include it in this phase behind a "Download Chinese model" button, or leave Chinese to Apple's model for now and judge quality on your real contracts first?</div>
+</body></html>

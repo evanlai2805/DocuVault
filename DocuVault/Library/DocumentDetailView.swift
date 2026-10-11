@@ -56,6 +56,10 @@ struct DocumentDetailView: View {
                     }
                 }
 
+                if SummarySpec.supportsSummary(doc.type), let full = vault.revealText(doc), !full.isEmpty {
+                    SummaryCard(doc: doc, text: full)
+                }
+
                 if !doc.fields.isEmpty {
                     fieldsCard(doc.orderedFields.filter { $0.section == .main }, title: "Fields")
                     let secondary = doc.orderedFields.filter { $0.section == .secondary }
@@ -131,6 +135,7 @@ struct DocumentDetailView: View {
         return Text(attributed)
             .font(.system(size: 17))
             .textSelection(.enabled)
+            .writingToolsBehavior(.complete)   // Apple Writing Tools: Summarise, Key Points, Rewrite, Translate on selection
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 

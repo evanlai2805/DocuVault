@@ -105,6 +105,13 @@ final class MarkdownExporterTests: XCTestCase {
         XCTAssertFalse(mainTable.contains("Place of birth"))
     }
 
+    func testSummaryIsExported() {
+        var d = sample()
+        d.summary = DocumentSummary(language: "en", headline: "Passport ok", format: .bullets, body: ["Valid to 2031."], keyFacts: [], actions: [])
+        let md = MarkdownExporter.markdown(for: d)
+        XCTAssertTrue(md.contains("## Summary\n\n**Passport ok**\n\n- Valid to 2031."))
+    }
+
     func testMissingAndPipesAreSafe() {
         var d = sample()
         d.fields = [ExtractedField(key: "a", labelEN: "A", value: "x|y", check: .ocr),

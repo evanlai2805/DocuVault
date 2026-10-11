@@ -25,6 +25,8 @@ final class StoredDocument {
     /// For sensitive documents `fullText` is empty and the text lives here, sealed with the vault key.
     var sealedText: Data?
     var notes: String
+    /// DocumentSummary encoded. Sealed with the vault key for sensitive documents (rare: summaries are hidden for ID types).
+    var summaryJSON: Data?
 
     init(id: UUID = UUID(), title: String, type: DocumentType, language: String, sensitive: Bool,
          capturedAt: Date = Date(), source: CaptureSource, fullText: String, pages: [StoredPage] = [],

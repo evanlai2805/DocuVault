@@ -19,10 +19,10 @@ jobs:
       - name: Select Xcode
         run: |
           echo "::notice title=Xcodes on runner::$(ls -d /Applications/Xcode*.app | xargs -n1 basename | tr '\n' ' ')"
-          # Prefer Xcode 26 (iOS 26 SDK, Foundation Models) when the image has it; else the newest 16.x.
+          # iOS 26 SDK is required (Foundation Models). Fail loudly if the runner lacks Xcode 26.
           X26=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
-          X16=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1 || true)
-          sudo xcode-select -s "${X26:-$X16}"
+          [ -n "$X26" ] || { echo "::error::Xcode 26 not found on runner"; exit 1; }
+          sudo xcode-select -s "$X26"
           echo "::notice title=Toolchain::$(xcodebuild -version | tr '\n' ' ') / $(swift --version 2>&1 | head -1)"
       - name: Build and test
         working-directory: DocuVaultCore

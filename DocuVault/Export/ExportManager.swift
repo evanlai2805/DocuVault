@@ -94,7 +94,8 @@ final class ExportManager {
             let export = ExportDocument(title: doc.title, owner: owner, ownerKind: kind, type: doc.type, sensitive: doc.sensitive,
                                         capturedAt: doc.capturedAt, source: doc.source.displayName, language: doc.language,
                                         checksPassed: doc.checksPassed, checksTotal: doc.checksTotal, fields: fields,
-                                        expiresAt: doc.expiresAt, notes: doc.notes, imageFileNames: imageNames)
+                                        expiresAt: doc.expiresAt, notes: doc.notes, imageFileNames: imageNames,
+                                        summary: doc.summaryJSON.flatMap { try? JSONDecoder().decode(DocumentSummary.self, from: $0) })
             files.append((path, Data(MarkdownExporter.markdown(for: export).utf8)))
 
             let expiry = fields.first { ["expiry", "validTo", "expiryDate"].contains($0.key) }?.value

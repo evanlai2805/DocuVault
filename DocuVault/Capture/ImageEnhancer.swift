@@ -5,8 +5,7 @@ import UIKit
 
 /// CoreImage enhancements for the pages editor.
 enum ImageEnhancer {
-    // CIContext is documented as thread-safe; Swift 6 cannot see that, so we vouch for it.
-    nonisolated(unsafe) private static let context = CIContext(options: [.useSoftwareRenderer: false])
+    private static let context = CIContext(options: [.useSoftwareRenderer: false])
 
     /// Adaptive-ish black and white: boost contrast, then threshold. Good for paper, bad for photos of cards.
     static func blackAndWhite(_ image: CGImage) -> CGImage? {
