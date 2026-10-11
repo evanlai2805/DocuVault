@@ -1,0 +1,57 @@
+# XcodeGen spec. Generate the project with:  xcodegen generate
+# Install XcodeGen once:  brew install xcodegen
+name: DocuVault
+options:
+  bundleIdPrefix: com.evanlai
+  deploymentTarget:
+    iOS: "18.0"
+  xcodeVersion: "16.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    DEVELOPMENT_TEAM: ""        # set in Xcode → Signing & Capabilities on first run
+    CODE_SIGN_STYLE: Automatic
+
+packages:
+  DocuVaultCore:
+    path: DocuVaultCore
+
+targets:
+  DocuVault:
+    type: application
+    platform: iOS
+    sources:
+      - path: DocuVault
+    dependencies:
+      - package: DocuVaultCore
+        product: DocuVaultCore
+      - package: DocuVaultCore
+        product: DocuVaultOCR
+    info:
+      path: DocuVault/Info.plist
+      properties:
+        CFBundleDisplayName: DocuVault
+        CFBundleShortVersionString: "0.2.0"
+        CFBundleVersion: "2"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSCameraUsageDescription: DocuVault scans documents with the camera. Images stay on this device.
+        NSPhotoLibraryUsageDescription: DocuVault imports document photos you choose. Images stay on this device.
+        LSSupportsOpeningDocumentsInPlace: false
+        UIFileSharingEnabled: false
+        ITSAppUsesNonExemptEncryption: false
+    entitlements:
+      path: DocuVault/DocuVault.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.evanlai.docuvault
+        com.apple.developer.default-data-protection: NSFileProtectionComplete
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.evanlai.docuvault
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES

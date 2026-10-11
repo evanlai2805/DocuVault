@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 5 · DocuVault in the Flighty design language</title>
+<style>
+:root{--ink:#000;--ink2:#8A8A8E;--hair:#E5E5EA;--canvas:#F2F2F7;--accent:#2F6BFF;
+--navy1:#1B0F55;--navy2:#163C8C;--red1:#5B0E0E;--red2:#8E1F1F;--green1:#0C4A2E;--green2:#1B7F4C;--graph1:#1C1C1E;--graph2:#3A3A3C;
+--lav-bg:#F4EEFC;--lav-bd:#DCCFF3;--lav-tx:#6E2FC4}
+*{box-sizing:border-box}
+body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Arial,sans-serif;color:var(--ink);padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+.phone{width:100%;max-width:360px;margin:0 auto;height:700px;border-radius:44px;background:linear-gradient(180deg,#9FB6A2 0%,#6C8F74 20%,#fff 20.1%);position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.phone .sheet{position:absolute;top:110px;left:0;right:0;bottom:0;background:#fff;border-radius:40px 40px 0 0;padding:28px 18px 110px;overflow:hidden}
+.phone .cap{position:absolute;top:0;left:0;right:0;height:110px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;letter-spacing:.3px}
+.phone .cap small{background:rgba(0,0,0,.25);padding:4px 10px;border-radius:999px}
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.hdr h2{margin:0;font-size:34px;font-weight:800;letter-spacing:-.4px}
+.circ{width:48px;height:48px;border-radius:50%;background:#fff;border:1px solid var(--hair);display:inline-flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-left:8px}
+.chips{display:flex;gap:6px;align-items:center;margin-bottom:14px}
+.chip{padding:10px 18px;border-radius:22px;font-size:17px;font-weight:500;border:1px solid transparent;color:var(--ink2)}
+.chip.on{border-color:var(--hair);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.chip.add{color:var(--accent)}.chip.add b{display:inline-block;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;text-align:center;line-height:26px;margin-right:6px;font-weight:600}
+.banner{background:var(--lav-bg);border:1px solid var(--lav-bd);border-radius:20px;padding:14px 16px;margin-bottom:14px}
+.banner .pro{display:inline-block;background:#E8DCF8;color:var(--lav-tx);font-weight:700;font-size:12px;padding:3px 8px;border-radius:7px;margin-right:8px}
+.banner b{font-size:17px;color:var(--lav-tx);font-weight:600}.banner p{margin:6px 0 0;font-size:16px;color:var(--lav-tx)}
+.card{border-radius:28px;padding:22px 20px 18px;color:#fff;margin-bottom:14px;position:relative}
+.card.navy{background:linear-gradient(160deg,var(--navy1),var(--navy2))}.card.red{background:linear-gradient(160deg,var(--red1),var(--red2))}
+.card.green{background:linear-gradient(160deg,var(--green1),var(--green2))}.card.graph{background:linear-gradient(160deg,var(--graph1),var(--graph2))}
+.card .ct{font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;font-stretch:condensed}
+.card .cs{font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin:4px 0 16px;font-stretch:condensed}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px}
+.stat .l{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.7;font-stretch:condensed}
+.stat .v{font-size:40px;font-weight:800;letter-spacing:-1px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .f{font-size:15px;opacity:.75}
+.stat .v.sm{font-size:30px}
+.cbtn{margin-top:16px;background:rgba(255,255,255,.14);border-radius:16px;padding:14px 16px;font-size:18px;font-weight:500;display:flex;justify-content:space-between}
+.card .share{position:absolute;top:18px;right:18px;opacity:.9}
+.row{display:flex;align-items:center;gap:16px;padding:12px 0}
+.row .ic{width:44px;height:44px;border-radius:12px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.row .ic.lt{background:#F2F2F7;color:#111}
+.row b{font-size:19px;font-weight:600;display:block}.row span{font-size:16px;color:var(--ink2)}
+.sec{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2);margin:16px 0 4px}
+.search{background:var(--canvas);border-radius:20px;height:60px;display:flex;align-items:center;padding:0 18px;font-size:21px;color:var(--ink2);margin-bottom:18px}
+.empty{position:absolute;left:0;right:0;top:45%;text-align:center;color:var(--ink2)}
+.empty b{font-size:22px;font-weight:600;display:block}.empty span{font-size:18px}
+.tab{position:absolute;bottom:18px;left:14px;right:14px;display:flex;gap:10px;align-items:center}
+.tab .pill{flex:1;height:68px;border-radius:34px;background:rgba(255,255,255,.85);backdrop-filter:blur(20px);border:1px solid rgba(0,0,0,.06);display:flex;justify-content:space-around;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.tab .pill div{font-size:11px;font-weight:600;text-align:center}.tab .pill div i{display:block;font-style:normal;font-size:22px}
+.tab .pill div.on{color:var(--accent);background:#E9EDF5;padding:8px 16px;border-radius:26px}
+.tab .sq{width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 6px 20px rgba(0,0,0,.12)}
+.field{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--hair);font-size:17px}
+.field span{color:var(--ink2)}.field code{font-family:ui-monospace,Menlo,monospace;font-size:16px}
+.ok{color:#1B7F4C;font-weight:600}.am{color:#B5731B;font-weight:600}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px;color:#111}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+.ds{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}.ds div{border-radius:12px;padding:12px;color:#fff;font-size:12px;font-weight:600}
+</style></head><body>
+<h1>Checkpoint 5 — DocuVault, Flighty-style</h1>
+<p class="sub">Same screens as before, redrawn in the reference language. Flighty has a map behind the sheet; we have a soft colour wash. Tell me if any screen misses the vibe.</p>
+
+<div class="grid">
+
+<div class="phone"><div class="cap"><small>Library tab</small></div><div class="sheet">
+<div class="hdr"><h2>Library</h2><div><span class="circ">⇧</span><span class="circ">◯</span></div></div>
+<div class="chips"><span class="chip on">All</span><span class="chip">Contracts</span><span class="chip">Receipts</span><span class="chip">中文</span></div>
+<div class="banner"><span class="pro">SCAN</span><b>Scan your first document</b><p>Camera, Photos, Files or clipboard. OCR stays on this phone.</p></div>
+<div class="card navy"><div class="share">⇧</div><div class="ct">All-time DocuVault</div><div class="cs">Documents · 文件 · Pages</div>
+<div class="stats"><div class="stat"><div class="l">Documents</div><div class="v">14</div><div class="f">3 contracts</div></div>
+<div class="stat"><div class="l">Pages read</div><div class="v">86</div><div class="f">0 uploads</div></div>
+<div class="stat"><div class="l">Vault</div><div class="v sm">7</div></div><div class="stat"><div class="l">Expiring</div><div class="v sm">1</div></div></div>
+<div class="cbtn"><span>All documents</span><span>›</span></div></div>
+<div class="tab"><div class="pill"><div class="on"><i>▤</i>Library</div><div><i>▣</i>Scan</div><div><i>🔒</i>Vault</div></div><div class="sq">⌕</div></div>
+</div></div>
+
+<div class="phone"><div class="cap"><small>Scan · import sheet</small></div><div class="sheet">
+<div class="hdr"><h2>Add Document</h2><div><span class="circ">✕</span></div></div>
+<div class="search">Search your library…</div>
+<div class="row"><div class="ic">▣</div><div><b>Scan with camera</b><span>Multi-page · auto edges</span></div></div>
+<div class="row"><div class="ic">🖼</div><div><b>Choose from Photos</b><span>Select one or many</span></div></div>
+<div class="row"><div class="ic">▭</div><div><b>Pick from Files</b><span>JPG · PNG · HEIC · PDF</span></div></div>
+<div class="row"><div class="ic">⎘</div><div><b>Paste from clipboard</b><span>Image found</span></div></div>
+<div class="sec">Recent</div>
+<div class="row"><div class="ic lt">📄</div><div><b>租赁合同 — 西安某某</b><span>Contract · 中文 · 3 pages</span></div></div>
+</div></div>
+
+<div class="phone"><div class="cap"><small>Pages · OCR result</small></div><div class="sheet">
+<div class="hdr"><h2>3 Pages</h2><div><span class="circ">✓</span></div></div>
+<div class="card graph"><div class="ct">On-device OCR</div><div class="cs">en · zh-Hans · zh-Hant</div>
+<div class="stats"><div class="stat"><div class="l">Confidence</div><div class="v">94<span style="font-size:22px">%</span></div><div class="f">Page 2 low</div></div>
+<div class="stat"><div class="l">Language</div><div class="v sm">中文</div><div class="f">82% CJK</div></div>
+<div class="stat"><div class="l">Lines</div><div class="v sm">212</div></div><div class="stat"><div class="l">Time</div><div class="v sm">1.8s</div></div></div>
+<div class="cbtn"><span>Read text</span><span>›</span></div></div>
+<div class="chips"><span class="chip on">Colour</span><span class="chip">Greyscale</span><span class="chip">B&amp;W</span></div>
+<div class="row"><div class="ic lt">↻</div><div><b>Rotate</b></div></div>
+<div class="row"><div class="ic lt">🗑</div><div><b>Delete page</b></div></div>
+</div></div>
+
+<div class="phone"><div class="cap"><small>Vault · passport (Phase 4)</small></div><div class="sheet">
+<div class="hdr"><h2>Passport</h2><div><span class="circ">⇧</span><span class="circ">⋯</span></div></div>
+<div class="card green"><div class="share">🔒</div><div class="ct">Evan Lai</div><div class="cs">Passport · Singapore · MRZ verified</div>
+<div class="stats"><div class="stat"><div class="l">Expires</div><div class="v sm">Feb 2031</div><div class="f">4 yrs 4 mo</div></div>
+<div class="stat"><div class="l">Checks</div><div class="v sm">5/5</div><div class="f">All passed</div></div></div>
+<div class="cbtn"><span>Copy block</span><span>⎘</span></div></div>
+<div class="field"><span>Surname</span><code>TAN</code><em class="ok">MRZ</em></div>
+<div class="field"><span>Given names</span><code>EVAN</code><em class="ok">MRZ</em></div>
+<div class="field"><span>Passport no.</span><code>K1234567A</code><em class="ok">MRZ ✓</em></div>
+<div class="field"><span>Date of birth</span><code>1999-04-12</code><em class="ok">MRZ ✓</em></div>
+<div class="field"><span>Issue date</span><code>2021-03-01</code><em class="am">OCR</em></div>
+<div class="sec">Secondary</div>
+<div class="field"><span>Place of birth</span><code>SINGAPORE</code><em class="am">OCR</em></div>
+</div></div>
+
+<div class="phone"><div class="cap"><small>Vault · expiring (red card)</small></div><div class="sheet">
+<div class="hdr"><h2>Vault</h2><div><span class="circ">⇧</span><span class="circ">◯</span></div></div>
+<div class="chips"><span class="chip on">Everyone</span><span class="chip">Me</span><span class="chip">Clients</span><span class="chip add"><b>+</b>Add Person</span></div>
+<div class="card red"><div class="share">⇧</div><div class="stat"><div class="v">1</div></div><div style="font-size:22px;font-weight:600;margin-top:4px">document expiring soon</div><div style="font-size:17px;opacity:.8">Client — Lee &amp; Co deletes in 3 days</div>
+<div class="cbtn"><span>Extend 30 days · Keep · Delete</span><span>›</span></div></div>
+<div class="row"><div class="ic lt">👤</div><div><b>Evan</b><span>Passport · NRIC · 3 cards</span></div></div>
+<div class="row"><div class="ic lt">👤</div><div><b>Mum</b><span>NRIC · 1 card</span></div></div>
+<div class="row"><div class="ic lt">🏢</div><div><b>Client — Lee &amp; Co</b><span>Director passport · BizFile</span></div></div>
+<div class="tab"><div class="pill"><div><i>▤</i>Library</div><div><i>▣</i>Scan</div><div class="on"><i>🔒</i>Vault</div></div><div class="sq">⌕</div></div>
+</div></div>
+
+<div class="phone"><div class="cap"><small>Empty state</small></div><div class="sheet">
+<div class="hdr"><h2>Library</h2><div><span class="circ">⇧</span><span class="circ">◯</span></div></div>
+<div class="empty"><b>Nothing scanned yet</b><span>Tap ⌕ Scan to add your first document</span></div>
+<div class="tab"><div class="pill"><div class="on"><i>▤</i>Library</div><div><i>▣</i>Scan</div><div><i>🔒</i>Vault</div></div><div class="sq">⌕</div></div>
+</div></div>
+
+</div>
+
+<h3>Card palette</h3>
+<div class="ds">
+<div style="background:linear-gradient(160deg,#1B0F55,#163C8C)">navy · library stats</div>
+<div style="background:linear-gradient(160deg,#5B0E0E,#8E1F1F)">red · expiring / failed checks</div>
+<div style="background:linear-gradient(160deg,#0C4A2E,#1B7F4C)">green · verified vault item</div>
+<div style="background:linear-gradient(160deg,#1C1C1E,#3A3A3C)">graphite · OCR / processing</div>
+<div style="background:#F4EEFC;color:#6E2FC4;border:1px solid #DCCFF3">lavender · hints / banners</div>
+</div>
+
+<h3>Questions</h3>
+<div class="q">Q1 · Tab layout: Library · Scan · Vault in the pill, plus the separate circular Search? Or Scan as the circular button (like Flighty's search) and Library · Vault · Settings in the pill?</div>
+<div class="q">Q2 · Behind the white sheet, Flighty shows a map. I propose a soft colour wash from the current document's card colour. Or plain white edge-to-edge?</div>
+<div class="q">Q3 · Card colour per document type: navy = library, green = verified vault item, red = expiring or failed checks, graphite = processing. Fine, or do you want per-type colours (passport / card / contract)?</div>
+</body></html>
