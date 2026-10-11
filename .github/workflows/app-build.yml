@@ -48,4 +48,5 @@ jobs:
           warnings=$(grep -cE "warning:" build.log || true)
           echo "::notice title=App build::errors=${errors} warnings=${warnings}"
           { grep -E "error:" build.log || true; } | sort -u | head -40 | while read -r l; do echo "::error::$l"; done
+          { grep -A 12 "Could not resolve package dependencies" build.log || true; } | head -40 | while read -r l; do echo "::error::resolve: $l"; done
           { grep -E "warning:" build.log || true; } | sort -u | head -40 | while read -r l; do echo "::warning::$l"; done
