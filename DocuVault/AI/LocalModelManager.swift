@@ -89,8 +89,7 @@ final class LocalModelManager {
     func load(progressHandler: ((Double) -> Void)? = nil) async throws -> ModelContainer {
         if let c = container { return c }
         if case .downloading = state {} else { state = .loading }
-        let config = ModelConfiguration(id: Self.modelID)
-        let c = try await LLMModelFactory.shared.loadContainer(configuration: config) { progress in
+        let c = try await loadModel(id: Self.modelID) { progress in
             progressHandler?(progress.fractionCompleted)
         }
         container = c
