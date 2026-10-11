@@ -38,7 +38,7 @@ public enum FillInference {
             if ct.contains("birthdatemonth") { return .init(value: .component(.month), reason: "month field") }
             if ct.contains("birthdateyear") { return .init(value: .component(.year), reason: "year field") }
         }
-        let nearby = (c.before.suffix(12) + c.after.prefix(12))
+        let nearby = String(c.before.suffix(12)) + String(c.after.prefix(12))
         if c.keyboard == .numeric {
             // Digits-only field. A region that writes year first gets YYYYMMDD; everyone else DDMMYYYY.
             return yearFirst(c.region) ? .init(value: .full(.digitsYMD), reason: "number pad") : .init(value: .full(.digitsDMY), reason: "number pad")
@@ -81,7 +81,7 @@ public enum FillInference {
 
     public static func expiry(_ c: Context) -> Choice<FillFormats.ExpiryStyle> {
         if c.keyboard == .numeric { return .init(value: .mmyy, reason: "number pad") }
-        let nearby = (c.before.suffix(8) + c.after.prefix(8)).uppercased()
+        let nearby = (String(c.before.suffix(8)) + String(c.after.prefix(8))).uppercased()
         if nearby.contains("YYYY") { return .init(value: .mmSlashYYYY, reason: "4-digit year hint") }
         return .init(value: .mmSlashYY, reason: "default")
     }

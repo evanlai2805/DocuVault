@@ -36,10 +36,12 @@ public enum FillFormats {
         let d = digits.filter(\.isNumber)
         guard spaced else { return d }
         let groups = d.count == 15 ? [4, 6, 5] : Array(repeating: 4, count: (d.count + 3) / 4)
-        var out: [String] = [], i = d.startIndex
+        var out: [String] = []
+        var i = d.startIndex
         for g in groups where i < d.endIndex {
             let j = d.index(i, offsetBy: g, limitedBy: d.endIndex) ?? d.endIndex
-            out.append(String(d[i..<j])); i = j
+            out.append(String(d[i..<j]))
+            i = j
         }
         return out.joined(separator: " ")
     }
