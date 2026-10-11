@@ -165,8 +165,10 @@ struct SaveDocumentView: View {
                 storedPages.append(StoredPage(index: i, imageFileName: fileName, ocrJSON: json,
                                               text: key == nil ? p.text : "", meanConfidence: p.meanConfidence))
             }
-            let storedFields = try (capture.extraction?.fields ?? []).enumerated().map { i, f in
-                StoredField(order: i, field: f, sealedValue: key.map { try VaultCrypto.seal(f.value, key: $0) })
+            var storedFields: [StoredField] = []
+            for (i, f) in (capture.extraction?.fields ?? []).enumerated() {
+                let sealed: Data? = try key.map { try VaultCrypto.seal(f.value, key: $0) }
+                storedFields.append(StoredField(order: i, field: f, sealedValue: sealed))
             }
             let owner = people.first { $0.id == ownerID }
             let doc = StoredDocument(title: title.trimmingCharacters(in: .whitespaces), type: type, language: language,
