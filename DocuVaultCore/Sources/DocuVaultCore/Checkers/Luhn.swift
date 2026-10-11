@@ -81,7 +81,7 @@ public enum CardCheck {
 
     /// Card expiry "MM/YY" or "MM/YYYY" or "MM-YY". Returns (month, fullYear) or nil.
     public static func parseExpiry(_ raw: String) -> (month: Int, year: Int)? {
-        let pattern = #"(0[1-9]|1[0-2])\s*[/\-]\s*(\d{2}|\d{4})"#
+        let pattern = #"(0[1-9]|1[0-2])\s*[/\-]\s*(\d{4}|\d{2})\b"#
         guard let r = raw.range(of: pattern, options: .regularExpression) else { return nil }
         let m = String(raw[r])
         let parts = m.components(separatedBy: CharacterSet(charactersIn: "/-")).map { $0.trimmingCharacters(in: .whitespaces) }

@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          swift test --parallel 2>&1 | tee ../test-output.log
+          swift test 2>&1 | tee ../test-output.log
       - name: Report
         if: always()
         shell: bash
