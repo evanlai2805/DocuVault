@@ -2,9 +2,11 @@ import Foundation
 import SwiftUI
 import DocuVaultCore
 #if canImport(MLXLLM)
-
 import MLXLLM
 import MLXLMCommon
+import MLXHuggingFace
+import HuggingFace
+import Tokenizers
 #endif
 
 /// Qwen via MLX for Chinese-heavy documents. One-time download (~2.5 GB) that you start from Settings.
@@ -42,17 +44,18 @@ final class LocalModelManager {
         #endif
     }
 
-    /// Hugging Face cache lives in the app's Documents. Installed = at least one weights file present.
+    /// swift-huggingface's default cache on iOS: Caches/huggingface/hub/models--<org>--<name>/snapshots/<rev>/…
+    /// iOS may purge Caches under storage pressure; the app then offers the download again.
     var modelDirectory: URL {
-        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("huggingface/models/\(Self.modelID)", isDirectory: true)
+        URL.cachesDirectory.appendingPathComponent("huggingface/hub/models--" + Self.modelID.replacingOccurrences(of: "/", with: "--"), isDirectory: true)
     }
-    var isInstalled: Bool {
-        (try? FileManager.default.contentsOfDirectory(atPath: modelDirectory.path))?.contains { $0.hasSuffix(".safetensors") } ?? false
+    private var weightFiles: [URL] {
+        guard let e = FileManager.default.enumerator(at: modelDirectory, includingPropertiesForKeys: [.fileSizeKey]) else { return [] }
+        return e.compactMap { $0 as? URL }.filter { $0.pathExtension == "safetensors" }
     }
+    var isInstalled: Bool { !weightFiles.isEmpty }
     var installedSizeGB: Double {
-        guard let files = try? FileManager.default.contentsOfDirectory(at: modelDirectory, includingPropertiesForKeys: [.fileSizeKey]) else { return 0 }
-        let bytes = files.reduce(0) { $0 + ((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
+        let bytes = weightFiles.reduce(0) { $0 + ((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
         return Double(bytes) / 1_073_741_824
     }
 
@@ -89,9 +92,10 @@ final class LocalModelManager {
     func load(progressHandler: ((Double) -> Void)? = nil) async throws -> ModelContainer {
         if let c = container { return c }
         if case .downloading = state {} else { state = .loading }
-        // loadModel(id:) downloads from Hugging Face on first use; no fraction is exposed, so the UI shows an indeterminate bar.
-        progressHandler?(-1)
-        let c = try await loadModel(id: Self.modelID)
+        // Default Hugging Face client + tokenizer via the MLXHuggingFace macros. Downloads on first use.
+        let c = try await #huggingFaceLoadModelContainer(configuration: ModelConfiguration(id: Self.modelID)) { progress in
+            progressHandler?(progress.fractionCompleted)
+        }
         container = c
         state = .ready
         return c
