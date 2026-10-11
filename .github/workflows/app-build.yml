@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "DocuVault/**"
+      - "DocuVaultKeyboard/**"
       - "DocuVaultCore/Sources/**"
       - "project.yml"
       - ".github/workflows/app-build.yml"
