@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 7 · Vault + export (Phase 4)</title>
+<style>
+:root{--ink:#000;--ink2:#8A8A8E;--hair:#E5E5EA;--canvas:#F2F2F7;--accent:#2F6BFF;--g:#1B7F4C;--a:#B5731B;--r:#8E1F1F}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+.phone{width:100%;max-width:360px;margin:0 auto;min-height:680px;border-radius:44px;background:var(--canvas);padding:22px 16px 90px;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.nav h2{margin:0;font-size:34px;font-weight:800;letter-spacing:-.4px}.nav b{font-size:17px;font-weight:600}.nav .l{color:var(--accent);font-size:17px}
+.circ{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid var(--hair);display:inline-flex;align-items:center;justify-content:center;font-size:18px;margin-left:6px}
+.card{border-radius:28px;padding:22px 20px 18px;color:#fff;margin-bottom:14px}
+.card.green{background:linear-gradient(160deg,#0C4A2E,#1B7F4C)}.card.graph{background:linear-gradient(160deg,#1C1C1E,#3A3A3C)}.card.red{background:linear-gradient(160deg,#5B0E0E,#8E1F1F)}.card.navy{background:linear-gradient(160deg,#1B0F55,#163C8C)}
+.card .ct{font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;font-stretch:condensed}
+.card .cs{font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin:4px 0 16px;font-stretch:condensed}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}.stat .l{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.7;font-stretch:condensed}
+.stat .v{font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1.1}.stat .f{font-size:15px;opacity:.75}
+.cbtn{margin-top:14px;background:rgba(255,255,255,.14);border-radius:16px;padding:13px 16px;font-size:17px;font-weight:500;display:flex;justify-content:space-between}
+.sec{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2);margin:14px 4px 6px;display:flex;justify-content:space-between}
+.list{background:#fff;border-radius:20px;overflow:hidden}
+.row{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--hair)}.row:last-child{border-bottom:0}
+.row .ic{width:44px;height:44px;border-radius:12px;background:var(--canvas);display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+.row b{font-size:18px;font-weight:600;display:block}.row span{font-size:15px;color:var(--ink2)}.row .r{margin-left:auto}
+.f{display:grid;grid-template-columns:100px 1fr auto;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--hair);font-size:16px}
+.f:last-child{border-bottom:0}.f span{color:var(--ink2);font-size:15px}.f code{font-family:ui-monospace,Menlo,monospace;font-size:15px}
+.p{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}.pg{background:rgba(27,127,76,.14);color:var(--g)}.pa{background:rgba(181,115,27,.14);color:var(--a)}.pr{background:rgba(142,31,31,.14);color:var(--r)}.pb{background:rgba(47,107,255,.14);color:var(--accent)}.pn{background:#EEE;color:var(--ink2)}
+.chips{display:flex;gap:4px;overflow:auto;margin:0 -4px 12px}.chip{padding:10px 16px;border-radius:22px;font-size:16px;font-weight:500;color:var(--ink2);white-space:nowrap}.chip.on{background:#fff;color:var(--ink);border:1px solid var(--hair)}.chip.add{color:var(--accent)}
+.lock{position:absolute;inset:0;border-radius:44px;background:rgba(242,242,247,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.lock .face{width:88px;height:88px;border-radius:24px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:40px}
+.lock b{font-size:22px}.lock span{color:var(--ink2);font-size:16px}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+pre{background:#fff;border:1px solid var(--hair);border-radius:12px;padding:12px;font:12px/1.5 ui-monospace,Menlo,monospace;overflow:auto;white-space:pre}
+table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+.kbd{display:inline-block;background:#fff;border:1px solid var(--hair);border-radius:7px;padding:5px 10px;font-size:13px;font-weight:600;margin:2px}
+</style></head><body>
+<h1>Checkpoint 7 — Vault + export</h1>
+<p class="sub">Phase 4. Persons and entities, Face ID, client retention, .md export, expenses.csv. Phase 5 (keyboard) reads the same store.</p>
+
+<div class="grid">
+
+<div class="phone"><div class="lock"><div class="face">▣</div><b>Vault locked</b><span>Face ID to open</span><span style="font-size:13px">Locks again 60 s after you leave</span></div>
+<div class="nav"><h2>Vault</h2></div></div>
+
+<div class="phone"><div class="nav"><h2>Vault</h2><div><span class="circ">⇧</span><span class="circ">⋯</span></div></div>
+<div class="chips"><span class="chip on">Everyone</span><span class="chip">Me</span><span class="chip">Family</span><span class="chip">Clients</span><span class="chip add">＋ Add person</span></div>
+<div class="card red"><div class="stat"><div class="v">1</div></div><div style="font-size:21px;font-weight:600;margin-top:4px">document expiring soon</div><div style="font-size:16px;opacity:.8">Client — Lee &amp; Co · director passport · deletes in 3 days</div>
+<div class="cbtn"><span>Extend 30 d · Keep · Delete now</span><span>›</span></div></div>
+<div class="sec"><span>People</span><span>7 documents</span></div>
+<div class="list">
+<div class="row"><div class="ic">👤</div><div><b>Evan</b><span>Passport · NRIC · 2 cards</span></div><span class="p pn r">Me</span></div>
+<div class="row"><div class="ic">👤</div><div><b>Mum</b><span>NRIC · 1 card</span></div><span class="p pn r">Family</span></div>
+<div class="row"><div class="ic">🏢</div><div><b>Lee &amp; Co</b><span>Director passport · 1 more</span></div><span class="p pa r">Client · 3 d</span></div>
+<div class="row"><div class="ic">🤝</div><div><b>RTIP</b><span>2 documents</span></div><span class="p pn r">Partner</span></div>
+</div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Vault</span><b>Evan</b><span class="l">Edit</span></div>
+<div class="card green"><div class="ct">Evan Lai</div><div class="cs">Me · 4 documents · all checks pass</div>
+<div class="stats"><div class="stat"><div class="l">Next expiry</div><div class="v">2029</div><div class="f">DBS card · Sep</div></div>
+<div class="stat"><div class="l">Address</div><div class="v" style="font-size:18px">Bedok North</div><div class="f">from NRIC</div></div></div>
+<div class="cbtn"><span>Export all as .md</span><span>›</span></div></div>
+<div class="sec"><span>Documents</span><span></span></div>
+<div class="list">
+<div class="row"><div class="ic">🛂</div><div><b>Passport</b><span>K1234567A · exp 2031-02</span></div><span class="p pg r">5/5</span></div>
+<div class="row"><div class="ic">🪪</div><div><b>NRIC</b><span>S9912345A</span></div><span class="p pg r">2/2</span></div>
+<div class="row"><div class="ic">💳</div><div><b>DBS Altitude</b><span>Visa •4417 · 09/29</span></div><span class="p pg r">2/2</span></div>
+<div class="row"><div class="ic">💳</div><div><b>OCBC 365</b><span>Visa •8812 · 03/28</span></div><span class="p pg r">2/2</span></div>
+</div>
+<div class="sec"><span>Shared fields</span><span>used by the keyboard</span></div>
+<div class="list">
+<div class="f"><span>Full name</span><code>EVAN LAI</code><em class="p pb">from passport</em></div>
+<div class="f"><span>Address</span><code style="font-size:12px">123 BEDOK NORTH ST 1 #05-123</code><em class="p pb">from NRIC</em></div>
+<div class="f"><span>Phone</span><code>—</code><em class="p pr">add</em></div>
+<div class="f"><span>Email</span><code>—</code><em class="p pr">add</em></div>
+</div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Evan</span><b>DBS Altitude</b><span class="l">⋯</span></div>
+<div class="card navy"><div class="ct">DBS Altitude</div><div class="cs">Visa · Evan · Luhn ✓</div>
+<div class="stats"><div class="stat"><div class="l">Number</div><div class="v" style="font-size:22px">•••• 4417</div><div class="f">tap to reveal · 10 s</div></div>
+<div class="stat"><div class="l">Expiry</div><div class="v" style="font-size:22px">09/29</div><div class="f">3 yrs left</div></div></div>
+<div class="cbtn"><span>Copy number · clears in 60 s</span><span>⎘</span></div></div>
+<div class="sec"><span>Fields</span><span>long-press to copy</span></div>
+<div class="list">
+<div class="f"><span>Number</span><code>•••• •••• •••• 4417</code><em class="p pg">Luhn ✓</em></div>
+<div class="f"><span>Expiry</span><code>09/29</code><em class="p pg">regex</em></div>
+<div class="f"><span>Name</span><code>TAN EVAN</code><em class="p pa">OCR</em></div>
+<div class="f"><span>Issuer</span><code>DBS</code><em class="p pa">OCR</em></div>
+<div class="f"><span>Billing address</span><code>→ Evan / Address</code><em class="p pb">linked</em></div>
+</div>
+<div class="sec"><span>Secondary</span><span></span></div>
+<div class="list"><div class="f"><span>CVV</span><code>•••</code><em class="p pn">hold to reveal</em></div></div>
+<div class="sec"><span>Images</span><span>2 · blurred until tap</span></div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Vault</span><b>Export</b><span class="l"></span></div>
+<div class="sec"><span>Destination</span><span></span></div>
+<div class="list">
+<div class="row"><div class="ic">📱</div><div><b>In app only</b><span>Default · encrypted · Face ID</span></div><span class="r">✓</span></div>
+<div class="row"><div class="ic">📁</div><div><b>Also write to a folder</b><span>iCloud Drive / Obsidian / any folder</span></div><span class="r">›</span></div>
+</div>
+<div class="sec"><span>What is written</span><span></span></div>
+<div class="list">
+<div class="row"><div class="ic">📄</div><div><b>vault/&lt;person&gt;/&lt;type&gt;.md</b><span>plain text, one file per document</span></div></div>
+<div class="row"><div class="ic">📑</div><div><b>vault/index.md</b><span>everyone · type · expiry · checks</span></div></div>
+<div class="row"><div class="ic">🧾</div><div><b>expenses.csv</b><span>append one row per receipt</span></div></div>
+<div class="row"><div class="ic">🖼</div><div><b>images/</b><span>off by default · toggle</span></div></div>
+</div>
+<div class="sec"><span>Sync</span><span></span></div>
+<div class="list"><div class="row"><div class="ic">↻</div><div><b>Rewrite on every save</b><span>Files in the folder always match the app</span></div><span class="r">On</span></div></div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Vault</span><b>Add person</b><span class="l">Save</span></div>
+<div class="list">
+<div class="f"><span>Name</span><code>Lee &amp; Co</code><em></em></div>
+<div class="f"><span>Kind</span><code>Client ▾</code><em></em></div>
+<div class="f"><span>Retention</span><code>30 days ▾</code><em class="p pa">client</em></div>
+<div class="f"><span>Extra PIN</span><code>Off</code><em></em></div>
+</div>
+<div class="sec"><span>Kinds</span><span></span></div>
+<div class="list">
+<div class="row"><div class="ic">👤</div><div><b>Me</b><span>No expiry · feeds the keyboard first</span></div></div>
+<div class="row"><div class="ic">👪</div><div><b>Family</b><span>No expiry</span></div></div>
+<div class="row"><div class="ic">🏢</div><div><b>Client</b><span>Auto-delete after 30 d · warn at 3 d · extend 30 / keep / delete</span></div></div>
+<div class="row"><div class="ic">🤝</div><div><b>Business partner</b><span>No expiry</span></div></div>
+</div>
+</div>
+
+</div>
+
+<h3>Vault .md (one file per document)</h3>
+<pre># Passport — Evan Lai
+owner: Evan            kind: me            type: passport        sensitive: high
+captured: 2026-10-11   source: camera      language: en          checks: 5/5 ✓
+
+| Field          | Value         | Check  |
+|----------------|---------------|--------|
+| Surname        | TAN           | MRZ ✓  |
+| Given names    | EVAN          | MRZ ✓  |
+| Passport no.   | K1234567A     | MRZ ✓  |
+| Nationality    | SGP           | MRZ ✓  |
+| Date of birth  | 1999-04-12    | MRZ ✓  |
+| Sex            | M             | MRZ ✓  |
+| Expiry         | 2031-02-28    | MRZ ✓  |
+| Issue date     | 2021-03-01    | OCR    |
+| Place of issue | —             | missing|
+
+## Secondary
+| Place of birth | SINGAPORE     | OCR    |
+
+## Copy block
+K1234567A | TAN | EVAN | SGP | 1999-04-12 | 2031-02-28
+
+## Notes
+Renew by 2030-05 (9 months before expiry).</pre>
+
+<h3>Security, as built</h3>
+<table>
+<tr><th>Layer</th><th>What</th><th>You see</th></tr>
+<tr><td>1 Data Protection</td><td>Every file: NSFileProtectionComplete (already on since Phase 2)</td><td>nothing</td></tr>
+<tr><td>2 App lock</td><td>Vault tab asks Face ID; re-locks 60 s after background</td><td>one Face ID prompt</td></tr>
+<tr><td>3 Vault key</td><td>AES-GCM key in Keychain, this-device-only, biometry-bound. Field values + images sealed with it. Never in backups.</td><td>nothing extra — the same prompt</td></tr>
+<tr><td>4 Hygiene</td><td>Clipboard clears 60 s after a vault copy · vault screens blur in app switcher · screenshot shows a toast · client auto-delete</td><td>toasts</td></tr>
+</table>
+
+<h3>Questions</h3>
+<div class="q">Q1 · Export folder: write only on demand ("Export now"), or keep the folder in sync on every save (needs a security-scoped bookmark to the folder)? I propose sync, with a toggle.</div>
+<div class="q">Q2 · Images in the exported folder: off by default. OK?</div>
+<div class="q">Q3 · Shared fields per person (full name, address, phone, email) — auto-filled from documents where possible, editable. These feed the keyboard in Phase 5. Anything to add (e.g. company, UEN, bank account)?</div>
+<div class="q">Q4 · Client auto-delete: delete pages + fields but keep a one-line tombstone in index.md ("deleted 2026-11-10 after 30 d")? Or wipe all trace?</div>
+</body></html>
