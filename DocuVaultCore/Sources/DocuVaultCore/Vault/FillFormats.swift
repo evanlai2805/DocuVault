@@ -72,6 +72,7 @@ public enum FillFormats {
         public let label: String
         public let kind: Kind
         public enum Kind: Sendable { case text, date, cardNumber, expiry, holdOnly }
+        public init(fieldKey: String, label: String, kind: Kind) { self.fieldKey = fieldKey; self.label = label; self.kind = kind }
     }
 
     public static func keys(for type: DocumentType) -> [KeySpec] {

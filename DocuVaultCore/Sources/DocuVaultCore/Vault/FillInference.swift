@@ -28,6 +28,7 @@ public enum FillInference {
     public struct Choice<T: Equatable & Sendable>: Equatable, Sendable {
         public let value: T
         public let reason: String
+        public init(value: T, reason: String) { self.value = value; self.reason = reason }
     }
 
     // MARK: Dates
@@ -38,7 +39,9 @@ public enum FillInference {
             if ct.contains("birthdatemonth") { return .init(value: .component(.month), reason: "month field") }
             if ct.contains("birthdateyear") { return .init(value: .component(.year), reason: "year field") }
         }
-        let nearby = String(c.before.suffix(12)) + String(c.after.prefix(12))
+        let nearby = String(c.before.suffix(16)) + String(c.after.prefix(16))
+        // A literal hint such as "DD/MM/YYYY" near the cursor is the strongest signal after content type.
+        if let hint = formatHint(in: nearby) { return .init(value: .full(hint), reason: "format hint") }
         if c.keyboard == .numeric {
             // Digits-only field. A region that writes year first gets YYYYMMDD; everyone else DDMMYYYY.
             return yearFirst(c.region) ? .init(value: .full(.digitsYMD), reason: "number pad") : .init(value: .full(.digitsDMY), reason: "number pad")
@@ -48,7 +51,6 @@ public enum FillInference {
             return yearFirst(c.region) || c.region == "US" ? .init(value: .full(c.region == "US" ? .mdySlash : .iso), reason: "slashes in field")
                                                            : .init(value: .full(.dmySlash), reason: "slashes in field")
         }
-        if let hint = formatHint(in: nearby) { return .init(value: .full(hint), reason: "format hint") }
         // Nothing to go on: region default. SG/MY/UK/HK → DD/MM/YYYY, CN/JP/KR → ISO, US → MM/DD/YYYY.
         switch c.region {
         case "US": return .init(value: .full(.mdySlash), reason: "US region")
@@ -81,7 +83,7 @@ public enum FillInference {
 
     public static func expiry(_ c: Context) -> Choice<FillFormats.ExpiryStyle> {
         if c.keyboard == .numeric { return .init(value: .mmyy, reason: "number pad") }
-        let nearby = (String(c.before.suffix(8)) + String(c.after.prefix(8))).uppercased()
+        let nearby = (String(c.before.suffix(12)) + String(c.after.prefix(12))).uppercased()
         if nearby.contains("YYYY") { return .init(value: .mmSlashYYYY, reason: "4-digit year hint") }
         return .init(value: .mmSlashYY, reason: "default")
     }
