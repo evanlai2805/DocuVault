@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 1 · Scanner + Vault screens</title>
+<style>
+:root{--bg:#F5F6F8;--ink:#111827;--ink2:#374151;--line:#D7DBE2;--navy:#0B2A4A;--blue:#1F5FBF;--red:#B3261E;--green:#1B7F4C;--amber:#B5731B;--soft:#EEF3FA}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif;padding:16px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:28px 0 10px;border-top:2px solid var(--navy);padding-top:10px}
+.sub{color:var(--ink2);margin:0 0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.phone{background:#fff;border:1px solid var(--line);border-radius:22px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);min-height:480px;display:flex;flex-direction:column}
+.phone .t{font-weight:700;font-size:13px;color:var(--navy);display:flex;justify-content:space-between;margin-bottom:8px}
+.phone .t small{color:var(--ink2);font-weight:400}
+.row{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin:6px 0;background:#fff}
+.row b{font-weight:600}.row span{color:var(--ink2);font-size:12px}
+.pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink2)}
+.pill.r{background:#FBE9E7;color:var(--red);border-color:#F1C4C0}.pill.g{background:#E6F4EC;color:var(--green);border-color:#BFE3CC}.pill.b{background:var(--soft);color:var(--blue);border-color:#C7D7EE}.pill.a{background:#FBF1E0;color:var(--amber);border-color:#EED7AE}
+.btn{display:block;text-align:center;padding:10px;border-radius:10px;background:var(--navy);color:#fff;font-weight:600;margin-top:8px}
+.btn.o{background:#fff;color:var(--navy);border:1px solid var(--navy)}
+.btn.r{background:var(--red)}
+.cam{flex:1;background:linear-gradient(#DDE3EA,#C9D1DB);border-radius:12px;position:relative;min-height:220px}
+.cam .box{position:absolute;inset:22% 12%;border:2px solid var(--green);border-radius:6px}
+.cam .lab{position:absolute;bottom:8px;left:8px;background:#fff;padding:3px 8px;border-radius:6px;font-size:11px}
+.field{display:grid;grid-template-columns:34% 1fr auto;gap:6px;align-items:center;padding:7px 8px;border-bottom:1px solid var(--line);font-size:12px}
+.field label{color:var(--ink2)}.field code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.field .c{font-size:10px}
+.note{font-size:12px;color:var(--ink2);margin-top:auto;padding-top:8px;border-top:1px dashed var(--line)}
+.sheet{margin-top:auto;background:var(--soft);border:1px solid #C7D7EE;border-radius:14px;padding:12px}
+.kb{margin-top:auto;background:#E5E7EB;border-radius:12px;padding:8px}
+.kb .chips{display:flex;flex-wrap:wrap;gap:6px}.kb .chips span{background:#fff;border-radius:7px;padding:6px 9px;font-size:12px;font-weight:600}
+.kb .chips span.m{background:var(--navy);color:#fff}
+pre{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;font:12px/1.5 ui-monospace,Menlo,monospace;overflow:auto;color:var(--ink)}
+.q{background:#FBF1E0;border-left:4px solid var(--amber);padding:8px 10px;margin:6px 0;font-size:13px}
+.arch{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.arch div{background:#fff;border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:8px;padding:9px;font-size:12px}
+.arch div b{display:block;color:var(--navy);margin-bottom:3px}
+.arch div.c{border-left-color:var(--red)}
+</style></head><body>
+<h1>Checkpoint 1 — Scanner + Vault</h1>
+<p class="sub">Throwaway mock. Eight screens, the .md layout, and the on-device/cloud split. Mark anything wrong.</p>
+
+<h2>A · Screens</h2>
+<div class="grid">
+
+<div class="phone"><div class="t">1 · Library <small>home</small></div>
+<div class="row"><div><b>Lease — Lee &amp; Co</b><br><span>Contract · 中文 · 12 pp · 9 Oct</span></div><span class="pill g">Summary</span></div>
+<div class="row"><div><b>SIA receipt</b><br><span>Receipt · EN · S$412.00</span></div><span class="pill b">Expense</span></div>
+<div class="row"><div><b>Passport — Evan</b><br><span>Vault · locked</span></div><span class="pill r">🔒</span></div>
+<div class="row"><div><b>Business card — 王伟</b><br><span>→ Contacts</span></div><span class="pill b">Contact</span></div>
+<div class="note">Search box on top (full text, EN + 中文). Tabs: Library · Vault · Scan · Chat (later) · Settings.</div>
+<a class="btn">＋ Scan / Import</a></div>
+
+<div class="phone"><div class="t">2 · Capture <small>camera</small></div>
+<div class="cam"><div class="box"></div><div class="lab">Auto-detect edges · multi-page</div></div>
+<div class="row"><b>Source</b><span>Camera · Photos · Files · Clipboard</span></div>
+<div class="note">After capture: perspective fix, auto-rotate, OCR runs on-device (EN + zh-Hans). Classifier guesses type: passport / card / NRIC / receipt / contract / other.</div></div>
+
+<div class="phone"><div class="t">3 · Classify <small>after OCR</small></div>
+<div class="row"><div><b>Detected: Passport</b><br><span>MRZ found · 2 lines · checksum OK</span></div><span class="pill g">98%</span></div>
+<div class="row"><b>Sensitive?</b><span class="pill r">Yes → Vault</span></div>
+<div class="row"><b>Owner</b><span>Evan ▾</span></div>
+<div class="row"><b>AI processing</b><span class="pill g">On-device only</span></div>
+<div class="note">Rule: passport, ID, card, bank doc = sensitive by default. Cloud button is hidden for sensitive docs. User can override type and owner.</div>
+<a class="btn">Extract fields</a></div>
+
+<div class="phone"><div class="t">4 · Review fields <small>passport</small></div>
+<div class="field"><label>Surname</label><code>TAN</code><span class="pill g c">MRZ</span></div>
+<div class="field"><label>Given names</label><code>EVAN</code><span class="pill g c">MRZ</span></div>
+<div class="field"><label>Passport no.</label><code>K1234567A</code><span class="pill g c">MRZ ✓</span></div>
+<div class="field"><label>Nationality</label><code>SGP</code><span class="pill g c">MRZ</span></div>
+<div class="field"><label>DOB</label><code>1999-04-12</code><span class="pill g c">MRZ ✓</span></div>
+<div class="field"><label>Expiry</label><code>2031-02-28</code><span class="pill a c">OCR 91%</span></div>
+<div class="field"><label>Issue date</label><code>—</code><span class="pill r c">not found</span></div>
+<div class="note">Green = verified by checksum. Amber = OCR only, tap to edit. Red = missing, type it in. Nothing saves until you tap Save.</div>
+<a class="btn">Save to Vault</a></div>
+
+<div class="phone"><div class="t">5 · Vault <small>Face ID</small></div>
+<div class="row"><div><b>Evan</b><br><span>Passport · NRIC · 3 cards</span></div><span class="pill">5</span></div>
+<div class="row"><div><b>Mum</b><br><span>NRIC · 1 card</span></div><span class="pill">2</span></div>
+<div class="row"><div><b>Client — Lee &amp; Co</b><br><span>Director passport · BizFile</span></div><span class="pill a">Client</span></div>
+<div class="row"><div><b>Partner — RTIP</b><br><span>2 docs</span></div><span class="pill">2</span></div>
+<div class="note">Grouped by person/entity. Each group can have its own extra PIN. Auto-lock after 60 s. Screenshots blocked. Expiry alerts (passport &lt; 9 months).</div>
+<a class="btn o">Export .md to folder…</a></div>
+
+<div class="phone"><div class="t">6 · Vault item <small>card</small></div>
+<div class="field"><label>Card</label><code>DBS Altitude Visa</code><span></span></div>
+<div class="field"><label>Number</label><code>•••• •••• •••• 4417</code><span class="pill c">tap: reveal</span></div>
+<div class="field"><label>Expiry</label><code>09/29</code><span></span></div>
+<div class="field"><label>Name</label><code>TAN EVAN</code><span></span></div>
+<div class="field"><label>CVV</label><code>•••</code><span class="pill c">hold: reveal</span></div>
+<div class="field"><label>Billing addr</label><code>linked → Evan/Address</code><span></span></div>
+<a class="btn o">Copy field (clears clipboard in 60 s)</a>
+<a class="btn o">Share .md (encrypted)</a>
+<div class="note">Luhn check on card number. Image of the card is stored encrypted and shown only on tap.</div></div>
+
+<div class="phone"><div class="t">7 · Fill keyboard <small>any app</small></div>
+<div class="cam" style="min-height:120px;background:#fff;border:1px solid var(--line)"><div class="lab" style="bottom:auto;top:8px;background:var(--soft)">Safari: checkout page · Card number [ ]</div></div>
+<div class="kb"><div style="font-size:11px;color:var(--ink2);margin-bottom:6px">🔒 Evan › DBS Altitude ▾</div>
+<div class="chips"><span class="m">Number</span><span>Expiry</span><span>CVV</span><span>Name</span><span>Addr line 1</span><span>Postcode</span><span>Phone</span></div>
+<div style="font-size:11px;color:var(--ink2);margin-top:8px">Tap chip → types the value. Switch doc: Passport · NRIC · Address.</div></div>
+<div class="note">Custom keyboard extension. Face ID before it opens. No value shown on the keys. This replaces the AutoFill API that Apple does not expose for cards/IDs.</div></div>
+
+<div class="phone"><div class="t">8 · Cloud approval <small>non-sensitive only</small></div>
+<div class="row"><div><b>Lease — Lee &amp; Co</b><br><span>12 pages · 中文</span></div><span class="pill b">Not sensitive</span></div>
+<div class="sheet"><b>Send to cloud model?</b>
+<div style="font-size:12px;margin:6px 0">Task: summary · Provider: Claude · Pages: 12<br>Redact before send: <b>names ✓ · amounts ✓ · IDs ✓</b><br>Preview redacted text ▸</div>
+<a class="btn">Approve this one send</a><a class="btn o">Use on-device instead</a><a class="btn r">Cancel</a></div>
+<div class="note">Every send needs a tap. No "always allow". Log of every cloud send in Settings.</div></div>
+
+</div>
+
+<h2>B · Vault .md layout (one file per document)</h2>
+<pre># Passport — Evan Tan
+owner: Evan            type: passport        sensitivity: high
+captured: 2026-10-11   source: camera        ocr: en            verified: MRZ ✓
+
+| Field          | Value         | Check  |
+|----------------|---------------|--------|
+| Surname        | TAN           | MRZ ✓  |
+| Given names    | EVAN          | MRZ ✓  |
+| Passport no.   | K1234567A     | MRZ ✓  |
+| Nationality    | SGP           | MRZ ✓  |
+| Date of birth  | 1999-04-12    | MRZ ✓  |
+| Sex            | M             | MRZ ✓  |
+| Expiry         | 2031-02-28    | OCR    |
+| Issue date     | (unverified)  | —      |
+
+## Copy block
+K1234567A | TAN | EVAN | SGP | 1999-04-12 | 2031-02-28
+
+## Images
+passport_front.jpg (encrypted)
+
+## Notes
+Renew by 2030-05 (9 months before expiry).</pre>
+<p class="sub">Chinese documents get the same table with 中文 field labels and an English label column. Index file <code>vault/index.md</code> lists every document with owner, type and expiry.</p>
+
+<h2>C · On-device vs cloud</h2>
+<div class="arch">
+<div><b>OCR</b>Apple Vision · EN + zh-Hans · always on-device</div>
+<div><b>Classify + extract</b>Apple on-device model, structured output · MRZ + Luhn checks in code</div>
+<div><b>Summary / chat</b>Qwen3-4B via MLX for 中文-heavy docs · Apple model for short EN tasks</div>
+<div><b>Storage</b>SQLite, AES-GCM per record · key in Secure Enclave · Face ID</div>
+<div><b>Keyboard fill</b>Keyboard extension · reads vault through app group · Face ID gate</div>
+<div class="c"><b>Cloud (opt-in per send)</b>Claude API · never for vault docs · redaction preview first</div>
+</div>
+
+<h2>D · Open questions</h2>
+<div class="q">Q1 · Keyboard extension for filling, or copy-chips only? Keyboard needs you to enable it in iOS Settings once.</div>
+<div class="q">Q2 · Exported .md to a folder: plain text, or encrypted file that only the app can open? Default I propose: plain text with a warning.</div>
+<div class="q">Q3 · Client documents: do you want a "client" group that auto-expires (delete after N days)? PDPA argues yes.</div>
+<div class="q">Q4 · Cloud provider for summaries: Claude only, or let the user add OpenAI/Gemini keys?</div>
+<div class="q">Q5 · Receipt expenses: write to a CSV in Files, or keep inside the app with export?</div>
+</body></html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 2 · Extraction schemas + live checks</title>
+<style>
+:root{--bg:#F5F6F8;--ink:#111827;--ink2:#374151;--line:#D7DBE2;--navy:#0B2A4A;--blue:#1F5FBF;--red:#B3261E;--green:#1B7F4C;--amber:#B5731B;--soft:#EEF3FA}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif;padding:16px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:28px 0 10px;border-top:2px solid var(--navy);padding-top:10px}
+h3{font-size:13px;margin:12px 0 6px;color:var(--navy)}
+.sub{color:var(--ink2);margin:0 0 14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:640px){.two{grid-template-columns:1fr}}
+pre{background:#F9FAFB;border:1px solid var(--line);border-radius:8px;padding:10px;font:12px/1.45 ui-monospace,Menlo,monospace;overflow:auto;margin:0;white-space:pre-wrap}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}th{background:var(--soft)}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.pill{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line)}
+.g{background:#E6F4EC;color:var(--green);border-color:#BFE3CC}.a{background:#FBF1E0;color:var(--amber);border-color:#EED7AE}.r{background:#FBE9E7;color:var(--red);border-color:#F1C4C0}.b{background:var(--soft);color:var(--blue);border-color:#C7D7EE}
+input{font:14px ui-monospace,Menlo,monospace;padding:7px 9px;border:1px solid var(--line);border-radius:8px;width:100%}
+.out{margin-top:6px;font-size:13px;font-weight:600}
+.q{background:#FBF1E0;border-left:4px solid var(--amber);padding:8px 10px;margin:6px 0;font-size:13px}
+.flow{display:flex;flex-wrap:wrap;gap:6px;font-size:12px}.flow span{background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 8px}.flow span.k{background:var(--navy);color:#fff}
+</style></head><body>
+<h1>Checkpoint 2 — Extraction schemas</h1>
+<p class="sub">Five document types. For each: raw OCR text as Apple Vision would return it → fields the model must fill → the check that proves the field is right. The checkers below are live; the same code goes into the app.</p>
+
+<div class="flow"><span>OCR lines</span><span>→</span><span>type classifier</span><span>→</span><span class="k">rule layer (regex, MRZ, Luhn, NRIC, 身份证)</span><span>→</span><span>on-device model fills the rest</span><span>→</span><span>review screen</span></div>
+<p class="sub" style="margin-top:8px">Rule: anything a checksum can verify is done in code, not by the model. The model only handles layout and language.</p>
+
+<h2>1 · Passport (TD3, any country)</h2>
+<div class="two">
+<div class="card"><h3>OCR text (sample)</h3><pre>REPUBLIC OF SINGAPORE  PASSPORT
+Type P   Code SGP   Passport No. K1234567A
+Surname TAN
+Given Names EVAN
+Nationality SINGAPORE CITIZEN
+Date of birth 12 APR 1999   Sex M
+Date of issue 01 MAR 2021
+Date of expiry 28 FEB 2031
+P&lt;SGPTAN&lt;&lt;EVAN&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
+<span id="mrz2">(line 2 built live below)</span></pre></div>
+<div class="card"><h3>Schema</h3>
+<table><tr><th>Field</th><th>Source</th><th>Check</th></tr>
+<tr><td>surname, givenNames</td><td>MRZ line 1</td><td><span class="pill g">MRZ</span> cross-check with visual zone</td></tr>
+<tr><td>passportNumber</td><td>MRZ line 2</td><td><span class="pill g">check digit</span></td></tr>
+<tr><td>nationality, issuingCountry</td><td>MRZ</td><td>ISO 3166 alpha-3</td></tr>
+<tr><td>dateOfBirth, expiry</td><td>MRZ</td><td><span class="pill g">check digit</span> + visual zone</td></tr>
+<tr><td>sex</td><td>MRZ</td><td>M/F/&lt;</td></tr>
+<tr><td>dateOfIssue, placeOfIssue</td><td>visual zone</td><td><span class="pill a">OCR only</span> → user confirms</td></tr>
+<tr><td>mrzFinalCheck</td><td>MRZ</td><td><span class="pill g">composite digit</span> — if this fails, whole scan flagged</td></tr></table></div></div>
+
+<div class="card"><h3>Live MRZ check-digit builder (weights 7-3-1)</h3>
+<div class="two"><div><label>Passport number</label><input id="pp" value="K1234567A" maxlength="9"></div><div><label>DOB (YYMMDD)</label><input id="dob" value="990412" maxlength="6"></div></div>
+<div class="two" style="margin-top:8px"><div><label>Expiry (YYMMDD)</label><input id="exp" value="310228" maxlength="6"></div><div><label>Nationality</label><input id="nat" value="SGP" maxlength="3"></div></div>
+<div class="out" id="mrzout"></div></div>
+
+<h2>2 · Singapore NRIC / FIN</h2>
+<div class="two">
+<div class="card"><h3>OCR text (sample)</h3><pre>IDENTITY CARD NO. S9912345A
+Name TAN EVAN
+Race CHINESE   Sex M
+Date of birth 12-04-1999
+Country/Place of birth SINGAPORE
+(back) Blood Group B+   Date of issue 15-04-2014
+Address 123 BEDOK NORTH ST 1 #05-123 SINGAPORE 460123</pre></div>
+<div class="card"><h3>Schema</h3>
+<table><tr><th>Field</th><th>Check</th></tr>
+<tr><td>nric</td><td><span class="pill g">checksum</span> S/T/F/G/M prefix rules</td></tr>
+<tr><td>name, sex, dateOfBirth, placeOfBirth</td><td><span class="pill a">OCR</span>; DOB must agree with NRIC year prefix (S=pre-2000, T=2000+)</td></tr>
+<tr><td>race, bloodGroup</td><td><span class="pill b">stored only if you want</span> — see Q1 below</td></tr>
+<tr><td>address, postalCode</td><td>6-digit postcode regex; address linked to person for keyboard fill</td></tr>
+<tr><td>dateOfIssue</td><td>OCR</td></tr></table></div></div>
+<div class="card"><h3>Live NRIC/FIN checksum</h3><input id="nric" value="S9912345A" maxlength="9"><div class="out" id="nricout"></div><p class="sub" style="margin:6px 0 0">Sample above is made up; the checker tells you if the letter matches. M-series (2022+) uses a different table, added in code later.</p></div>
+
+<h2>3 · PRC 居民身份证</h2>
+<div class="two">
+<div class="card"><h3>OCR text (sample, zh-Hans)</h3><pre>姓名 王伟
+性别 男   民族 汉
+出生 1985年6月15日
+住址 陕西省西安市雁塔区科技路10号
+公民身份号码 <span id="idno">(built live below)</span>
+(背面) 签发机关 西安市公安局雁塔分局
+有效期限 2015.06.15-2035.06.15</pre></div>
+<div class="card"><h3>Schema</h3>
+<table><tr><th>Field 字段</th><th>Check</th></tr>
+<tr><td>name 姓名</td><td>OCR; keep Chinese; pinyin added as a second field for forms</td></tr>
+<tr><td>idNumber 公民身份号码</td><td><span class="pill g">18-digit checksum</span> (ISO 7064 mod 11-2)</td></tr>
+<tr><td>dateOfBirth, sex</td><td>derived from digits 7–14 and 17; must agree with printed text</td></tr>
+<tr><td>address 住址, issuer 签发机关</td><td>OCR</td></tr>
+<tr><td>validFrom / validTo 有效期限</td><td>regex; 长期 = no expiry</td></tr>
+<tr><td>ethnicity 民族</td><td><span class="pill b">optional store</span> — see Q1</td></tr></table></div></div>
+<div class="card"><h3>Live 身份证 checksum</h3><input id="cn" value="61011319850615001" maxlength="18"><div class="out" id="cnout"></div></div>
+
+<h2>4 · Bank / credit card</h2>
+<div class="two">
+<div class="card"><h3>OCR text (sample)</h3><pre>DBS  altitude
+4111 1111 1111 1111
+VALID THRU 09/29
+TAN EVAN
+(back) CVV 123   Customer service 1800 111 1111</pre></div>
+<div class="card"><h3>Schema</h3>
+<table><tr><th>Field</th><th>Check</th></tr>
+<tr><td>pan (number)</td><td><span class="pill g">Luhn</span>; brand from first digits (4 Visa, 5/2 Mastercard, 3 Amex, 62 银联)</td></tr>
+<tr><td>expiry</td><td>MM/YY regex; must be future</td></tr>
+<tr><td>nameOnCard</td><td>OCR; matched to a vault person</td></tr>
+<tr><td>cvv</td><td>3 or 4 digits; <span class="pill r">stored only if you say so</span> — see Q2</td></tr>
+<tr><td>issuer, cardLabel</td><td>model guesses from logo text; user edits</td></tr>
+<tr><td>billingAddress</td><td>linked to person's address record</td></tr></table></div></div>
+<div class="card"><h3>Live Luhn</h3><input id="luhn" value="4111 1111 1111 1111"><div class="out" id="luhnout"></div></div>
+
+<h2>5 · Receipt (expense)</h2>
+<div class="two">
+<div class="card"><h3>OCR text (sample)</h3><pre>SINGAPORE AIRLINES
+Booking ref 7XK2PQ
+SIN-XIY  01 NOV 2026
+Fare            SGD 380.00
+Taxes & fees    SGD  32.00
+Total           SGD 412.00
+Paid VISA ****4417   10 OCT 2026</pre></div>
+<div class="card"><h3>Schema → CSV row</h3>
+<table><tr><th>Field</th><th>Check</th></tr>
+<tr><td>merchant</td><td>model; top lines</td></tr>
+<tr><td>date</td><td>date regex, EN + 中文 (2026年10月10日)</td></tr>
+<tr><td>currency, total</td><td><span class="pill g">sum of lines = total</span> else flag</td></tr>
+<tr><td>tax (GST/增值税)</td><td>regex; 9% sanity check for SG</td></tr>
+<tr><td>paymentMethod, last4</td><td>regex; auto-links to vault card ending 4417</td></tr>
+<tr><td>category</td><td>model picks from your list (Travel, Meals, Office…)</td></tr></table>
+<pre style="margin-top:8px">date,merchant,category,currency,total,tax,card_last4,ref
+2026-10-10,Singapore Airlines,Travel,SGD,412.00,0.00,4417,7XK2PQ</pre></div></div>
+
+<h2>6 · Contract / letter (summary path)</h2>
+<div class="card">
+<table><tr><th>Field</th><th>Source</th></tr>
+<tr><td>parties 当事人</td><td>model; first page</td></tr>
+<tr><td>effectiveDate, term, expiry 期限</td><td>regex + model</td></tr>
+<tr><td>amounts 金额 (list)</td><td>regex: 人民币/RMB/¥/SGD/S$ + number</td></tr>
+<tr><td>governingLaw 适用法律</td><td>model</td></tr>
+<tr><td>obligations, deadlines</td><td>model → bullet list</td></tr>
+<tr><td>summary</td><td>model; same language as document; EN uses your STE rule</td></tr></table>
+<p class="sub" style="margin:8px 0 0">Language rule: ≥60% CJK characters → 中文 summary. Otherwise English. Mixed documents → ask once.</p></div>
+
+<h2>7 · Questions for you</h2>
+<div class="q">Q1 · Race / ethnicity / blood group appear on NRIC and 身份证. Store them, or drop them at capture? I propose drop by default, toggle per document.</div>
+<div class="q">Q2 · CVV: store encrypted like the PAN, or never store (you type it at checkout)? I propose store, hold-to-reveal, since the point is fast checkout.</div>
+<div class="q">Q3 · Pinyin for Chinese names on forms: Hanyu Pinyin upper-case, surname first ("WANG WEI")? Or ask per person?</div>
+<div class="q">Q4 · Anything missing from the five types for milestone 1? Candidates: driving licence, bank statement, visa page, 营业执照.</div>
+
+<script>
+function mrzVal(c){if(c==='<')return 0;if(/\d/.test(c))return +c;return c.charCodeAt(0)-55}
+function mrzCheck(s){const w=[7,3,1];let t=0;for(let i=0;i<s.length;i++)t+=mrzVal(s[i])*w[i%3];return t%10}
+function pad(s,n){return (s.toUpperCase()+'<'.repeat(n)).slice(0,n)}
+function mrz(){const pp=pad(document.getElementById('pp').value,9),dob=pad(document.getElementById('dob').value,6),exp=pad(document.getElementById('exp').value,6),nat=pad(document.getElementById('nat').value,3);
+const c1=mrzCheck(pp),c2=mrzCheck(dob),c3=mrzCheck(exp),opt='<'.repeat(14),c4=mrzCheck(opt);
+const comp=mrzCheck(pp+c1+dob+c2+exp+c3+opt+c4);
+const line=pp+c1+nat+dob+c2+'M'+exp+c3+opt+c4+comp;
+document.getElementById('mrz2').textContent=line;
+document.getElementById('mrzout').innerHTML='Line 2: <code>'+line+'</code><br>check digits → passport '+c1+' · DOB '+c2+' · expiry '+c3+' · composite '+comp+'. The app recomputes these from the OCR line; any mismatch = scan flagged.'}
+['pp','dob','exp','nat'].forEach(id=>document.getElementById(id).addEventListener('input',mrz));mrz();
+function nric(){const v=document.getElementById('nric').value.toUpperCase().trim(),o=document.getElementById('nricout');
+if(!/^[STFG]\d{7}[A-Z]$/.test(v)){o.innerHTML='<span class="pill r">format: letter + 7 digits + letter</span>';return}
+const w=[2,7,6,5,4,3,2];let s=0;for(let i=0;i<7;i++)s+=+v[i+1]*w[i];if(v[0]==='T'||v[0]==='G')s+=4;
+const t=(v[0]==='S'||v[0]==='T')?'JZIHGFEDCBA':'XWUTRQPNMLK';const exp=t[s%11];
+o.innerHTML=exp===v[8]?'<span class="pill g">valid</span> checksum letter '+exp:'<span class="pill r">invalid</span> expected '+exp+', got '+v[8]}
+document.getElementById('nric').addEventListener('input',nric);nric();
+function cn(){const v=document.getElementById('cn').value.trim().toUpperCase(),o=document.getElementById('cnout');
+const w=[7,9,10,5,8,4,2,1,6,3,7,9,10,5,8,4,2],m='10X98765432';
+if(!/^\d{17}[\dX]?$/.test(v)){o.innerHTML='<span class="pill r">need 17 digits (+ check char)</span>';return}
+let s=0;for(let i=0;i<17;i++)s+=+v[i]*w[i];const c=m[s%11];document.getElementById('idno').textContent=v.slice(0,17)+c;
+const dob=v.slice(6,10)+'-'+v.slice(10,12)+'-'+v.slice(12,14),sex=+v[16]%2?'男':'女';
+o.innerHTML=(v.length===18?(v[17]===c?'<span class="pill g">valid</span>':'<span class="pill r">invalid</span> expected '+c):'check char → '+c)+' · DOB '+dob+' · '+sex+' · region code '+v.slice(0,6)}
+document.getElementById('cn').addEventListener('input',cn);cn();
+function luhn(){const v=document.getElementById('luhn').value.replace(/\D/g,''),o=document.getElementById('luhnout');
+if(v.length<13){o.innerHTML='<span class="pill r">too short</span>';return}
+let s=0,d=false;for(let i=v.length-1;i>=0;i--){let n=+v[i];if(d){n*=2;if(n>9)n-=9}s+=n;d=!d}
+const b=v[0]==='4'?'Visa':/^5[1-5]|^2[2-7]/.test(v)?'Mastercard':/^3[47]/.test(v)?'Amex':v.startsWith('62')?'银联 UnionPay':'unknown';
+o.innerHTML=(s%10===0?'<span class="pill g">Luhn OK</span>':'<span class="pill r">Luhn fails</span>')+' · '+b+' · ends '+v.slice(-4)}
+document.getElementById('luhn').addEventListener('input',luhn);luhn();
+</script>
+</body></html>

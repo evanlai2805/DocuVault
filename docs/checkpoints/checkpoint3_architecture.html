@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 3 · Architecture, security, build order</title>
+<style>
+:root{--bg:#F5F6F8;--ink:#111827;--ink2:#374151;--line:#D7DBE2;--navy:#0B2A4A;--blue:#1F5FBF;--red:#B3261E;--green:#1B7F4C;--amber:#B5731B;--soft:#EEF3FA}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif;padding:16px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:28px 0 10px;border-top:2px solid var(--navy);padding-top:10px}
+.sub{color:var(--ink2);margin:0 0 14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+.card h3{margin:0 0 6px;font-size:13px;color:var(--navy)}
+pre{background:#F9FAFB;border:1px solid var(--line);border-radius:8px;padding:10px;font:12px/1.45 ui-monospace,Menlo,monospace;overflow:auto;margin:0;white-space:pre}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid var(--line);padding:6px 7px;text-align:left;vertical-align:top}th{background:var(--soft)}
+.pill{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--line)}
+.g{background:#E6F4EC;color:var(--green);border-color:#BFE3CC}.a{background:#FBF1E0;color:var(--amber);border-color:#EED7AE}.r{background:#FBE9E7;color:var(--red);border-color:#F1C4C0}.b{background:var(--soft);color:var(--blue);border-color:#C7D7EE}
+.layers div{padding:10px 12px;margin:6px 0;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:13px}
+.layers b{display:block;color:var(--navy)}
+.layers .l1{border-left:5px solid #9CA3AF}.layers .l2{border-left:5px solid var(--blue)}.layers .l3{border-left:5px solid var(--navy)}.layers .l4{border-left:5px solid var(--green)}
+.q{background:#FBF1E0;border-left:4px solid var(--amber);padding:8px 10px;margin:6px 0;font-size:13px}
+.lane{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:start;border-bottom:1px solid var(--line);padding:8px 0}
+.lane b{font-size:12px;color:var(--navy)}.lane div span{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:7px;padding:4px 8px;font-size:12px;margin:2px 3px 2px 0}
+.lane div span.you{background:var(--soft);border-color:#C7D7EE}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}.tabs button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 10px;font-size:12px}.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.panel{display:none}.panel.on{display:block}
+</style></head><body>
+<h1>Checkpoint 3 — Architecture, security, build order</h1>
+<p class="sub">Confirm this and I start writing Swift. Tap a layer in section B to see what it protects against.</p>
+
+<h2>A · Xcode project</h2>
+<div class="card"><pre>DocVault.xcodeproj
+├── DocVault/                  app target · SwiftUI · iOS 26
+│   ├── Capture/               camera (VisionKit), Photos picker, Files, clipboard
+│   ├── OCR/                   Vision text recognition · en-US + zh-Hans · accurate mode
+│   ├── Classify/              rules first (MRZ? Luhn? 身份证?) → on-device model if unsure
+│   ├── Extract/               per-type extractors + checkers (from checkpoint 2)
+│   ├── Review/                field review screen · green/amber/red
+│   ├── Library/               all documents · search · summaries
+│   ├── Vault/                 persons/entities · Face ID · expiry alerts · client auto-expire
+│   ├── Export/                .md writer · vault/index.md · receipts.csv · folder picker
+│   ├── AI/                    AppleModel (Foundation Models) · MLXModel (Qwen, later) · ClaudeClient (opt-in)
+│   └── Settings/              cloud log · categories · auto-expiry days · keyboard setup
+├── DocVaultKeyboard/          custom keyboard extension · Face ID · chips → types value
+├── DocVaultCore/              shared framework: models, SwiftData store, checkers, crypto
+└── DocVaultCoreTests/         checker tests with real-format samples (MRZ, NRIC, 身份证, Luhn)</pre></div>
+
+<div class="card"><h3>Data model (SwiftData, in an App Group so the keyboard can read it)</h3>
+<pre>Person        id · displayName · kind (self | family | client | partner) · extraPIN? · autoExpireDays?
+Document      id · person → Person · type · title · language · capturedAt · source · sensitive
+              pages [Page] · fields [Field] · summary? · mdPath? · cloudSends [CloudSend]
+Page          image (encrypted blob) · ocrText · ocrConfidence
+Field         key · label_en · label_zh? · value · section (main | secondary) · check (mrz|luhn|nric|cnid|regex|ocr|user)
+Expense       document → Document · date · merchant · category · currency · total · tax · last4
+CloudSend     document · provider · task · redactions · approvedAt</pre>
+<p class="sub" style="margin:8px 0 0">"secondary" section holds race, ethnicity, blood group — as you asked. Pinyin lives in Field <code>name_pinyin</code> with <code>surname</code> separate; the model asks once per person if order is unclear.</p></div>
+
+<h2>B · Security layers (tap)</h2>
+<div class="tabs"><button class="on" data-p="p1">1 Device</button><button data-p="p2">2 App lock</button><button data-p="p3">3 Vault key</button><button data-p="p4">4 Hygiene</button></div>
+<div class="layers">
+<div class="panel on l1" id="p1"><b>Layer 1 · iOS Data Protection (free)</b>Database and page images get <code>completeFileProtection</code>. iOS encrypts them with the device key. Unreadable while the phone is locked. Zero prompts.<br><span class="pill g">stops</span> forensic read of a locked phone.</div>
+<div class="panel l2" id="p2"><b>Layer 2 · App lock</b>Face ID on app open and after 60 s in background. Vault tab always re-prompts. Library does not.<br><span class="pill g">stops</span> someone holding your unlocked phone.</div>
+<div class="panel l3" id="p3"><b>Layer 3 · Vault key (the "locked notes" layer)</b>One AES-256 key in the Keychain, flagged <i>this device only</i> + <i>biometry required</i>. Vault field values and card images are sealed with it. The key never enters a backup.<br><span class="pill g">stops</span> iCloud/iTunes backup extraction and sync leaks. <span class="pill a">cost</span> one Face ID prompt per vault session, ~50 lines of code.</div>
+<div class="panel l4" id="p4"><b>Layer 4 · Hygiene</b>Clipboard clears 60 s after a vault copy. Vault screens blur in the app switcher. Screenshot taken → warning toast (iOS cannot block it). Client documents auto-delete after N days (default 30). Cloud log keeps every send.</div>
+</div>
+
+<h2>C · Keyboard extension — one honest cost</h2>
+<div class="card">To read the vault, a custom keyboard must have <b>"Allow Full Access"</b> switched on in iOS Settings. Apple shows a scary warning. The keyboard target contains no network code, and you can check that. Setup: Settings → General → Keyboard → Keyboards → Add DocVault → Allow Full Access. Once.<br><br>Flow at checkout: tap field → globe key → DocVault keyboard → Face ID → pick person/doc → tap chip "Number" → it types. Values never appear on the keys.</div>
+
+<h2>D · Build order, milestone 1 (scanner + vault)</h2>
+<div class="lane"><b>Phase 1<br>Core + checkers</b><div><span>DocVaultCore models</span><span>MRZ · Luhn · NRIC · 身份证 checkers</span><span>unit tests</span><span class="you">you: run tests on your Mac</span></div></div>
+<div class="lane"><b>Phase 2<br>Capture + OCR</b><div><span>camera scan, multi-page</span><span>Photos / Files / clipboard import</span><span>Vision OCR en + zh</span><span class="you">you: scan 5 real docs, report misreads</span></div></div>
+<div class="lane"><b>Phase 3<br>Classify + extract + review</b><div><span>rule classifier</span><span>Apple model fallback</span><span>review screen</span><span class="you">you: check field accuracy</span></div></div>
+<div class="lane"><b>Phase 4<br>Vault + export</b><div><span>Face ID · vault key</span><span>persons · groups · auto-expire</span><span>.md + index.md export</span><span>receipts.csv</span><span class="you">you: export to a folder, open in Files</span></div></div>
+<div class="lane"><b>Phase 5<br>Keyboard</b><div><span>keyboard target</span><span>chips · Face ID</span><span class="you">you: test on a real checkout page</span></div></div>
+<div class="lane"><b>Later</b><div><span>summaries (Apple Writing Tools day 1, Qwen via MLX)</span><span>Claude opt-in with redaction</span><span>chat over vault (RAG)</span><span>business card → Contacts</span><span>translate</span><span>table → CSV</span></div></div>
+<p class="sub" style="margin-top:8px">Each phase ends with a build you install from Xcode and a short test list. I send a throwaway HTML mock before any new screen.</p>
+
+<h2>E · Last questions before code</h2>
+<div class="q">Q1 · App name: "DocVault" is a placeholder. Keep, or give me a name?</div>
+<div class="q">Q2 · Bundle identifier prefix (e.g. <code>com.evantan</code>)? I need it for the App Group and Keychain group.</div>
+<div class="q">Q3 · Client auto-expire default: 30 days? And warn 3 days before deletion?</div>
+<div class="q">Q4 · Delivery: I hand you a zip of the Xcode project per phase, or push to a GitHub repo you create?</div>
+
+<script>document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.getElementById(b.dataset.p).classList.add('on')})</script>
+</body></html>
