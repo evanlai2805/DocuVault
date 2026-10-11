@@ -52,7 +52,7 @@ final class KeyboardViewController: UIInputViewController {
     /// Everything iOS lets a keyboard see about the field: keyboard type, content type, text around the cursor.
     private func refreshContext() {
         let proxy = textDocumentProxy
-        model.isSecureField = proxy.isSecureTextEntry
+        model.isSecureField = proxy.isSecureTextEntry ?? false
         let numeric: FillInference.FieldKeyboard = switch proxy.keyboardType {
             case .numberPad, .decimalPad, .phonePad, .asciiCapableNumberPad: .numeric
             default: .other
