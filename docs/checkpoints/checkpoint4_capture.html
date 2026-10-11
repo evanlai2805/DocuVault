@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 4 · Capture + OCR flow</title>
+<style>
+:root{--bg:#F5F6F8;--ink:#111827;--ink2:#374151;--line:#D7DBE2;--navy:#0B2A4A;--blue:#1F5FBF;--red:#B3261E;--green:#1B7F4C;--amber:#B5731B;--soft:#EEF3FA}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"Helvetica Neue",Arial,sans-serif;padding:16px}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:28px 0 10px;border-top:2px solid var(--navy);padding-top:10px}
+.sub{color:var(--ink2);margin:0 0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.phone{background:#fff;border:1px solid var(--line);border-radius:22px;padding:12px;min-height:440px;display:flex;flex-direction:column}
+.phone .t{font-weight:700;font-size:13px;color:var(--navy);display:flex;justify-content:space-between;margin-bottom:8px}
+.phone .t small{color:var(--ink2);font-weight:400}
+.row{display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin:6px 0}
+.row b{font-weight:600}.row span{color:var(--ink2);font-size:12px}
+.pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink2)}
+.pill.r{background:#FBE9E7;color:var(--red)}.pill.g{background:#E6F4EC;color:var(--green)}.pill.b{background:var(--soft);color:var(--blue)}.pill.a{background:#FBF1E0;color:var(--amber)}
+.btn{display:block;text-align:center;padding:10px;border-radius:10px;background:var(--navy);color:#fff;font-weight:600;margin-top:8px}
+.btn.o{background:#fff;color:var(--navy);border:1px solid var(--navy)}
+.cam{flex:1;background:linear-gradient(#DDE3EA,#C9D1DB);border-radius:12px;position:relative;min-height:200px}
+.cam .box{position:absolute;inset:20% 10%;border:2px solid var(--green);border-radius:6px}
+.cam .lab{position:absolute;bottom:8px;left:8px;background:#fff;padding:3px 8px;border-radius:6px;font-size:11px}
+.note{font-size:12px;color:var(--ink2);margin-top:auto;padding-top:8px;border-top:1px dashed var(--line)}
+.thumbs{display:flex;gap:6px;margin:6px 0}.thumbs div{width:44px;height:58px;background:#E5E7EB;border-radius:5px;border:1px solid var(--line);font-size:10px;text-align:center;line-height:58px;color:var(--ink2)}
+.thumbs div.on{border:2px solid var(--blue)}
+pre{background:#F9FAFB;border:1px solid var(--line);border-radius:8px;padding:10px;font:11px/1.45 ui-monospace,Menlo,monospace;overflow:auto;margin:6px 0;white-space:pre-wrap;flex:1}
+.q{background:#FBF1E0;border-left:4px solid var(--amber);padding:8px 10px;margin:6px 0;font-size:13px}
+.flow{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;align-items:center}.flow span{background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 8px}.flow span.k{background:var(--navy);color:#fff}.flow i{color:var(--ink2)}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid var(--line);padding:6px 7px;text-align:left;vertical-align:top}th{background:var(--soft)}
+.sheet{background:var(--soft);border:1px solid #C7D7EE;border-radius:14px;padding:12px;margin-top:auto}
+</style></head><body>
+<h1>Checkpoint 4 — Capture + OCR (Phase 2)</h1>
+<p class="sub">Throwaway mock. Six screens plus the pipeline and the questions. Works on a phone screen.</p>
+
+<h2>A · Pipeline</h2>
+<div class="flow"><span>Camera / Photos / Files / Clipboard</span><i>→</i><span>edge detect · perspective fix · rotate</span><i>→</i><span class="k">Vision OCR · en-US + zh-Hans · accurate</span><i>→</i><span>lines + boxes + confidence</span><i>→</i><span>language detect</span><i>→</i><span>Phase 3: classify</span></div>
+<p class="sub" style="margin-top:8px">OCR runs per page in the background. You see text appear page by page. Nothing leaves the device.</p>
+
+<h2>B · Screens</h2>
+<div class="grid">
+
+<div class="phone"><div class="t">1 · Import sheet <small>from ＋</small></div>
+<div class="row"><b>📷 Scan with camera</b><span>multi-page</span></div>
+<div class="row"><b>🖼 Choose from Photos</b><span>multi-select</span></div>
+<div class="row"><b>📁 Pick from Files</b><span>JPG · PNG · HEIC · PDF</span></div>
+<div class="row"><b>📋 Paste from clipboard</b><span class="pill b">image found</span></div>
+<div class="note">Clipboard row is shown only when an image is on the clipboard. PDF import: each page becomes a page. Scanned PDFs run OCR; text PDFs use their own text.</div></div>
+
+<div class="phone"><div class="t">2 · Camera <small>VisionKit</small></div>
+<div class="cam"><div class="box"></div><div class="lab">Hold still · edges found</div></div>
+<div class="thumbs"><div>1</div><div>2</div><div class="on">3</div></div>
+<div class="note">Apple's document camera. Auto-shutter when edges are stable. Shows a thumbnail strip. Tap Save when done.</div>
+<a class="btn">Save 3 pages</a></div>
+
+<div class="phone"><div class="t">3 · Pages <small>before OCR</small></div>
+<div class="thumbs"><div class="on">1</div><div>2</div><div>3</div></div>
+<div class="row"><b>Page 1</b><span>Rotate · Crop · Retake · Delete</span></div>
+<div class="row"><b>Order</b><span>drag to reorder</span></div>
+<div class="row"><b>Enhance</b><span>Colour · Greyscale · B&amp;W</span></div>
+<div class="note">Fix a bad page here, before OCR wastes time on it. Default enhance: colour for cards and IDs, greyscale for paper.</div>
+<a class="btn">Run OCR</a></div>
+
+<div class="phone"><div class="t">4 · OCR progress <small>on-device</small></div>
+<div class="row"><b>Page 1</b><span class="pill g">done · 97%</span></div>
+<div class="row"><b>Page 2</b><span class="pill a">reading…</span></div>
+<div class="row"><b>Page 3</b><span>queued</span></div>
+<div class="row"><b>Language</b><span class="pill b">中文 (zh-Hans) 82%</span></div>
+<div class="note">Percent is the mean Vision confidence for the page. Below 80% shows amber and a hint: "Retake in better light".</div></div>
+
+<div class="phone"><div class="t">5 · Text view <small>per page</small></div>
+<pre>租赁合同
+
+甲方（出租方）：西安某某制造有限公司
+乙方（承租方）：李某某
+
+第一条 租赁标的
+位于陕西省西安市雁塔区科技路10号的厂房…
+
+第二条 租赁期限
+自2026年1月1日起至2028年12月31日止。</pre>
+<div class="note">Selectable, copyable. Tap a line → the source image highlights that box. Low-confidence words are underlined amber. Apple Writing Tools appear on select (Summarise, Translate).</div></div>
+
+<div class="phone"><div class="t">6 · Save as document <small>end of Phase 2</small></div>
+<div class="row"><b>Title</b><span>租赁合同 — 西安某某</span></div>
+<div class="row"><b>Pages</b><span>3</span></div>
+<div class="row"><b>Language</b><span>中文</span></div>
+<div class="row"><b>Type</b><span class="pill">Other (Phase 3 fills this)</span></div>
+<div class="sheet" style="font-size:12px">Title is guessed: first bold line, or first line with ≥ 4 CJK chars / ≥ 3 words. Editable.</div>
+<a class="btn">Save to Library</a></div>
+
+</div>
+
+<h2>C · OCR settings I plan to use</h2>
+<table>
+<tr><th>Setting</th><th>Value</th><th>Why</th></tr>
+<tr><td>Recognition level</td><td>accurate</td><td>Speed is fine on A19 Pro; accuracy matters for IDs</td></tr>
+<tr><td>Languages</td><td>zh-Hans, en-US (both always on)</td><td>Mixed documents are common; Vision handles both in one pass</td></tr>
+<tr><td>Language correction</td><td><b>off</b> for IDs and cards, on for prose</td><td>Correction "fixes" passport numbers and MRZ into words. Decided after a quick first pass detects an MRZ or card-like line</td></tr>
+<tr><td>Minimum text height</td><td>1% of image</td><td>Catches small print on receipts and the MRZ</td></tr>
+<tr><td>Custom words</td><td>SGD, GST, NRIC, UEN, 增值税, 发票, 统一社会信用代码</td><td>Vision lets us bias toward domain terms</td></tr>
+<tr><td>Output kept</td><td>text · bounding box · confidence per line</td><td>Boxes let Phase 3 read fields by position (label left, value right)</td></tr>
+<tr><td>Image stored</td><td>JPEG q0.85, long edge ≤ 3000 px</td><td>Enough for re-OCR; ~1 MB per page</td></tr>
+</table>
+
+<h2>D · Questions</h2>
+<div class="q">Q1 · Traditional Chinese (zh-Hant) too? Costs nothing extra. Useful for HK/Taiwan documents. Default I propose: on.</div>
+<div class="q">Q2 · Handwriting: Vision reads it, but accuracy on Chinese handwriting is poor. Include and mark amber, or skip handwriting for now?</div>
+<div class="q">Q3 · PDF import of text PDFs (not scans): use the PDF's own text and skip OCR? Faster and exact. Default: yes.</div>
+<div class="q">Q4 · Where does the Library live before the Vault exists (Phase 4)? Proposal: Library saves plain documents now; vault types just get a "Vault — coming" badge until Phase 4.</div>
+</body></html>
