@@ -6,6 +6,7 @@ on:
       - "DocuVault/**"
       - "DocuVaultKeyboard/**"
       - "DocuVaultCore/Sources/**"
+      - "DocuVaultCore/Package.swift"
       - "project.yml"
       - ".github/workflows/app-build.yml"
   pull_request:
