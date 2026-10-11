@@ -5,6 +5,7 @@ import DocuVaultOCR
 
 /// The Scan tab: import sheet, then pages editor once there are pages.
 struct ScanHomeView: View {
+    let onDone: () -> Void
     @Environment(CaptureSession.self) private var capture
     @State private var showCamera = false
     @State private var photoItems: [PhotosPickerItem] = []
@@ -15,12 +16,20 @@ struct ScanHomeView: View {
     var body: some View {
         Group {
             if capture.hasPages {
-                PagesEditorView()
+                PagesEditorView(onDone: onDone)
             } else {
                 importList
             }
         }
-        .navigationTitle("Scan")
+        .navigationTitle("Add Document")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            if !capture.hasPages {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { onDone() }
+                }
+            }
+        }
         .fullScreenCover(isPresented: $showCamera) {
             DocumentCameraView(
                 onFinish: { images in
@@ -50,43 +59,36 @@ struct ScanHomeView: View {
     }
 
     private var importList: some View {
-        List {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 4) {
                 Button { showCamera = true } label: {
-                    row("Scan with camera", "camera.fill", "Multi-page, auto edge detection")
+                    IconRow(title: "Scan with camera", subtitle: "Multi-page · auto edge detection", systemImage: "camera.fill", tint: Theme.Colors.accent)
                 }
                 .disabled(!DocumentCameraView.isSupported)
 
                 PhotosPicker(selection: $photoItems, maxSelectionCount: 30, matching: .images) {
-                    row("Choose from Photos", "photo.on.rectangle", "Select one or many")
+                    IconRow(title: "Choose from Photos", subtitle: "Select one or many", systemImage: "photo.on.rectangle.angled")
                 }
 
                 Button { showFiles = true } label: {
-                    row("Pick from Files", "folder.fill", "JPG · PNG · HEIC · PDF")
+                    IconRow(title: "Pick from Files", subtitle: "JPG · PNG · HEIC · PDF", systemImage: "folder.fill")
                 }
 
                 if clipboardHasImage {
                     Button { importClipboard() } label: {
-                        row("Paste from clipboard", "doc.on.clipboard.fill", "Image found on clipboard")
+                        IconRow(title: "Paste from clipboard", subtitle: "Image found on clipboard", systemImage: "doc.on.clipboard.fill")
                     }
                 }
-            } header: {
-                Text("Import")
-            } footer: {
-                Text("OCR runs on this device in English and Chinese. Nothing is uploaded.")
-            }
-        }
-    }
 
-    private func row(_ title: String, _ icon: String, _ subtitle: String) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: icon).font(.title3).frame(width: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).foregroundStyle(.primary).fontWeight(.semibold)
-                Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                HintBanner(badge: "ON-DEVICE", title: "Nothing is uploaded",
+                           detail: "OCR runs on this iPhone in English and Chinese. Sensitive documents never leave it.")
+                    .padding(.top, 18)
             }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
         }
-        .padding(.vertical, 4)
+        .background(Theme.Colors.canvas)
     }
 
     // MARK: - Importers

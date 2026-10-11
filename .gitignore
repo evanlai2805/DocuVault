@@ -4,3 +4,6 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 .swiftpm/xcode/
+
+# XcodeGen output (regenerate with: xcodegen generate)
+DocuVault.xcodeproj/

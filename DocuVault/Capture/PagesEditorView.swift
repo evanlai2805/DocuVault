@@ -3,6 +3,7 @@ import DocuVaultOCR
 
 /// Review pages before OCR: rotate, enhance, delete, reorder. Then run OCR and watch progress.
 struct PagesEditorView: View {
+    let onDone: () -> Void
     @Environment(CaptureSession.self) private var capture
     @State private var selected: DraftPage.ID?
     @State private var goToSave = false
@@ -16,12 +17,12 @@ struct PagesEditorView: View {
             }
             thumbnailStrip
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Theme.Colors.canvas)
         .navigationTitle("\(capture.pages.count) page\(capture.pages.count == 1 ? "" : "s")")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Discard", role: .destructive) { capture.reset() }
+                Button("Discard", role: .destructive) { capture.reset(); onDone() }
             }
             ToolbarItem(placement: .confirmationAction) {
                 if capture.ocrComplete && !capture.isRunningOCR {
@@ -35,7 +36,7 @@ struct PagesEditorView: View {
                 }
             }
         }
-        .navigationDestination(isPresented: $goToSave) { SaveDocumentView() }
+        .navigationDestination(isPresented: $goToSave) { SaveDocumentView(onDone: onDone) }
         .onAppear { if selected == nil { selected = capture.pages.first?.id } }
         .onChange(of: capture.pages.map(\.id)) { _, ids in
             if let s = selected, !ids.contains(s) { selected = ids.first }

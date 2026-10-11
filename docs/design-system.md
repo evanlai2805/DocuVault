@@ -35,14 +35,18 @@ Reference: Flighty 4.11 (iOS 26). Follow it tightly. Light theme only.
 | lavender-tint | bg #F4EEFC · border #DCCFF3 · text #6E2FC4 | PRO-style banners, hints |
 | card-inset-button | white 14% fill, 16pt radius | "All … Stats >" rows inside cards |
 
+## Layout decisions (Evan, 11 Oct)
+- No layered sheet. Regular full-screen views on `canvas`; no colour wash behind.
+- Layout follows function. Summary cards appear only where a summary helps (Library header, OCR result, vault alerts). Lists and field tables stay plain.
+- Tab bar: two floating glass pills. Left pill: Library · Vault · Settings. Right pill: Scan (left, accent-filled circle) and Search (right, graphite circle). Scan and Search are colour-coded so they read at a glance.
+
 ## Shape & spacing
-- Sheet top radius 40. Sheet sits over a soft gradient header (we have no map; use a blurred colour wash from the document's card colour).
 - Cards: radius 28, padding 24, full width minus 16 side gutter, 16 between cards.
 - Circular glass buttons 56pt, hairline border, white 90% fill, SF Symbol 24pt regular.
 - Chips: height 44, horizontal padding 20, radius 22, white fill, hairline border when selected; unselected is text only in ink2.
 - Rows: 48pt leading icon, 16 gap, 72pt row height, no separators between the top action rows; thin separators in lists.
 - Search field: height 64, radius 20, fill #F2F2F7, 22pt placeholder in ink2.
-- Tab bar: native iOS 26 `TabView` with a `Tab(role: .search)` — floating pill + separate circular search.
+- Tab bar: custom floating bar (see Layout decisions). Glass material, hairline border, soft shadow.
 
 ## Motion
 - Sheet appears with spring (response 0.45, damping 0.85).

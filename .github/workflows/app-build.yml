@@ -1,0 +1,45 @@
+name: DocuVault app build (iOS Simulator)
+
+on:
+  push:
+    paths:
+      - "DocuVault/**"
+      - "DocuVaultCore/Sources/**"
+      - "project.yml"
+      - ".github/workflows/app-build.yml"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+          echo "::notice title=Toolchain::$(xcodebuild -version | tr '\n' ' ')"
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build for Simulator
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild -project DocuVault.xcodeproj -scheme DocuVault \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" \
+            build 2>&1 | tee build.log | grep -E "error:|warning:|BUILD (SUCCEEDED|FAILED)|\*\* " || true
+          grep -q "BUILD SUCCEEDED" build.log
+      - name: Report
+        if: always()
+        shell: bash
+        run: |
+          errors=$(grep -cE "error:" build.log || true)
+          warnings=$(grep -cE "warning:" build.log || true)
+          echo "::notice title=App build::errors=${errors} warnings=${warnings}"
+          { grep -E "error:" build.log || true; } | sort -u | head -40 | while read -r l; do echo "::error::$l"; done
+          { grep -E "warning:" build.log || true; } | sort -u | head -40 | while read -r l; do echo "::warning::$l"; done
