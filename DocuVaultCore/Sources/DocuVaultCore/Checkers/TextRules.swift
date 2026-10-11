@@ -36,33 +36,39 @@ public enum TextRules {
     ]
 
     /// Parse the first date in `text` to ISO yyyy-MM-dd. Handles:
-    ///   12 APR 1999 · 12-04-1999 · 12/04/1999 · 1999-04-12 · 2026年10月10日 · 2026.10.10
+    ///   12 APR 1999 · 12-04-1999 · 12/04/1999 · 1999-04-12 · 2026年10月10日 · 2026.10.10 · October 10, 2026
     /// Day-first is assumed for numeric dd-mm-yyyy (Singapore / China convention).
     public static func firstISODate(in text: String) -> String? {
-        let patterns: [(String, (NSTextCheckingResult, NSString) -> (Int, Int, Int)?)] = [
-            // 2026年10月10日
+        allISODates(in: text).first
+    }
+
+    /// Every date in `text`, in order of appearance, de-duplicated by position.
+    public static func allISODates(in text: String) -> [String] {
+        typealias Build = (NSTextCheckingResult, NSString) -> (Int, Int, Int)?
+        let patterns: [(String, Build)] = [
             (#"(\d{4})年(\d{1,2})月(\d{1,2})日"#, { m, s in (Int(s.substring(with: m.range(at: 1)))!, Int(s.substring(with: m.range(at: 2)))!, Int(s.substring(with: m.range(at: 3)))!) }),
-            // 1999-04-12 · 1999.04.12 · 1999/04/12
             (#"\b(\d{4})[\-./](\d{1,2})[\-./](\d{1,2})\b"#, { m, s in (Int(s.substring(with: m.range(at: 1)))!, Int(s.substring(with: m.range(at: 2)))!, Int(s.substring(with: m.range(at: 3)))!) }),
-            // 12 APR 1999 · 12 April 1999
             (#"\b(\d{1,2})\s+([A-Za-z]{3,9})\.?\s+(\d{4})\b"#, { m, s in
                 guard let mo = monthNames[s.substring(with: m.range(at: 2)).uppercased()] else { return nil }
                 return (Int(s.substring(with: m.range(at: 3)))!, mo, Int(s.substring(with: m.range(at: 1)))!) }),
-            // APR 12, 1999
             (#"\b([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})\b"#, { m, s in
                 guard let mo = monthNames[s.substring(with: m.range(at: 1)).uppercased()] else { return nil }
                 return (Int(s.substring(with: m.range(at: 3)))!, mo, Int(s.substring(with: m.range(at: 2)))!) }),
-            // 12-04-1999 · 12/04/1999 (day first)
             (#"\b(\d{1,2})[\-./](\d{1,2})[\-./](\d{4})\b"#, { m, s in (Int(s.substring(with: m.range(at: 3)))!, Int(s.substring(with: m.range(at: 2)))!, Int(s.substring(with: m.range(at: 1)))!) }),
         ]
         let ns = text as NSString
+        var found: [(Int, String)] = []
+        var taken: [NSRange] = []
         for (pat, build) in patterns {
-            guard let re = try? NSRegularExpression(pattern: pat),
-                  let m = re.firstMatch(in: text, range: NSRange(location: 0, length: ns.length)),
-                  let (y, mo, d) = build(m, ns), (1...12).contains(mo), (1...31).contains(d) else { continue }
-            return String(format: "%04d-%02d-%02d", y, mo, d)
+            guard let re = try? NSRegularExpression(pattern: pat) else { continue }
+            for m in re.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
+                if taken.contains(where: { NSIntersectionRange($0, m.range).length > 0 }) { continue }
+                guard let (y, mo, d) = build(m, ns), (1...12).contains(mo), (1...31).contains(d), y >= 1900, y <= 2100 else { continue }
+                taken.append(m.range)
+                found.append((m.range.location, String(format: "%04d-%02d-%02d", y, mo, d)))
+            }
         }
-        return nil
+        return found.sorted { $0.0 < $1.0 }.map(\.1)
     }
 
     // MARK: Money

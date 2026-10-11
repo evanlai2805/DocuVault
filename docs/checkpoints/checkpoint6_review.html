@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 6 · Classify + Review (Phase 3)</title>
+<style>
+:root{--ink:#000;--ink2:#8A8A8E;--hair:#E5E5EA;--canvas:#F2F2F7;--accent:#2F6BFF;--g:#1B7F4C;--a:#B5731B;--r:#8E1F1F}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+.phone{width:100%;max-width:360px;margin:0 auto;min-height:700px;border-radius:44px;background:var(--canvas);padding:22px 16px 90px;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.nav{display:flex;justify-content:space-between;align-items:center;font-size:17px;margin-bottom:14px}.nav b{font-weight:600}.nav .l{color:var(--accent)}
+.card{border-radius:28px;padding:22px 20px 18px;color:#fff;margin-bottom:14px}
+.card.green{background:linear-gradient(160deg,#0C4A2E,#1B7F4C)}.card.graph{background:linear-gradient(160deg,#1C1C1E,#3A3A3C)}.card.red{background:linear-gradient(160deg,#5B0E0E,#8E1F1F)}
+.card .ct{font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;font-stretch:condensed}
+.card .cs{font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin:4px 0 16px;font-stretch:condensed}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}.stat .l{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.7;font-stretch:condensed}
+.stat .v{font-size:30px;font-weight:800;letter-spacing:-1px;line-height:1.1}.stat .f{font-size:15px;opacity:.75}
+.cbtn{margin-top:14px;background:rgba(255,255,255,.14);border-radius:16px;padding:13px 16px;font-size:17px;font-weight:500;display:flex;justify-content:space-between}
+.sec{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2);margin:14px 4px 6px;display:flex;justify-content:space-between}
+.list{background:#fff;border-radius:20px;overflow:hidden}
+.f{display:grid;grid-template-columns:100px 1fr auto;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--hair);font-size:16px}
+.f:last-child{border-bottom:0}.f span{color:var(--ink2);font-size:15px}.f code{font-family:ui-monospace,Menlo,monospace;font-size:15px}
+.f .zh{display:block;font-size:12px;color:var(--ink2)}
+.p{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}.pg{background:rgba(27,127,76,.14);color:var(--g)}.pa{background:rgba(181,115,27,.14);color:var(--a)}.pr{background:rgba(142,31,31,.14);color:var(--r)}.pb{background:rgba(47,107,255,.14);color:var(--accent)}
+.chips{display:flex;gap:4px;overflow:auto;margin:0 -4px 12px}.chip{padding:10px 16px;border-radius:22px;font-size:16px;font-weight:500;color:var(--ink2);white-space:nowrap}.chip.on{background:#fff;color:var(--ink);border:1px solid var(--hair)}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+.edit{background:#fff;border-radius:20px;padding:16px;margin-top:12px}.edit input{width:100%;font:17px ui-monospace,Menlo,monospace;padding:12px;border:1px solid var(--hair);border-radius:12px}
+.edit .hint{font-size:14px;color:var(--ink2);margin-top:8px}
+</style></head><body>
+<h1>Checkpoint 6 — Classify + Review</h1>
+<p class="sub">Replaces the plain "Save" step. Pages → OCR → <b>Review</b> → Save. Rules decide the type and check every field they can. You confirm, edit, or type what is missing.</p>
+
+<div class="grid">
+
+<div class="phone"><div class="nav"><span class="l">‹ Pages</span><b>Review</b><span class="l">Next</span></div>
+<div class="card green"><div class="ct">Passport</div><div class="cs">Detected by MRZ · 98% · Singapore</div>
+<div class="stats"><div class="stat"><div class="l">Checks</div><div class="v">5/5</div><div class="f">All passed</div></div>
+<div class="stat"><div class="l">Fields</div><div class="v">9/11</div><div class="f">2 missing</div></div></div>
+<div class="cbtn"><span>Change type</span><span>›</span></div></div>
+<div class="sec"><span>Main</span><span>tap to edit</span></div>
+<div class="list">
+<div class="f"><span>Surname</span><code>TAN</code><em class="p pg">MRZ</em></div>
+<div class="f"><span>Given names</span><code>EVAN</code><em class="p pg">MRZ</em></div>
+<div class="f"><span>Passport no.</span><code>K1234567A</code><em class="p pg">MRZ ✓</em></div>
+<div class="f"><span>Nationality</span><code>SGP</code><em class="p pg">MRZ</em></div>
+<div class="f"><span>Date of birth</span><code>1999-04-12</code><em class="p pg">MRZ ✓</em></div>
+<div class="f"><span>Sex</span><code>M</code><em class="p pg">MRZ</em></div>
+<div class="f"><span>Expiry</span><code>2031-02-28</code><em class="p pg">MRZ ✓</em></div>
+<div class="f"><span>Issue date</span><code>2021-03-01</code><em class="p pa">OCR</em></div>
+<div class="f"><span>Place of issue</span><code style="color:#8E1F1F">—</code><em class="p pr">Missing</em></div>
+</div>
+<div class="sec"><span>Secondary</span><span>stored separately</span></div>
+<div class="list"><div class="f"><span>Place of birth</span><code>SINGAPORE</code><em class="p pa">OCR</em></div></div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Pages</span><b>Review</b><span class="l">Next</span></div>
+<div class="card red"><div class="ct">Passport</div><div class="cs">Detected by MRZ · check failed</div>
+<div class="stats"><div class="stat"><div class="l">Checks</div><div class="v">4/5</div><div class="f">Passport no. ✗</div></div>
+<div class="stat"><div class="l">Likely cause</div><div class="v" style="font-size:22px">Misread</div><div class="f">Retake or edit</div></div></div>
+<div class="cbtn"><span>Retake page 1</span><span>↻</span></div></div>
+<div class="sec"><span>Main</span><span></span></div>
+<div class="list">
+<div class="f"><span>Passport no.</span><code style="color:#8E1F1F">K1234S67A</code><em class="p pr">MRZ ✗</em></div>
+<div class="f"><span>Expected digit</span><code>6 · got 2</code><em class="p pb">hint</em></div>
+</div>
+<div class="edit"><div style="font-weight:600;margin-bottom:8px">Edit · Passport no.</div><input value="K1234S67A"><div class="hint">Visual zone reads <b>K1234567A</b>. Tap to use it. Check digit recomputes as you type.</div></div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Pages</span><b>Review</b><span class="l">Next</span></div>
+<div class="card green"><div class="ct">China ID card</div><div class="cs">居民身份证 · checksum ✓ · 西安市雁塔区</div>
+<div class="stats"><div class="stat"><div class="l">Checks</div><div class="v">3/3</div><div class="f">ID · DOB · sex</div></div>
+<div class="stat"><div class="l">Valid until</div><div class="v">2035</div><div class="f">06-15</div></div></div></div>
+<div class="sec"><span>Main 主要</span><span></span></div>
+<div class="list">
+<div class="f"><span>Name<i class="zh">姓名</i></span><code>王伟</code><em class="p pa">OCR</em></div>
+<div class="f"><span>Pinyin</span><code>WANG WEI</code><em class="p pb">ask</em></div>
+<div class="f"><span>ID number<i class="zh">公民身份号码</i></span><code>610113198506150012</code><em class="p pg">✓</em></div>
+<div class="f"><span>Date of birth<i class="zh">出生</i></span><code>1985-06-15</code><em class="p pg">ID ✓</em></div>
+<div class="f"><span>Sex<i class="zh">性别</i></span><code>男 M</code><em class="p pg">ID ✓</em></div>
+<div class="f"><span>Address<i class="zh">住址</i></span><code style="font-size:13px">陕西省西安市雁塔区科技路10号</code><em class="p pa">OCR</em></div>
+<div class="f"><span>Issuer<i class="zh">签发机关</i></span><code style="font-size:13px">西安市公安局雁塔分局</code><em class="p pa">OCR</em></div>
+<div class="f"><span>Validity<i class="zh">有效期限</i></span><code>2015-06-15 → 2035-06-15</code><em class="p pg">regex</em></div>
+</div>
+<div class="sec"><span>Secondary 其他</span><span></span></div>
+<div class="list"><div class="f"><span>Ethnicity<i class="zh">民族</i></span><code>汉</code><em class="p pa">OCR</em></div></div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Pages</span><b>Review</b><span class="l">Next</span></div>
+<div class="card graph"><div class="ct">Receipt</div><div class="cs">Detected by totals · SGD</div>
+<div class="stats"><div class="stat"><div class="l">Total</div><div class="v">412.00</div><div class="f">lines sum ✓</div></div>
+<div class="stat"><div class="l">Card</div><div class="v">•4417</div><div class="f">matches vault later</div></div></div>
+<div class="cbtn"><span>Add to expenses.csv</span><span>›</span></div></div>
+<div class="sec"><span>Main</span><span></span></div>
+<div class="list">
+<div class="f"><span>Merchant</span><code>Singapore Airlines</code><em class="p pa">OCR</em></div>
+<div class="f"><span>Date</span><code>2026-10-10</code><em class="p pg">regex</em></div>
+<div class="f"><span>Currency</span><code>SGD</code><em class="p pg">regex</em></div>
+<div class="f"><span>Total</span><code>412.00</code><em class="p pg">sum ✓</em></div>
+<div class="f"><span>Tax</span><code>0.00</code><em class="p pa">OCR</em></div>
+<div class="f"><span>Category</span><code>Travel</code><em class="p pb">guess</em></div>
+<div class="f"><span>Reference</span><code>7XK2PQ</code><em class="p pa">OCR</em></div>
+</div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Review</span><b>Change type</b><span class="l"></span></div>
+<div class="chips"><span class="chip on">Passport</span><span class="chip">NRIC / FIN</span><span class="chip">China ID</span><span class="chip">Bank card</span><span class="chip">Receipt</span></div>
+<div class="sec"><span>Why Passport</span><span></span></div>
+<div class="list">
+<div class="f" style="grid-template-columns:1fr auto"><span>Two 44-character MRZ lines found</span><em class="p pg">+60</em></div>
+<div class="f" style="grid-template-columns:1fr auto"><span>MRZ check digits all pass</span><em class="p pg">+30</em></div>
+<div class="f" style="grid-template-columns:1fr auto"><span>Word "PASSPORT" on page 1</span><em class="p pg">+8</em></div>
+<div class="f" style="grid-template-columns:1fr auto"><span>No card number (Luhn)</span><em class="p pb">0</em></div>
+</div>
+<div class="sec"><span>If you pick another type</span><span></span></div>
+<div class="list"><div class="f" style="grid-template-columns:1fr"><span>Fields are re-extracted with that type's rules. Your edits are kept where the field key matches.</span></div></div>
+</div>
+
+</div>
+
+<h3>Classifier scoring (rules first, model second)</h3>
+<table>
+<tr><th>Signal</th><th>Type</th><th>Score</th></tr>
+<tr><td>Two MRZ lines located</td><td>Passport</td><td>+60; +30 more if all check digits pass</td></tr>
+<tr><td>NRIC/FIN token with valid checksum</td><td>NRIC / FIN</td><td>+70; invalid checksum +30</td></tr>
+<tr><td>18-char 身份证 with valid checksum</td><td>China ID</td><td>+70; words 居民身份证 / 公民身份号码 +15</td></tr>
+<tr><td>Luhn-valid 13–19 digit run + expiry MM/YY</td><td>Bank card</td><td>+50 +20; brand known +10</td></tr>
+<tr><td>TOTAL / 合计 / GST / 发票 + ≥2 money amounts</td><td>Receipt</td><td>+25 per marker, +10 per amount (cap 70)</td></tr>
+<tr><td>AGREEMENT / 合同 / 甲方·乙方 / PARTY A / WHEREAS</td><td>Contract</td><td>+20 per marker (cap 70)</td></tr>
+<tr><td>Email + phone + ≤ 12 lines</td><td>Business card</td><td>+60</td></tr>
+<tr><td>Dear / 敬启 / Yours sincerely / 此致</td><td>Letter</td><td>+40</td></tr>
+<tr><td>Top score &lt; 40</td><td>Other → ask Apple on-device model (iOS 26)</td><td>model picks from the list; if unavailable → Other</td></tr>
+</table>
+
+<h3>Questions</h3>
+<div class="q">Q1 · Pinyin: when a Chinese name is found, show "WANG WEI" as a guess with an <b>ask</b> pill, and a one-tap toggle to "WEI WANG"? Or leave pinyin blank until you type it?</div>
+<div class="q">Q2 · Receipt categories: start with Travel · Meals · Transport · Office · Software · Medical · Other? Add yours.</div>
+<div class="q">Q3 · When a check fails (red card), block "Next" until fixed, or allow saving with the red flag kept?</div>
+</body></html>
