@@ -10,11 +10,7 @@ import DocuVaultCore
 /// Re-locks `autoLockSeconds` after the app leaves the foreground.
 @MainActor @Observable
 final class VaultSession {
-    static let autoLockSeconds: TimeInterval = 60
-    static let keychainService = "com.evanlai.docuvault.vault"
-    static let keychainAccount = "vault-key-v1"
-    /// Shared with the keyboard extension (Phase 5). Must match the keychain-access-groups entitlement.
-    static let accessGroup = "group.com.evanlai.docuvault"
+    nonisolated static let autoLockSeconds: TimeInterval = 60
 
     private(set) var key: SymmetricKey?
     private(set) var lastError: String?
@@ -73,6 +69,10 @@ final class VaultSession {
 /// Keychain storage for the vault key. Access control: this device only + current biometric set.
 /// On the Simulator (no Face ID enrolled) it falls back to a non-biometric item so development still works.
 enum VaultKeychain {
+    static let keychainService = "com.evanlai.docuvault.vault"
+    static let keychainAccount = "vault-key-v1"
+    /// Shared with the keyboard extension (Phase 5): the App Group doubles as the keychain access group.
+    static let accessGroup = "group.com.evanlai.docuvault"
 
     static func loadOrCreateKey(reason: String) throws -> SymmetricKey {
         if let existing = try load(reason: reason) { return existing }
@@ -86,8 +86,8 @@ enum VaultKeychain {
         context.localizedReason = reason
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: VaultSession.keychainService,
-            kSecAttrAccount as String: VaultSession.keychainAccount,
+            kSecAttrService as String: VaultKeychain.keychainService,
+            kSecAttrAccount as String: VaultKeychain.keychainAccount,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
             kSecUseAuthenticationContext as String: context,
@@ -111,8 +111,8 @@ enum VaultKeychain {
     static func store(_ key: SymmetricKey) throws {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: VaultSession.keychainService,
-            kSecAttrAccount as String: VaultSession.keychainAccount,
+            kSecAttrService as String: VaultKeychain.keychainService,
+            kSecAttrAccount as String: VaultKeychain.keychainAccount,
             kSecValueData as String: VaultCrypto.keyData(key),
         ]
         addAccessGroup(&query)
@@ -137,7 +137,7 @@ enum VaultKeychain {
     /// so only add the group when the entitlement is present.
     static func addAccessGroup(_ query: inout [String: Any]) {
         if Bundle.main.object(forInfoDictionaryKey: "DocuVaultKeychainSharing") as? Bool == true {
-            query[kSecAttrAccessGroup as String] = VaultSession.accessGroup
+            query[kSecAttrAccessGroup as String] = VaultKeychain.accessGroup
         }
     }
 
@@ -145,8 +145,8 @@ enum VaultKeychain {
     static func deleteKey() {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: VaultSession.keychainService,
-            kSecAttrAccount as String: VaultSession.keychainAccount,
+            kSecAttrService as String: VaultKeychain.keychainService,
+            kSecAttrAccount as String: VaultKeychain.keychainAccount,
         ]
         addAccessGroup(&query)
         SecItemDelete(query as CFDictionary)
