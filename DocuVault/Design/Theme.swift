@@ -16,17 +16,21 @@ enum Theme {
         static let verified = Color(red: 0x1B/255, green: 0x7F/255, blue: 0x4C/255)
         static let warning = Color(red: 0xB5/255, green: 0x73/255, blue: 0x1B/255)
         static let danger = Color(red: 0x8E/255, green: 0x1F/255, blue: 0x1F/255)
+        static let cloud = Color(red: 0xC9/255, green: 0x61/255, blue: 0x2B/255)
     }
 
     /// Gradient cards keyed by state, not by document type.
     enum CardStyle {
         case navy, red, green, graphite
+        /// Cloud: anything that leaves the phone wears this colour (Phase 7).
+        case clay
         var gradient: LinearGradient {
             let (a, b): (Color, Color) = switch self {
             case .navy: (Color(red: 0x1B/255, green: 0x0F/255, blue: 0x55/255), Color(red: 0x16/255, green: 0x3C/255, blue: 0x8C/255))
             case .red: (Color(red: 0x5B/255, green: 0x0E/255, blue: 0x0E/255), Color(red: 0x8E/255, green: 0x1F/255, blue: 0x1F/255))
             case .green: (Color(red: 0x0C/255, green: 0x4A/255, blue: 0x2E/255), Color(red: 0x1B/255, green: 0x7F/255, blue: 0x4C/255))
             case .graphite: (Color(red: 0x1C/255, green: 0x1C/255, blue: 0x1E/255), Color(red: 0x3A/255, green: 0x3A/255, blue: 0x3C/255))
+            case .clay: (Color(red: 0x5A/255, green: 0x2A/255, blue: 0x12/255), Color(red: 0xC9/255, green: 0x61/255, blue: 0x2B/255))
             }
             return LinearGradient(colors: [a, b], startPoint: .topLeading, endPoint: .bottomTrailing)
         }

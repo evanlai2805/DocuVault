@@ -44,6 +44,11 @@ public enum TextRules {
 
     /// Every date in `text`, in order of appearance, de-duplicated by position.
     public static func allISODates(in text: String) -> [String] {
+        dateSpans(in: text).map(\.iso)
+    }
+
+    /// Dates with their positions (UTF-16 ranges). Used by the redactor.
+    public static func dateSpans(in text: String) -> [(range: NSRange, iso: String)] {
         typealias Build = (NSTextCheckingResult, NSString) -> (Int, Int, Int)?
         let patterns: [(String, Build)] = [
             (#"(\d{4})年(\d{1,2})月(\d{1,2})日"#, { m, s in (Int(s.substring(with: m.range(at: 1)))!, Int(s.substring(with: m.range(at: 2)))!, Int(s.substring(with: m.range(at: 3)))!) }),
@@ -57,18 +62,16 @@ public enum TextRules {
             (#"\b(\d{1,2})[\-./](\d{1,2})[\-./](\d{4})\b"#, { m, s in (Int(s.substring(with: m.range(at: 3)))!, Int(s.substring(with: m.range(at: 2)))!, Int(s.substring(with: m.range(at: 1)))!) }),
         ]
         let ns = text as NSString
-        var found: [(Int, String)] = []
-        var taken: [NSRange] = []
+        var found: [(range: NSRange, iso: String)] = []
         for (pat, build) in patterns {
             guard let re = try? NSRegularExpression(pattern: pat) else { continue }
             for m in re.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
-                if taken.contains(where: { NSIntersectionRange($0, m.range).length > 0 }) { continue }
+                if found.contains(where: { NSIntersectionRange($0.range, m.range).length > 0 }) { continue }
                 guard let (y, mo, d) = build(m, ns), (1...12).contains(mo), (1...31).contains(d), y >= 1900, y <= 2100 else { continue }
-                taken.append(m.range)
-                found.append((m.range.location, String(format: "%04d-%02d-%02d", y, mo, d)))
+                found.append((m.range, String(format: "%04d-%02d-%02d", y, mo, d)))
             }
         }
-        return found.sorted { $0.0 < $1.0 }.map(\.1)
+        return found.sorted { $0.range.location < $1.range.location }
     }
 
     // MARK: Money
@@ -80,10 +83,15 @@ public enum TextRules {
 
     /// Find money amounts. Recognises S$, SGD, $, RMB, ¥, ￥, 人民币, 元, CNY, USD, US$, MYR, RM, HKD, HK$.
     public static func findMoney(in text: String) -> [Money] {
+        moneySpans(in: text).map(\.money)
+    }
+
+    /// Money amounts with their positions (UTF-16 ranges). Used by the redactor.
+    public static func moneySpans(in text: String) -> [(range: NSRange, money: Money)] {
         let pattern = #"(S\$|SGD|US\$|USD|HK\$|HKD|RM|MYR|CNY|RMB|人民币|¥|￥|\$)\s*([\d,]+(?:\.\d{1,2})?)|([\d,]+(?:\.\d{1,2})?)\s*(元|SGD|CNY|USD|MYR|HKD)"#
         guard let re = try? NSRegularExpression(pattern: pattern) else { return [] }
         let ns = text as NSString
-        var out: [Money] = []
+        var out: [(range: NSRange, money: Money)] = []
         for m in re.matches(in: text, range: NSRange(location: 0, length: ns.length)) {
             let sym: String, num: String
             if m.range(at: 1).location != NSNotFound {
@@ -92,7 +100,7 @@ public enum TextRules {
                 num = ns.substring(with: m.range(at: 3)); sym = ns.substring(with: m.range(at: 4))
             }
             guard let amt = Decimal(string: num.replacingOccurrences(of: ",", with: "")) else { continue }
-            out.append(Money(currency: currencyCode(sym), amount: amt))
+            out.append((m.range, Money(currency: currencyCode(sym), amount: amt)))
         }
         return out
     }

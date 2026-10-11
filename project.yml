@@ -57,8 +57,8 @@ targets:
       path: DocuVault/Info.plist
       properties:
         CFBundleDisplayName: DocuVault
-        CFBundleShortVersionString: "0.6.0"
-        CFBundleVersion: "6"
+        CFBundleShortVersionString: "0.7.0"
+        CFBundleVersion: "7"
         DocuVaultKeychainSharing: true
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
@@ -98,8 +98,8 @@ targets:
       path: DocuVaultKeyboard/Info.plist
       properties:
         CFBundleDisplayName: DocuVault
-        CFBundleShortVersionString: "0.6.0"
-        CFBundleVersion: "6"
+        CFBundleShortVersionString: "0.7.0"
+        CFBundleVersion: "7"
         DocuVaultKeychainSharing: true
         NSExtension:
           NSExtensionPointIdentifier: com.apple.keyboard-service

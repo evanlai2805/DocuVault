@@ -178,3 +178,53 @@ final class StoredTombstone {
         self.deletedAt = deletedAt
     }
 }
+
+/// One row of the cloud send log (Phase 7). Written for every approval-sheet outcome: sent, failed or cancelled.
+@Model
+final class StoredCloudSend {
+    @Attribute(.unique) var id: UUID
+    var sentAt: Date
+    var documentID: UUID?
+    var documentTitle: String
+    var purpose: String                 // "summarise" | "ask: “…”"
+    var model: String
+    var statusRaw: String               // CloudSendStatus.rawValue
+    var characters: Int
+    var redactedCount: Int
+    var redactionSummary: String        // "2 names · 3 amounts · 2 IDs"
+    var inputTokens: Int
+    var outputTokens: Int
+    var estimatedUSD: Double
+    var error: String?
+    /// The exact redacted text that left the phone, when "Keep sent text" is on. Nil otherwise.
+    var sentText: String?
+
+    init(id: UUID = UUID(), sentAt: Date = Date(), documentID: UUID?, documentTitle: String, purpose: String, model: String,
+         status: CloudSendStatus, characters: Int, redactedCount: Int, redactionSummary: String,
+         inputTokens: Int = 0, outputTokens: Int = 0, estimatedUSD: Double = 0, error: String? = nil, sentText: String? = nil) {
+        self.id = id
+        self.sentAt = sentAt
+        self.documentID = documentID
+        self.documentTitle = documentTitle
+        self.purpose = purpose
+        self.model = model
+        self.statusRaw = status.rawValue
+        self.characters = characters
+        self.redactedCount = redactedCount
+        self.redactionSummary = redactionSummary
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.estimatedUSD = estimatedUSD
+        self.error = error
+        self.sentText = sentText
+    }
+
+    var status: CloudSendStatus {
+        get { CloudSendStatus(rawValue: statusRaw) ?? .failed }
+        set { statusRaw = newValue.rawValue }
+    }
+}
+
+enum CloudSendStatus: String, Codable, Sendable {
+    case ok, failed, cancelled
+}

@@ -25,7 +25,7 @@ enum AppFiles {
         try FileManager.default.createDirectory(at: pagesDirectory, withIntermediateDirectories: true,
                                                 attributes: [.protectionKey: FileProtectionType.complete])
         let config = ModelConfiguration(url: storeURL)
-        let container = try ModelContainer(for: StoredDocument.self, StoredPage.self, StoredField.self, StoredPerson.self, StoredTombstone.self, configurations: config)
+        let container = try ModelContainer(for: StoredDocument.self, StoredPage.self, StoredField.self, StoredPerson.self, StoredTombstone.self, StoredCloudSend.self, configurations: config)
         applyProtection(to: storeURL)
         return container
     }

@@ -12,6 +12,8 @@ DocuVaultCore/        Swift package · shared by app and keyboard · no UI
   Sources/DocuVaultCore/
     Models/           DocumentType, FieldCheck, ExtractedField, PersonKind, RetentionPolicy
     Checkers/         MRZ (passport), CardCheck (Luhn + brand), NRIC (SG), ChinaID (身份证), TextRules
+    Summary/          SummarySpec (language, format, STE, chunking, grounding), SummaryJSON
+    Cloud/            Redactor (placeholders in/out), CloudGate (which docs may ever be sent), CloudCost
   Tests/              XCTest suite with ICAO specimen and published samples
 DocuVault/            app target (Phase 2+)
 DocuVaultKeyboard/    custom keyboard extension (Phase 5)
@@ -43,4 +45,14 @@ The model only handles layout and language.
 3. Classify + extract + review screen
 4. Vault + .md export + receipts.csv
 5. Keyboard extension
-Later: summaries, Claude opt-in with redaction, chat over vault, business cards, translate, tables.
+6. Summaries: Apple Foundation Models, Qwen3-4B via MLX for Chinese, Writing Tools
+7. Claude opt-in: per-send approval sheet, code-side redaction with restore, send log; never for vault documents
+Later: chat over vault, business cards, translate, tables.
+
+## Cloud rules (Phase 7)
+
+- `CloudGate.allows` is false for vault documents, identity and payment types, receipts and business cards. The UI builds no entry point and `CloudService.send` refuses too.
+- IDs, card numbers, phones and emails are always redacted. Names, amounts and dates are per-send toggles; placeholders like `[NAME 1]` or `[AMOUNT 2 SGD]` are restored on the phone from the reply.
+- The approval sheet is the only path to the network. No "always allow" preference exists.
+- Every outcome is logged (`StoredCloudSend`): sent, failed, or cancelled; optionally with the exact redacted text.
+- The API key sits in the Keychain, this device only. Removing it removes every Claude option.

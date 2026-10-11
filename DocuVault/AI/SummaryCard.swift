@@ -9,7 +9,10 @@ struct SummaryCard: View {
     let text: String
     @Environment(\.modelContext) private var context
     @State private var service = SummaryService.shared
+    @State private var cloud = CloudService.shared
     @State private var askFormat = false
+    @State private var cloudDraft: CloudService.Draft?
+    @State private var showAsk = false
 
     private var summary: DocumentSummary? { service.summary(for: doc) }
     private var state: SummaryService.State { service.state(for: doc) }
@@ -22,7 +25,12 @@ struct SummaryCard: View {
                 if s.format == .unsure || askFormat { formatAsk } else { contentBox(s) }
             }
         }
+        .sheet(item: $cloudDraft) { d in CloudApprovalSheet(draft: d) }
+        .sheet(isPresented: $showAsk) { AskClaudeSheet(doc: doc, text: text) }
     }
+
+    /// Cloud is offered only when a key exists and the gate allows this document (never vault, never ID types).
+    private var cloudAllowed: Bool { cloud.canOffer(doc) }
 
     // MARK: Card
 
@@ -46,25 +54,52 @@ struct SummaryCard: View {
                     }
                 }
                 CardButton(title: "Try again", systemImage: "arrow.clockwise") { run() }
+                if cloudAllowed { CardButton(title: "Use Claude instead · you approve the send", systemImage: "cloud") { runCloud() } }
             case .idle:
                 if let s = summary {
                     HStack(alignment: .top, spacing: 10) {
                         StatBlock(label: "Format", value: formatLabel(s), footnote: s.length == .short ? "short" : "long", small: true)
-                        StatBlock(label: "Model", value: s.model.hasPrefix("mlx") ? "Qwen" : "Apple",
-                                  footnote: String(format: "%.1f s · %@", s.seconds, s.model.contains("failed") ? "Qwen failed" : (s.chunks > 1 ? "\(s.chunks) chunks" : "no upload")), small: true)
+                        StatBlock(label: "Model", value: s.model == "claude" ? "Claude" : s.model.hasPrefix("mlx") ? "Qwen" : "Apple",
+                                  footnote: String(format: "%.1f s · %@", s.seconds, modelFootnote(s)), small: true)
                     }
                     if s.partial { Text("Partial: only the first \(SummarySpec.maxChunks) chunks were read.").font(.system(size: 13)).opacity(0.8).padding(.top, 8) }
+                    if s.model == "claude" {
+                        Text("Sent \(s.sentCharacters ?? 0) characters to Claude · \(s.redacted ?? 0) placeholders restored on this phone\((s.unresolved ?? 0) > 0 ? " · \(s.unresolved!) unresolved" : "") · logged")
+                            .font(.system(size: 13)).opacity(0.8).padding(.top, 8)
+                    }
                     regenerateMenu(s)
                 } else {
                     Text("On-device. The document's language. Nothing is uploaded.").font(.system(size: 15)).opacity(0.85)
                     CardButton(title: "Summarise", systemImage: "sparkles") { run() }
+                    if cloudAllowed {
+                        Menu {
+                            Button { runCloud() } label: { Label("Summarise with Claude…", systemImage: "cloud") }
+                            Button { showAsk = true } label: { Label("Ask Claude about this…", systemImage: "questionmark.bubble") }
+                        } label: {
+                            HStack {
+                                Text("Claude · you approve each send").font(.system(size: 18, weight: .medium))
+                                Spacer()
+                                Image(systemName: "chevron.down").font(.system(size: 16, weight: .semibold))
+                            }
+                            .padding(.horizontal, 16).padding(.vertical, 14)
+                            .background(Color.white.opacity(0.14))
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.insetButton, style: .continuous))
+                        }
+                        .padding(.top, 8)
+                    }
                 }
             }
         }
     }
 
+    private func modelFootnote(_ s: DocumentSummary) -> String {
+        if s.model == "claude" { return "cloud · \(s.redacted ?? 0) restored" }
+        if s.model.contains("failed") { return "Qwen failed" }
+        return s.chunks > 1 ? "\(s.chunks) chunks" : "no upload"
+    }
+
     private var subtitle: String {
-        if let s = summary { return "on-device · \(s.language == "zh-Hans" ? "中文" : "English\(s.language == "en" ? " · STE" : "")") · \(doc.pages.count) page\(doc.pages.count == 1 ? "" : "s")" }
+        if let s = summary { return "\(s.model == "claude" ? "Claude" : "on-device") · \(s.language == "zh-Hans" ? "中文" : "English\(s.language == "en" ? " · STE" : "")") · \(doc.pages.count) page\(doc.pages.count == 1 ? "" : "s")" }
         let lang = SummarySpec.language(for: text) == "zh-Hans" ? "中文" : "English"
         return "\(lang) · \(doc.pages.count) page\(doc.pages.count == 1 ? "" : "s")"
     }
@@ -85,6 +120,11 @@ struct SummaryCard: View {
             Button { run(length: s.length, format: s.format, language: s.language == "en" ? "zh-Hans" : "en") } label: { Label(s.language == "en" ? "中文" : "English", systemImage: "character.book.closed") }
             Divider()
             Button { askFormat = true } label: { Label("Choose format…", systemImage: "slider.horizontal.3") }
+            if cloudAllowed {
+                Divider()
+                Button { runCloud(length: s.length, format: s.format, language: s.language) } label: { Label("Summarise with Claude…", systemImage: "cloud") }
+                Button { showAsk = true } label: { Label("Ask Claude about this…", systemImage: "questionmark.bubble") }
+            }
             Button(role: .destructive) { service.clear(doc, context: context) } label: { Label("Remove summary", systemImage: "trash") }
         } label: {
             HStack {
@@ -192,5 +232,12 @@ struct SummaryCard: View {
 
     private func run(length: DocumentSummary.Length = .short, format: DocumentSummary.Format? = nil, language: String? = nil) {
         Task { await service.summarise(doc, text: text, format: format, length: length, language: language, context: context) }
+    }
+
+    /// Opens the approval sheet. Nothing is sent until "Send once".
+    private func runCloud(length: DocumentSummary.Length = .short, format: DocumentSummary.Format? = nil, language: String? = nil) {
+        let lang = language ?? SummarySpec.language(for: text)
+        let fmt = format ?? service.preferredFormat(for: doc.type) ?? SummarySpec.defaultFormat(for: doc.type)
+        cloudDraft = cloud.draft(doc, text: text, purpose: .summarise(format: fmt, length: length, language: lang))
     }
 }

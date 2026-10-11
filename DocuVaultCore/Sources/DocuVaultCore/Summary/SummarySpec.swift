@@ -23,6 +23,10 @@ public struct DocumentSummary: Codable, Equatable, Sendable {
     public var model: String             // "apple" | "mlx" | "claude"
     public var generatedAt: Date
     public var seconds: Double
+    /// Cloud sends only (Phase 7): placeholders swapped before sending, and how many came back unresolved.
+    public var redacted: Int?
+    public var unresolved: Int?
+    public var sentCharacters: Int?
 
     public init(language: String, headline: String, format: Format, body: [String], keyFacts: [Fact], actions: [String],
                 length: Length = .short, chunks: Int = 1, partial: Bool = false, model: String = "apple",

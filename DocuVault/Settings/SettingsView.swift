@@ -10,6 +10,8 @@ struct SettingsView: View {
     @State private var confirmResetKey = false
     @State private var models = LocalModelManager.shared
     @State private var summaries = SummaryService.shared
+    @State private var cloud = CloudService.shared
+    @Query private var sends: [StoredCloudSend]
     @State private var confirmDeleteModel = false
 
     var body: some View {
@@ -49,8 +51,16 @@ struct SettingsView: View {
             } header: { Text("Chinese model (Qwen3 4B via MLX)") } footer: {
                 Text("One-time download from Hugging Face. Runs fully on this phone after that. Apple's model is used whenever Qwen is off, missing, or fails.")
             }
+            Section {
+                NavigationLink { CloudSettingsView() } label: {
+                    HStack { Text("Claude"); Spacer(); Text(cloud.hasKey ? "On · \(CloudCost.model(cloud.modelID).displayName)" : "Off").foregroundStyle(Theme.Colors.ink2) }
+                }
+                row("Cloud sends", sends.filter { $0.status == .ok }.isEmpty ? (cloud.hasKey ? "0" : "0 — no key") : "\(sends.filter { $0.status == .ok }.count) · all approved by you")
+                row("Vault documents", "never sent")
+            } header: { Text("Cloud") } footer: {
+                Text("Claude is offered only for contracts, letters and other non-sensitive documents, one send at a time, after you review the redacted text. There is no \u{201C}always allow\u{201D}.")
+            }
             Section("Privacy") {
-                row("Cloud sends", "0 — none configured")
                 row("Storage", "App Group, Data Protection: Complete")
             }
             Section("Vault") {
@@ -63,7 +73,7 @@ struct SettingsView: View {
                 Button(role: .destructive) { confirmWipe = true } label: { Text("Delete all documents (\(docs.count))") }
             }
             Section("About") {
-                row("Version", "0.6.0 · Phase 6")
+                row("Version", "0.7.0 · Phase 7")
                 row("Bundle", "com.evanlai.docuvault")
             }
         }

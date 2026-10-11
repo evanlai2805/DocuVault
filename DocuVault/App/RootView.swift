@@ -48,7 +48,7 @@ struct RootView: View {
         .environment(vault)
         .onChange(of: scenePhase) { _, phase in
             vault.sceneDidChange(phase)
-            if phase == .active { RetentionManager.sweep(context: context) }
+            if phase == .active { RetentionManager.sweep(context: context); CloudService.shared.prune(context: context) }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.userDidTakeScreenshotNotification)) { _ in
             guard vault.isUnlocked || tab == .vault else { return }

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 10 · Claude opt-in (Phase 7)</title>
+<style>
+:root{--ink:#000;--ink2:#8A8A8E;--hair:#E5E5EA;--canvas:#F2F2F7;--accent:#2F6BFF;--g:#1B7F4C;--a:#B5731B;--r:#8E1F1F;--lav-bg:#F4EEFC;--lav-bd:#DCCFF3;--lav-tx:#6E2FC4;--cl:#C9612B}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+.phone{width:100%;max-width:360px;margin:0 auto;min-height:680px;border-radius:44px;background:var(--canvas);padding:22px 16px 90px;position:relative;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.phone.sheet{background:#CFD3DA}.sheetbody{background:var(--canvas);border-radius:36px 36px 0 0;margin:40px -16px -90px;padding:10px 16px 40px;min-height:600px}.grab{width:36px;height:5px;border-radius:3px;background:#C7C7CC;margin:0 auto 12px}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:17px}.nav b{font-weight:600}.nav .l{color:var(--accent)}
+.card{border-radius:28px;padding:22px 20px 18px;color:#fff;margin-bottom:14px}
+.card.graph{background:linear-gradient(160deg,#1C1C1E,#3A3A3C)}.card.navy{background:linear-gradient(160deg,#1B0F55,#163C8C)}.card.red{background:linear-gradient(160deg,#5A1414,#9A2B2B)}.card.clay{background:linear-gradient(160deg,#5A2A12,#C9612B)}
+.card .ct{font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;font-stretch:condensed}
+.card .cs{font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:.7;margin:4px 0 14px;font-stretch:condensed}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px 10px}.stat .l{font-size:13px;text-transform:uppercase;letter-spacing:1px;opacity:.7;font-stretch:condensed}
+.stat .v{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1.1}.stat .f{font-size:15px;opacity:.75}
+.cbtn{margin-top:14px;background:rgba(255,255,255,.14);border-radius:16px;padding:13px 16px;font-size:17px;font-weight:500;display:flex;justify-content:space-between}
+.sec{font-size:14px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2);margin:14px 4px 6px;display:flex;justify-content:space-between}
+.box{background:#fff;border-radius:20px;padding:16px;font-size:16px;line-height:1.5;margin-bottom:12px}
+.box h4{margin:0 0 8px;font-size:18px;font-weight:700}.box ul{margin:0;padding-left:18px}.box li{margin:4px 0}
+.box .kf{display:grid;grid-template-columns:110px 1fr;gap:6px 8px;font-size:15px;margin-top:10px}.box .kf span{color:var(--ink2)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--hair);font-size:16px}.row:last-child{border:0}.row .v{color:var(--ink2)}
+.tg{width:46px;height:28px;border-radius:14px;background:#34C759;position:relative;flex:none}.tg:after{content:"";position:absolute;top:2px;right:2px;width:24px;height:24px;border-radius:12px;background:#fff}.tg.off{background:#E9E9EB}.tg.off:after{right:auto;left:2px}.tg.lock{background:#B5731B;opacity:.9}
+.p{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}.pg{background:rgba(27,127,76,.14);color:var(--g)}.pa{background:rgba(181,115,27,.14);color:var(--a)}.pb{background:rgba(47,107,255,.14);color:var(--accent)}.pn{background:#EEE;color:var(--ink2)}.pr{background:rgba(142,31,31,.14);color:var(--r)}.pc{background:rgba(201,97,43,.14);color:var(--cl)}
+.banner{background:var(--lav-bg);border:1px solid var(--lav-bd);border-radius:20px;padding:14px 16px;margin-bottom:14px;color:var(--lav-tx);font-size:15px}.banner b{font-size:16px}
+.banner.red{background:#FBECEC;border-color:#F1C9C9;color:var(--r)}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+.flow{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;align-items:center;margin-bottom:18px}.flow span{background:#fff;border:1px solid var(--hair);border-radius:8px;padding:5px 8px}.flow span.k{background:#0B2A4A;color:#fff}.flow span.c{background:var(--cl);color:#fff}.flow i{color:var(--ink2)}
+.menu{background:#fff;border-radius:14px;padding:6px 0;font-size:16px;width:250px;box-shadow:0 8px 24px rgba(0,0,0,.15);margin:8px 0 0 40px}.menu div{padding:9px 16px;border-bottom:1px solid var(--hair)}.menu div:last-child{border:0}
+.prev{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.55;color:#222;white-space:pre-wrap}
+.m{padding:1px 5px;border-radius:5px;font-weight:700}.mn{background:#FFE4CC;color:#7A3A0C}.ma{background:#DDEBFF;color:#163C8C}.mi{background:#FBD5D5;color:#8E1F1F}.mc{background:#E6E6EA;color:#444}
+.big{display:block;width:100%;padding:16px;border-radius:18px;background:var(--ink);color:#fff;font-size:17px;font-weight:600;text-align:center;margin-top:8px}.big.ghost{background:transparent;color:var(--accent);font-weight:500;padding:12px}
+.key{font-family:ui-monospace,Menlo,monospace;font-size:14px;letter-spacing:1px}
+.log{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:12px 0;border-bottom:1px solid var(--hair);font-size:15px}.log small{color:var(--ink2);font-size:13px;grid-column:1/3}
+</style></head><body>
+<h1>Checkpoint 10 — Claude opt-in</h1>
+<p class="sub">Phase 7. Cloud is a tool you pick per document, never a default. Every send shows you exactly what leaves the phone, after code has swapped names, amounts and identifiers for placeholders. The reply is restored on the phone. Vault documents never get the option.</p>
+
+<div class="flow"><span>document text</span><i>→</i><span class="k">redactor (code): IDs · contacts · names · amounts → [NAME 1] [AMOUNT 2]</span><i>→</i><span>approval sheet · preview · toggles</span><i>→</i><span class="c">HTTPS · api.anthropic.com · your key</span><i>→</i><span>JSON summary with placeholders</span><i>→</i><span class="k">restore placeholders · ground facts</span><i>→</i><span>summary card · model: Claude</span><i>→</i><span>send log row</span></div>
+
+<div class="grid">
+
+<div class="phone"><div class="nav"><span class="l">‹ Library</span><b>Lee &amp; Co letter</b><span class="l">⋯</span></div>
+<div class="card graph"><div class="ct">Summary</div><div class="cs">on-device · English · 1 page</div>
+<div class="stats"><div class="stat"><div class="l">Format</div><div class="v" style="font-size:22px">Paragraph</div><div class="f">short</div></div><div class="stat"><div class="l">Model</div><div class="v" style="font-size:22px">Apple</div><div class="f">0.8 s · no upload</div></div></div>
+<div class="cbtn"><span>Regenerate · longer · bullets</span><span>›</span></div></div>
+<div class="menu"><div>Longer</div><div>Bullets</div><div>中文</div><div style="border-bottom:6px solid var(--canvas)">Choose format…</div><div><b>Summarise with Claude…</b> <span class="p pc">cloud</span></div><div>Ask Claude about this…</div><div style="color:var(--r)">Remove summary</div></div>
+<div class="banner" style="margin-top:14px"><b>Entry points</b> · the menu on any non-vault summary card; the "unavailable / failed" card gets a second button <i>Use Claude instead</i>. Never automatic. No "always allow" anywhere.</div>
+</div>
+
+<div class="phone sheet"><div class="sheetbody"><div class="grab"></div>
+<div class="nav"><span class="l">Cancel</span><b>Send to Claude</b><span></span></div>
+<div class="card clay"><div class="ct">One send</div><div class="cs">Lee &amp; Co letter · summarise · claude-sonnet-5-5</div>
+<div class="stats"><div class="stat"><div class="l">Leaves phone</div><div class="v">1.4k</div><div class="f">characters</div></div><div class="stat"><div class="l">Redacted</div><div class="v">7</div><div class="f">2 names · 3 amounts · 2 IDs</div></div>
+<div class="stat"><div class="l">Est. cost</div><div class="v" style="font-size:22px">US$0.01</div><div class="f">≈ 600 tokens</div></div><div class="stat"><div class="l">Stays here</div><div class="v" style="font-size:22px">Images</div><div class="f">fields · notes · vault</div></div></div></div>
+<div class="sec"><span>Redact before sending</span><span>restored on reply</span></div>
+<div class="box" style="padding:4px 16px">
+<div class="row"><span>IDs, cards, phones, emails</span><span class="tg lock"></span></div>
+<div class="row"><span>Names <span class="p pn">2 found</span></span><span class="tg"></span></div>
+<div class="row"><span>Amounts <span class="p pn">3 found</span></span><span class="tg"></span></div>
+<div class="row"><span>Dates <span class="p pn">4 found</span></span><span class="tg off"></span></div>
+</div>
+<div class="sec"><span>Preview · exactly this text</span><span>tap a mark to keep it</span></div>
+<div class="box"><div class="prev">Dear <span class="m mn">[NAME 1]</span>,
+
+We refer to the engagement dated 3 October 2026. Our client, <span class="m mn">[NAME 2]</span>, requests two more weeks on the information memorandum. The accountant delivers audited numbers on 24 October.
+
+The fee of <span class="m ma">[AMOUNT 1]</span> is adjusted by <span class="m ma">[AMOUNT 2]</span> for the delay. Please confirm by Friday 17 October. Our reference <span class="m mi">[ID 1]</span>; contact <span class="m mi">[CONTACT 1]</span>.</div></div>
+<span class="big">Send once</span><span class="big ghost">Cancel</span>
+</div></div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Library</span><b>Lee &amp; Co letter</b><span class="l">⋯</span></div>
+<div class="card graph"><div class="ct">Summary</div><div class="cs">Claude · English · STE · 1 page</div>
+<div class="stats"><div class="stat"><div class="l">Format</div><div class="v" style="font-size:22px">Paragraph</div><div class="f">short</div></div><div class="stat"><div class="l">Model</div><div class="v" style="font-size:22px">Claude</div><div class="f">3.2 s · 7 restored</div></div></div>
+<div class="cbtn"><span>Regenerate · longer · bullets</span><span>›</span></div></div>
+<div class="box"><h4>Request to extend the IM deadline</h4>
+<p style="margin:0">Lee &amp; Co asks for two more weeks on the information memorandum. The accountant delivers audited numbers on 24 October. The fee of SGD 18,000 drops by SGD 1,500. They ask you to confirm by Friday 17 October.</p>
+<div class="kf"><span>From</span><b>J. Lee, Lee &amp; Co</b><span>Deadline</span><b>2026-10-17</b><span>Fee</span><b>SGD 18,000</b></div>
+<p style="margin:10px 0 0;font-size:13px;color:var(--ink2)">Sent 1.4k chars to Claude · 7 placeholders restored on this phone · logged</p></div>
+<div class="banner"><b>Restore</b> · Claude only ever sees [AMOUNT 1]. The phone puts "SGD 18,000" back. Key facts are still grounded against the real text, so a hallucinated figure is dropped.</div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Vault</span><b>Passport — Evan</b><span class="l">⋯</span></div>
+<div class="card red"><div class="ct">Passport</div><div class="cs">vault · sealed · Face ID</div>
+<div class="stats"><div class="stat"><div class="l">Checks</div><div class="v" style="font-size:22px">4/4</div><div class="f">MRZ verified</div></div><div class="stat"><div class="l">Expires</div><div class="v" style="font-size:22px">2031-02</div><div class="f">in 4 y</div></div></div></div>
+<div class="banner red"><b>Never offered</b> · no Claude item in any menu, no "Use Claude instead" button, no send possible by code path. The redactor is not a gate here — the option does not exist for vault documents, receipts, cards or IDs.</div>
+<div class="sec"><span>Fields</span><span>copy · fill</span></div>
+<div class="box" style="font-size:15px"><div class="kf" style="margin:0"><span>Surname</span><b>LAI</b><span>Given</span><b>ZE XUAN EVAN</b><span>Number</span><b>•••• ••3K</b></div></div>
+</div>
+
+<div class="phone"><div class="nav"><span class="l">‹ Settings</span><b>Claude</b><span></span></div>
+<div class="card clay"><div class="ct">Cloud</div><div class="cs">opt-in · per send · your API key</div>
+<div class="stats"><div class="stat"><div class="l">Sends</div><div class="v">4</div><div class="f">all approved by you</div></div><div class="stat"><div class="l">Spent</div><div class="v" style="font-size:22px">US$0.06</div><div class="f">estimate · 30 d</div></div></div></div>
+<div class="box" style="padding:4px 16px">
+<div class="row"><span>API key</span><span class="v key">sk-ant-…R7Qa</span></div>
+<div class="row"><span>Model</span><span class="v">claude-sonnet-5-5 ›</span></div>
+<div class="row"><span>Keep sent text in log</span><span class="tg"></span></div>
+<div class="row"><span>Log retention</span><span class="v">90 days ›</span></div>
+</div>
+<div class="sec"><span>Send log</span><span>4</span></div>
+<div class="box" style="padding:2px 16px">
+<div class="log"><span>Lee &amp; Co letter</span><span class="p pg">ok</span><small>Today 14:02 · summarise · 1.4k chars · 7 redacted · 612 tok · US$0.01</small></div>
+<div class="log"><span>租赁合同 — 西安某某</span><span class="p pg">ok</span><small>Fri · ask: "违约金条款？" · 3.1k chars · 5 redacted · US$0.02</small></div>
+<div class="log"><span>Board pack extract</span><span class="p pr">failed</span><small>Thu · summarise · 401 invalid key · nothing billed</small></div>
+<div class="log"><span>Lee &amp; Co letter</span><span class="p pn">cancelled</span><small>Thu · you cancelled on the sheet · nothing sent</small></div>
+</div>
+</div>
+
+</div>
+
+<h3>Rules that are code, not prompt</h3>
+<table>
+<tr><th>Rule</th><th>How</th></tr>
+<tr><td>Vault / sensitive docs never go</td><td><code>CloudGate.allows(doc)</code> is false for <code>sensitive</code>, for receipt / card / passport / NRIC / 身份证 / business card, and for any document with sealed pages. The UI builds no entry point; the client refuses the call too.</td></tr>
+<tr><td>Always-on redaction</td><td>NRIC/FIN, PRC 身份证 (18 digits, checksum), passport numbers near MRZ or "Passport No", card numbers (Luhn), phones, emails. Cannot be toggled off.</td></tr>
+<tr><td>Names</td><td>English: salutation + capitalised words (Mr/Ms/Dr/Mdm), "Name:" labels, two-to-three capitalised tokens before Ltd/Pte/LLP/Co. Chinese: 甲方/乙方/先生/女士/签字/姓名 followed by 2–4 han. Plus every extracted name field. Same name → same placeholder.</td></tr>
+<tr><td>Amounts</td><td><code>TextRules.findMoney</code> spans. Placeholder keeps the currency: <code>[AMOUNT 1 SGD]</code> so the model can still reason about which fee is which.</td></tr>
+<tr><td>Restore</td><td>Reply placeholders are swapped back by exact token. Unknown placeholders stay as-is and the card shows "1 unresolved".</td></tr>
+<tr><td>Per-send approval</td><td>The sheet is the only path to <code>ClaudeClient.send</code>. The approval token lives for one request. No preference key exists for "always".</td></tr>
+<tr><td>Log</td><td><code>StoredCloudSend</code>: time, doc, purpose, chars, redaction counts, model, tokens in/out, cost estimate, status (ok/failed/cancelled), and the redacted text if you keep that on.</td></tr>
+<tr><td>Key</td><td>Keychain, this device only, no biometry (you paste it once). Shown masked. Deleting it disables every entry point.</td></tr>
+</table>
+
+<h3>Questions for you</h3>
+<div class="q"><b>Q1 Redaction defaults.</b> IDs/contacts always on and locked. Names and amounts on by default, toggle per send. Dates off by default. Placeholders restored on reply. OK, or do you want amounts off by default because a contract summary reads better with figures in context?</div>
+<div class="q"><b>Q2 Entry points.</b> Only (a) the menu item "Summarise with Claude…", (b) "Use Claude instead" on a failed/unavailable card, and (c) "Ask Claude about this…" for one free-text question. Never auto, never on save. Agree? Is (c) wanted now or later?</div>
+<div class="q"><b>Q3 Model and cost.</b> Default <code>claude-sonnet-5-5</code>, with <code>claude-haiku-5-5</code> as the cheap option in Settings. Cost on the sheet is an estimate from character count. OK?</div>
+<div class="q"><b>Q4 API key.</b> Paste into Settings, stored in Keychain (no Face ID), shown masked. Or gate "reveal / change key" behind Face ID?</div>
+<div class="q"><b>Q5 Send log.</b> Keep the redacted text that was sent (so you can audit exactly what left), 90-day retention, both adjustable. Or metadata only?</div>
+<div class="q"><b>Q6 Chinese documents.</b> Claude handles 中文 well, so the menu offers it for Chinese docs too, with the same redaction (中文 names via the 甲方/先生 rules). Fine?</div>
+</body></html>
