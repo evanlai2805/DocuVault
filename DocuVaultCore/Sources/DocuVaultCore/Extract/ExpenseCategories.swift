@@ -18,10 +18,10 @@ public enum ExpenseCategories {
         .init(name: "Public Transport", group: "Travel", keywords: ["MRT", "SMRT", "SBS", "BUS", "EZ-LINK", "TRAIN", "RAIL", "地铁", "高铁", "火车", "12306"]),
         .init(name: "Parking & Tolls", group: "Travel", keywords: ["PARKING", "CARPARK", "ERP", "TOLL", "停车", "高速"]),
         .init(name: "Fuel", group: "Travel", keywords: ["SHELL", "ESSO", "CALTEX", "SPC", "PETROL", "SINOPEC", "加油"]),
-        .init(name: "Travel — Other", group: "Travel", keywords: ["VISA FEE", "TRAVEL INSURANCE", "LOUNGE", "签证"]),
+        .init(name: "Travel · Other", group: "Travel", keywords: ["VISA FEE", "TRAVEL INSURANCE", "LOUNGE", "签证"]),
         // Food
-        .init(name: "Meals — Business", group: "Food", keywords: ["RESTAURANT", "BISTRO", "DINING", "餐厅", "饭店", "商务宴请"]),
-        .init(name: "Meals — Personal", group: "Food", keywords: ["CAFE", "COFFEE", "KOPITIAM", "HAWKER", "FOOD COURT", "MCDONALD", "KFC", "STARBUCKS", "咖啡", "快餐", "小吃"]),
+        .init(name: "Meals · Business", group: "Food", keywords: ["RESTAURANT", "BISTRO", "DINING", "餐厅", "饭店", "商务宴请"]),
+        .init(name: "Meals · Personal", group: "Food", keywords: ["CAFE", "COFFEE", "KOPITIAM", "HAWKER", "FOOD COURT", "MCDONALD", "KFC", "STARBUCKS", "咖啡", "快餐", "小吃"]),
         .init(name: "Groceries", group: "Food", keywords: ["NTUC", "FAIRPRICE", "COLD STORAGE", "SHENG SIONG", "GIANT", "DON DON DONKI", "SUPERMARKET", "超市", "永辉", "盒马"]),
         // Work
         .init(name: "Office Supplies", group: "Work", keywords: ["POPULAR", "STATIONERY", "PRINTING", "TONER", "PAPER", "文具", "打印"]),
@@ -44,6 +44,18 @@ public enum ExpenseCategories {
     ]
 
     public static let names: [String] = all.map(\.name)
+
+    /// Categories were renamed from "Travel — Other" to "Travel · Other" when em dashes left the UI.
+    /// Receipts saved before that still carry the old string, so resolve both spellings to one category.
+    public static func canonical(_ storedName: String) -> String {
+        let dotted = storedName.replacingOccurrences(of: " — ", with: " · ")
+        return names.contains(dotted) ? dotted : storedName
+    }
+
+    public static func category(named storedName: String) -> ExpenseCategory? {
+        let n = canonical(storedName)
+        return all.first { $0.name == n }
+    }
     public static let groups: [String] = ["Travel", "Food", "Work", "Personal", "Other"]
 
     /// Best category for receipt text. First keyword hit in list order wins; "Other" when nothing matches.

@@ -3,6 +3,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ./scripts/gen.sh >/dev/null
+mkdir -p build          # tee opens sim.log before xcodebuild creates the directory
 set -o pipefail
 xcodebuild -project DocuVault.xcodeproj -scheme DocuVault \
   -destination 'generic/platform=iOS Simulator' -configuration Debug -skipMacroValidation \

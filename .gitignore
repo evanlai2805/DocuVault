@@ -13,3 +13,7 @@ DocuVault.xcodeproj/
 CLAUDE.local.md
 .env.local
 build/
+
+# Bug-report screenshots from device testing — local only, never committed
+Unresolved Issues Screenshots/
+Resolved Issues Screenshots/

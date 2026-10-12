@@ -89,7 +89,7 @@ final class MarkdownExporterTests: XCTestCase {
 
     func testDocumentMarkdown() {
         let md = MarkdownExporter.markdown(for: sample())
-        XCTAssertTrue(md.hasPrefix("# Passport — Evan Lai\n"))
+        XCTAssertTrue(md.hasPrefix("# Passport · Evan Lai\n"))
         XCTAssertTrue(md.contains("owner: Evan"))
         XCTAssertTrue(md.contains("checks: 5/5 ✓"))
         XCTAssertTrue(md.contains("| Passport no."))
@@ -220,5 +220,26 @@ final class FillInferenceTests: XCTestCase {
         XCTAssertFalse(FillInference.cardSpaced(C()))
         XCTAssertTrue(FillInference.cardSpaced(C(before: "4111 1111 ")))
         XCTAssertFalse(FillInference.cardSpaced(C(keyboard: .numeric, before: "4111 1111 ")))
+    }
+
+    // MARK: Category names after em dashes left the UI
+
+    func testCategoryNamesCarryNoEmDash() {
+        XCTAssertTrue(ExpenseCategories.names.allSatisfy { !$0.contains("—") },
+                      "category labels must not contain an em dash")
+        XCTAssertTrue(ExpenseCategories.names.contains("Travel · Other"))
+    }
+
+    func testOldCategoryNameStillResolves() {
+        // A receipt saved before the rename carries the old spelling.
+        XCTAssertEqual(ExpenseCategories.canonical("Travel — Other"), "Travel · Other")
+        XCTAssertEqual(ExpenseCategories.category(named: "Meals — Business")?.group, "Food")
+        XCTAssertEqual(ExpenseCategories.category(named: "Meals · Business")?.group, "Food")
+    }
+
+    func testCanonicalLeavesUnknownNamesAlone() {
+        XCTAssertEqual(ExpenseCategories.canonical("Flights"), "Flights")
+        XCTAssertEqual(ExpenseCategories.canonical("Some — Thing"), "Some — Thing")
+        XCTAssertNil(ExpenseCategories.category(named: "Not a category"))
     }
 }

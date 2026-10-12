@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 11 · Keyboard fixes</title>
+<style>
+:root{--ink:#000;--ink2:#8A8A8E;--hair:#E5E5EA;--canvas:#F2F2F7;--kb:#D1D4DA;--accent:#2F6BFF;--g:#1B7F4C;--a:#B5731B;--r:#8E1F1F;--graph:#1C1C1E}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:22px}
+.phone{width:100%;max-width:360px;margin:0 auto;height:640px;border-radius:44px;background:#fff;position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;flex-direction:column}
+.page{flex:1;padding:26px 18px;background:#fff}
+.page h2{font-size:22px;margin:0 0 14px;font-weight:700}
+.inp{border:1px solid var(--hair);border-radius:10px;padding:12px;margin:8px 0;font-size:15px;color:var(--ink2)}
+.inp.on{border:2px solid var(--accent);color:var(--ink)}
+.kb{background:var(--kb);padding:8px 6px 10px;border-radius:0 0 44px 44px}
+.top{display:flex;gap:6px;align-items:center;overflow:hidden;padding:2px 2px 8px}
+.top .lock{width:30px;height:30px;border-radius:8px;background:var(--graph);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+.top .lock.g{background:var(--g)}
+.chip{padding:7px 12px;border-radius:16px;font-size:14px;font-weight:600;background:#fff;color:var(--ink);white-space:nowrap;border:1px solid transparent}
+.chip.on{background:var(--accent);color:#fff}.chip.sm{font-size:13px;padding:6px 10px;color:var(--ink2);background:rgba(255,255,255,.6)}.chip.sm.on{background:#fff;color:var(--ink);border-color:var(--hair)}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.keys.c4{grid-template-columns:repeat(4,1fr)}
+.key{background:#fff;border-radius:9px;padding:11px 8px;font-size:15px;font-weight:600;text-align:center;box-shadow:0 1px 0 rgba(0,0,0,.25);min-height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.key small{font-size:11px;color:var(--ink2);font-weight:500}
+.key.dim{color:var(--ink2);background:#ECEDF0}.key.chk{position:relative}.key .p{position:absolute;top:4px;right:6px;font-size:9px;font-weight:700;color:var(--g)}
+.keys.c4 .key{font-size:13px;padding:8px 4px}
+.bottom{display:grid;grid-template-columns:52px 1fr 52px 70px;gap:6px;margin-top:6px}
+.bottom .key{background:#ADB3BC;font-weight:500;color:#111;min-height:42px}.bottom .key.w{background:#fff}.bottom .key.b{background:var(--accent);color:#fff}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+/* --- additions for this checkpoint --- */
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:middle}
+.tag.bad{background:rgba(142,31,31,.12);color:var(--r)}.tag.good{background:rgba(27,127,76,.14);color:var(--g)}.tag.opt{background:rgba(47,107,255,.14);color:var(--accent)}
+.cap{font-size:13px;color:#374151;margin:8px 2px 0;line-height:1.45}
+.cap b{color:#0B2A4A}
+.broken-row{height:24px;overflow:hidden;display:flex;gap:6px;align-items:center;padding:0 2px;filter:blur(1.7px);margin-bottom:8px}
+.sliced{height:11px;overflow:hidden;margin-top:6px}
+.fade{position:relative}.fade:after{content:"";position:absolute;left:0;right:0;bottom:0;height:22px;background:linear-gradient(to top,var(--kb),rgba(209,212,218,0));pointer-events:none}
+.scrollcue{text-align:center;font-size:11px;color:var(--ink2);font-weight:600;margin-top:3px}
+.note{background:#fff;border-left:4px solid var(--accent);padding:10px 12px;margin:10px 0;font-size:14px;border-radius:0 10px 10px 0}
+.hdr{font-size:14px;font-weight:700;color:#0B2A4A;margin:0 0 6px}
+</style></head><body>
+<h1>Checkpoint 11 — Keyboard fixes</h1>
+<p class="sub">From your device screenshots IMG_3332–3334 (12 Oct, Notes, passport “CHAI”). Four faults. One is already fixed. The other three need a decision each. Nothing is built until you answer.</p>
+
+<h3>1 · What the screenshots show now</h3>
+<div class="grid">
+
+<div class="phone"><div class="page"><h2>Notes</h2><div class="inp on">|</div>
+<p class="cap"><b>IMG_3332 — locked.</b> The six keys are <b>bank-card</b> fields: Number, Expiry, CVV, Name, Issuer, Last 4. They appear whatever document you are about to fill from. The passport you want is not hinted at anywhere.</p>
+</div>
+<div class="kb">
+<div class="top"><div class="lock">ID</div><span class="chip" style="background:transparent;font-weight:600;color:var(--ink2)">Unlock with Face ID</span></div>
+<div class="keys"><div class="key dim">Number</div><div class="key dim">Expiry</div><div class="key dim">CVV</div><div class="key dim">Name</div><div class="key dim">Issuer</div><div class="key dim">Last 4</div></div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Notes</h2><div class="inp on">CHAI|</div>
+<p class="cap"><b>IMG_3333/3334 — unlocked.</b> Two faults in one view. The person row at the top is <b>blurred and sliced</b> top and bottom, while the document row right below it is sharp. And the tenth passport key, <b>Issuing country</b>, is cut in half by the space bar.</p>
+</div>
+<div class="kb">
+<div class="broken-row"><div class="lock" style="width:30px;height:30px;border-radius:8px;background:var(--g);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none">✓</div><span class="chip on">Celine Chai</span><span class="chip sm">Ben Ong</span><span class="chip sm">Corinne Yap</span><span class="chip sm">Philip</span></div>
+<div class="top" style="padding-top:0"><span class="chip sm on">Passport · CHAI</span><span class="chip sm">Shared</span></div>
+<div class="keys">
+<div class="key chk"><span class="p">✓</span>Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+<div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key">Place of birth</div></div>
+<div class="sliced"><div class="keys"><div class="key">Issuing country</div><div></div><div></div></div></div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+</div>
+
+<div class="note"><b>Already fixed, no decision needed.</b> The space bar had changed to “inserted Surname” after a key tap and never changed back. It now always reads <b>space</b>. The dead state behind it was removed.</div>
+
+<div class="note"><b>Checked and correct, not a bug.</b> The <b>DD/MM/YYYY</b> under DOB, Expiry and Issue date is the format that key will type. It is not a missing value.</div>
+
+<h3>2 · Q1 — the cut-off “Issuing country” key</h3>
+<p class="sub">A passport defines 10 keys. The keyboard is pinned to 300pt, which leaves room for exactly three rows of three. The grid does scroll, but nothing tells you so.</p>
+<div class="grid">
+
+<div class="phone"><div class="page"><h2>Option A<span class="tag opt">taller</span></h2>
+<p class="cap">Keyboard grows 300pt → <b>355pt</b>. All four rows visible, nothing to scroll, key size unchanged. Costs ~55pt of the host app; in Notes above you still see the line you are typing.</p></div>
+<div class="kb">
+<div class="top"><div class="lock g">✓</div><span class="chip on">Celine Chai</span><span class="chip sm">Ben Ong</span></div>
+<div class="top" style="padding-top:0"><span class="chip sm on">Passport · CHAI</span><span class="chip sm">Shared</span></div>
+<div class="keys">
+<div class="key chk"><span class="p">✓</span>Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+<div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key">Place of birth</div>
+<div class="key">Issuing country<small>SGP</small></div></div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Option B<span class="tag opt">4 columns</span></h2>
+<p class="cap">Height stays 300pt. 10 keys become <b>three rows of four</b>. Keys are narrower, so “Place of birth” and “Issuing country” shrink to fit. Nothing scrolls.</p></div>
+<div class="kb">
+<div class="top"><div class="lock g">✓</div><span class="chip on">Celine Chai</span><span class="chip sm">Ben Ong</span></div>
+<div class="top" style="padding-top:0"><span class="chip sm on">Passport · CHAI</span><span class="chip sm">Shared</span></div>
+<div class="keys c4">
+<div class="key chk"><span class="p">✓</span>Passport no.</div><div class="key">Surname</div><div class="key">Given names</div><div class="key">DOB<small>DD/MM/YYYY</small></div>
+<div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div><div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YY</small></div>
+<div class="key">Place of birth</div><div class="key">Issuing country</div></div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Option C<span class="tag opt">scroll cue</span></h2>
+<p class="cap">Height stays 300pt and the grid keeps scrolling, but a <b>fade plus a cue</b> makes it obvious more keys sit below. Smallest change. You still scroll to reach Issuing country.</p></div>
+<div class="kb">
+<div class="top"><div class="lock g">✓</div><span class="chip on">Celine Chai</span><span class="chip sm">Ben Ong</span></div>
+<div class="top" style="padding-top:0"><span class="chip sm on">Passport · CHAI</span><span class="chip sm">Shared</span></div>
+<div class="fade"><div class="keys">
+<div class="key chk"><span class="p">✓</span>Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+<div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key">Place of birth</div></div></div>
+<div class="scrollcue">1 more ⌄</div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+</div>
+
+<h3>3 · Q2 — the blurred, sliced person row</h3>
+<p class="sub">Honest status: I can see the fault exactly, but I have not proven the mechanism. The code already carries a comment saying this row “rendered blurred inside the keyboard host”, and the fix used there was to drop the horizontal ScrollView. The locked row got that fix; the unlocked person row did not. Whichever option you pick, I verify it on your phone before calling it fixed.</p>
+<div class="grid">
+
+<div class="phone"><div class="page"><h2>Option A<span class="tag opt">static row</span></h2>
+<p class="cap">Same fix already proven on the locked row: <b>no scroll view</b>. Shows the lock plus as many people as fit, selected person always first. With more people than fit, the rest are reached by the <b>⋯</b> key.</p></div>
+<div class="kb">
+<div class="top"><div class="lock g">✓</div><span class="chip on">Celine Chai</span><span class="chip sm">Ben Ong</span><span class="chip sm">⋯</span></div>
+<div class="top" style="padding-top:0"><span class="chip sm on">Passport · CHAI</span><span class="chip sm">Shared</span></div>
+<div class="keys">
+<div class="key chk"><span class="p">✓</span>Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div></div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Option B<span class="tag opt">taller row</span></h2>
+<p class="cap">Keep scrolling, but give the row <b>enough height</b> that the chips are not sliced, and stop the scroll view clipping them. Keeps every person one swipe away. Risk: if the scroll view itself causes the blur, this fixes the slicing only.</p></div>
+<div class="kb">
+<div class="top" style="overflow:auto;padding-bottom:10px"><div class="lock g">✓</div><span class="chip on">Celine Chai</span><span class="chip sm">Ben Ong</span><span class="chip sm">Corinne Yap</span></div>
+<div class="top" style="padding-top:0"><span class="chip sm on">Passport · CHAI</span><span class="chip sm">Shared</span></div>
+<div class="keys">
+<div class="key chk"><span class="p">✓</span>Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div></div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Option C<span class="tag opt">merge rows</span></h2>
+<p class="cap">Drop the separate person row. One row: <b>lock · person · documents</b>, the person shown as the selected name only, tapped to cycle. Buys back ~34pt, which also solves Q1 without a taller keyboard.</p></div>
+<div class="kb">
+<div class="top"><div class="lock g">✓</div><span class="chip on">Celine Chai</span><span class="chip sm on">Passport · CHAI</span><span class="chip sm">Shared</span></div>
+<div class="keys">
+<div class="key chk"><span class="p">✓</span>Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+<div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key">Place of birth</div>
+<div class="key">Issuing country<small>SGP</small></div></div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+</div>
+
+<h3>4 · Q3 — what the locked keyboard should show</h3>
+<p class="sub">Today it always shows bank-card keys while locked, whatever you were going to fill. That is a placeholder, not a decision anyone made.</p>
+<div class="grid">
+
+<div class="phone"><div class="page"><h2>Option A<span class="tag opt">last used</span></h2>
+<p class="cap">Show the keys of the <b>document you used last</b>, greyed. You see the shape of what is coming. Reveals which document you last filled from, to anyone holding the phone.</p></div>
+<div class="kb">
+<div class="top"><div class="lock">ID</div><span class="chip" style="background:transparent;color:var(--ink2)">Unlock with Face ID</span></div>
+<div class="keys"><div class="key dim">Passport no.</div><div class="key dim">Surname</div><div class="key dim">Given names</div><div class="key dim">DOB</div><div class="key dim">Expiry</div><div class="key dim">Nationality</div></div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Option B<span class="tag opt">one panel</span></h2>
+<p class="cap">No fake keys at all. One <b>large unlock panel</b> filling the key area. Nothing to mislead, bigger Face ID target, and the locked keyboard stops leaking which documents exist.</p></div>
+<div class="kb">
+<div class="top"><div class="lock">ID</div><span class="chip" style="background:transparent;color:var(--ink2)">DocuVault is locked</span></div>
+<div class="keys" style="grid-template-columns:1fr"><div class="key" style="min-height:150px;font-size:17px;gap:8px"><div style="font-size:20px;font-weight:700">Face ID</div>Unlock with Face ID<small>Values stay on this phone</small></div></div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+<div class="phone"><div class="page"><h2>Option C<span class="tag opt">keep as is</span></h2>
+<p class="cap">Leave the card keys. They show the keyboard’s shape before unlocking and the layout does not jump when it unlocks. This is today’s behaviour — pick this if it never bothered you.</p></div>
+<div class="kb">
+<div class="top"><div class="lock">ID</div><span class="chip" style="background:transparent;color:var(--ink2)">Unlock with Face ID</span></div>
+<div class="keys"><div class="key dim">Number</div><div class="key dim">Expiry</div><div class="key dim">CVV</div><div class="key dim">Name</div><div class="key dim">Issuer</div><div class="key dim">Last 4</div></div>
+<div class="bottom"><div class="key">globe</div><div class="key w">space</div><div class="key">⌫</div><div class="key b">Done</div></div>
+</div></div>
+
+</div>
+
+<h3>5 · The four faults</h3>
+<table>
+<tr><th>#</th><th>Fault</th><th>Where</th><th>Cause</th><th>State</th></tr>
+<tr><td>1</td><td>Space bar changed to “inserted Surname” and stayed</td><td>IMG_3334</td><td><code>lastInserted</code> set on every insert, never cleared, though the code calls it “flashed”</td><td><b>Fixed</b> — always reads “space”</td></tr>
+<tr><td>2</td><td>“Issuing country” key sliced by the space bar</td><td>IMG_3333/3334</td><td>10 passport keys, 3 columns, only 162pt of grid inside a 300pt keyboard = 3 rows</td><td>Q1</td></tr>
+<tr><td>3</td><td>Person row blurred and sliced; document row below it sharp</td><td>IMG_3333/3334</td><td>Not proven. Prior fix in this file removed a horizontal ScrollView for the same symptom on the locked row</td><td>Q2</td></tr>
+<tr><td>4</td><td>Locked keyboard shows bank-card keys for any document</td><td>IMG_3332</td><td><code>specs</code> returns the card key set whenever locked</td><td>Q3</td></tr>
+</table>
+
+<h3>Questions</h3>
+<div class="q">Q1 · Cut-off “Issuing country”: <b>A</b> taller keyboard (355pt, all 4 rows), <b>B</b> four columns at 300pt, or <b>C</b> keep 300pt and add a scroll cue?</div>
+<div class="q">Q2 · Blurred person row: <b>A</b> static row with a ⋯ key, <b>B</b> keep scrolling with a taller unclipped row, or <b>C</b> merge person and document into one row? Note C also frees the space Q1 needs.</div>
+<div class="q">Q3 · Locked keyboard: <b>A</b> last-used document’s keys greyed, <b>B</b> one large unlock panel, or <b>C</b> keep today’s card keys?</div>
+<div class="q">Q4 · Anything in these three screenshots I have read wrongly, or a fifth fault I missed?</div>
+</body></html>

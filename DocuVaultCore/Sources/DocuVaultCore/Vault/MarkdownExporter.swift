@@ -35,7 +35,7 @@ public enum MarkdownExporter {
 
     public static func markdown(for d: ExportDocument) -> String {
         var out: [String] = []
-        out.append("# \(d.type.displayName) — \(d.title)")
+        out.append("# \(d.type.displayName) · \(d.title)")
         out.append("owner: \(d.owner)            kind: \(d.ownerKind.rawValue)            type: \(d.type.rawValue)        sensitive: \(d.sensitive ? "high" : "normal")")
         let checks = d.checksTotal == 0 ? "none" : "\(d.checksPassed)/\(d.checksTotal) \(d.checksPassed == d.checksTotal ? "✓" : "✗")"
         out.append("captured: \(day(d.capturedAt))   source: \(d.source)      language: \(d.language)          checks: \(checks)")

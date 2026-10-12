@@ -1,10 +1,17 @@
 import SwiftUI
 import DocuVaultCore
 
-/// The keyboard surface. Top: lock + person chips. Second row: document chips. Grid: field keys. Bottom: globe · space · ⌫ · Done.
+/// The keyboard surface. One selector bar (lock + the loaded document), then either the field keys,
+/// the picker, or a format panel. Bottom: globe · space · ⌫ · Done.
 /// Values are never drawn on keys; hints show the last 4 or the format that will be used.
+/// Nothing scrolls horizontally: the person and document chip rows rendered blurred inside the
+/// keyboard host, so selection moved into a picker that replaces the keys.
 struct KeyboardRootView: View {
     static let height: CGFloat = 300
+    /// Three columns, and three rows fit at 300pt once the bar and bottom row are taken out.
+    static let columns = 3
+    static let visibleRows = 3
+
     @Bindable var model: KeyboardModel
     let showsGlobe: Bool
     @State private var holdSpec: FillFormats.KeySpec?
@@ -17,69 +24,195 @@ struct KeyboardRootView: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            topRow
-            if model.isUnlocked && model.currentPerson != nil { docRow }
-            if let spec = holdSpec { holdPanel(spec) } else { keyGrid }
+            if model.isUnlocked {
+                selectorBar
+                if model.isPickerOpen {
+                    pickerPanel
+                } else if let spec = holdSpec {
+                    holdPanel(spec)
+                } else {
+                    keyArea
+                }
+            } else {
+                unlockPanel
+            }
             bottomRow
         }
         .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, 6)
         .background(keyBG)
     }
 
-    // MARK: Rows
+    // MARK: Selector
 
-    /// Locked: a plain row (no scroll view — it rendered blurred inside the keyboard host). Unlocked: scrolling person chips.
-    private var topRow: some View {
-        Group {
-            if !model.isUnlocked {
-                HStack(spacing: 8) {
-                    lockButton
-                    Text(model.status ?? (model.hasFullAccess ? "Unlock with Face ID" : "Full Access is off — enable it in Settings"))
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(ink2).lineLimit(1).minimumScaleFactor(0.8)
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 2)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        lockButton
-                        ForEach(model.people) { p in
-                            chip(p.name, on: p.id == model.selectedPerson) {
-                                model.selectedPerson = p.id
-                                model.selectedDoc = model.currentDocs.first?.id
-                            }
-                        }
-                        if model.people.isEmpty { Text(model.status ?? "").font(.system(size: 13)).foregroundStyle(ink2) }
+    /// One row, no horizontal scrolling. Shows what is loaded; tap to pick something else.
+    private var selectorBar: some View {
+        HStack(spacing: 6) {
+            lockButton
+            Button {
+                model.isPickerOpen ? model.closePicker() : model.openPicker()
+            } label: {
+                HStack(spacing: 6) {
+                    Text(model.currentEntry?.title ?? "Choose a document")
+                        .font(.system(size: 14, weight: .semibold))
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                    if let person = model.currentEntry?.personName {
+                        Text(person)
+                            .font(.system(size: 13))
+                            .foregroundStyle(ink2)
+                            .lineLimit(1).minimumScaleFactor(0.8)
                     }
-                    .padding(.horizontal, 2)
+                    Spacer(minLength: 2)
+                    Image(systemName: model.isPickerOpen ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11, weight: .bold)).foregroundStyle(ink2)
                 }
+                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity).frame(height: 32)
+                .background(Color.white)
+                .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Choose a document to fill from")
         }
         .frame(height: 34)
     }
 
-    private var docRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                ForEach(model.currentDocs) { d in
-                    chip(d.title, on: d.id == model.selectedDoc, small: true, badge: d.checksOK ? nil : "!") { model.selectedDoc = d.id }
+    /// Replaces the keys, so rows stay full size. Vertical scrolling only: the chip rows that
+    /// scrolled sideways are what rendered blurred, so the person filter wraps instead.
+    private var pickerPanel: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 5) {
+                if model.people.count > 1 { personFilterGrid }
+                ForEach(model.visibleEntries) { entry in
+                    Button { model.select(entry) } label: { entryRow(entry) }
+                        .buttonStyle(.plain)
                 }
-                chip("Shared", on: model.selectedDoc == nil, small: true) { model.selectedDoc = nil }
+                if model.visibleEntries.isEmpty {
+                    Text(model.people.isEmpty ? (model.status ?? "Nothing in the vault yet")
+                                              : "Nothing for this person")
+                        .font(.system(size: 13)).foregroundStyle(ink2)
+                        .padding(.top, 16)
+                }
             }
-            .padding(.horizontal, 2)
         }
-        .frame(height: 30)
+        .frame(maxHeight: .infinity)
     }
 
+    /// Narrows the list without typing. Wraps over as many rows as it needs, so any number of
+    /// people fits and nothing has to scroll sideways.
+    private var personFilterGrid: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 3), spacing: 5) {
+            filterButton("All", on: model.personFilter == nil) { model.personFilter = nil }
+            ForEach(model.people) { p in
+                filterButton(p.name, on: model.personFilter == p.id) { model.personFilter = p.id }
+            }
+        }
+        .padding(.bottom, 3)
+    }
+
+    private func filterButton(_ title: String, on: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1).minimumScaleFactor(0.75)
+                .padding(.horizontal, 8).frame(maxWidth: .infinity).frame(height: 28)
+                .foregroundStyle(on ? Color.white : Color.primary)
+                .background(on ? accent : Color.white.opacity(0.75))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func entryRow(_ e: FillEntry) -> some View {
+        let selected = e.id == model.currentEntry?.id
+        return HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(e.title).font(.system(size: 15, weight: .semibold))
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                Text(e.personName).font(.system(size: 12)).foregroundStyle(ink2)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            if selected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold)).foregroundStyle(green)
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, alignment: .leading).frame(height: 40)
+        .foregroundStyle(Color.primary)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            if selected {
+                RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(accent, lineWidth: 2)
+            }
+        }
+    }
+
+    // MARK: Locked
+
+    /// One large target instead of greyed-out keys that belong to no document.
+    private var unlockPanel: some View {
+        Button {
+            guard model.hasFullAccess else { return }
+            Task { await model.unlock() }
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: "faceid").font(.system(size: 34, weight: .light))
+                Text(model.hasFullAccess ? "Unlock with Face ID" : "Full Access is off")
+                    .font(.system(size: 17, weight: .semibold))
+                Text(model.status ?? (model.hasFullAccess
+                                      ? "Values stay on this phone"
+                                      : "Turn it on in Settings, then Keyboards"))
+                    .font(.system(size: 12)).foregroundStyle(ink2)
+                    .multilineTextAlignment(.center).lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .foregroundStyle(Color.primary)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .shadow(color: .black.opacity(0.25), radius: 0, y: 1)
+        }
+        .buttonStyle(.plain)
+        .disabled(!model.hasFullAccess)
+    }
+
+    // MARK: Keys
+
     private var specs: [FillFormats.KeySpec] {
-        guard model.isUnlocked else { return FillFormats.keys(for: .bankCard) }
+        guard model.isUnlocked else { return [] }
         if model.selectedDoc == nil { return FillFormats.sharedKeys }
         return model.currentDoc.map { FillFormats.keys(for: $0.type) } ?? []
     }
 
+    /// How many keys sit below the fold. Three columns, three rows visible at this height.
+    private var hiddenKeyCount: Int {
+        max(0, specs.count - Self.columns * Self.visibleRows)
+    }
+
+    private var keyArea: some View {
+        VStack(spacing: 2) {
+            keyGrid
+                .overlay(alignment: .bottom) {
+                    if hiddenKeyCount > 0 {
+                        LinearGradient(colors: [keyBG.opacity(0), keyBG],
+                                       startPoint: .top, endPoint: .bottom)
+                            .frame(height: 24).allowsHitTesting(false)
+                    }
+                }
+            if hiddenKeyCount > 0 {
+                HStack(spacing: 3) {
+                    Text("\(hiddenKeyCount) more").font(.system(size: 11, weight: .bold))
+                    Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold))
+                }
+                .foregroundStyle(ink2)
+            }
+        }
+    }
+
     private var keyGrid: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3), spacing: 6) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: Self.columns), spacing: 6) {
                 ForEach(specs, id: \.fieldKey) { spec in
                     key(spec)
                 }
@@ -160,23 +293,33 @@ struct KeyboardRootView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: Bottom
+
     private var bottomRow: some View {
         HStack(spacing: 6) {
             if showsGlobe {
                 bottomKey("globe", systemImage: true) { model.globe() }.frame(width: 52)
             }
             Button { model.space() } label: {
-                Text(model.lastInserted.map { "inserted \($0)" } ?? "space").font(.system(size: 15)).foregroundStyle(ink2)
+                Text("space").font(.system(size: 15)).foregroundStyle(ink2)
                     .frame(maxWidth: .infinity).frame(height: 42).background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous)).shadow(color: .black.opacity(0.25), radius: 0, y: 1)
             }.buttonStyle(.plain)
             RepeatingKey(systemImage: "delete.left", action: { model.backspace() }).frame(width: 52)
-            Button { holdSpec == nil ? model.done() : (holdSpec = nil) } label: {
-                Text(holdSpec == nil ? "Done" : "Back").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
+            Button { dismissOrBack() } label: {
+                Text(isShowingPanel ? "Back" : "Done").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
                     .frame(width: 70, height: 42).background(accent)
                     .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             }.buttonStyle(.plain)
         }
+    }
+
+    private var isShowingPanel: Bool { holdSpec != nil || model.isPickerOpen }
+
+    private func dismissOrBack() {
+        if holdSpec != nil { holdSpec = nil }
+        else if model.isPickerOpen { model.closePicker() }
+        else { model.done() }
     }
 
     private func bottomKey(_ name: String, systemImage: Bool, action: @escaping () -> Void) -> some View {
@@ -201,23 +344,6 @@ struct KeyboardRootView: View {
         }
         .buttonStyle(.plain)
         .disabled(!model.hasFullAccess)
-    }
-
-    /// Person chips: blue when selected. Document chips (small): white with primary text when selected, translucent otherwise.
-    private func chip(_ title: String, on: Bool, small: Bool = false, badge: String? = nil, action: @escaping () -> Void) -> some View {
-        let fg: Color = small ? (on ? Color.primary : ink2) : (on ? .white : Color.primary)
-        let bg: Color = small ? (on ? Color.white : Color.white.opacity(0.6)) : (on ? accent : Color.white)
-        return Button(action: action) {
-            HStack(spacing: 4) {
-                Text(title).font(.system(size: small ? 13 : 14, weight: .semibold)).lineLimit(1)
-                if let badge { Text(badge).font(.system(size: 11, weight: .bold)).foregroundStyle(Color(red: 0x8E/255, green: 0x1F/255, blue: 0x1F/255)) }
-            }
-            .padding(.horizontal, small ? 10 : 12).frame(height: small ? 28 : 32)
-            .foregroundStyle(fg)
-            .background(bg)
-            .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
     }
 }
 

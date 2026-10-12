@@ -12,12 +12,13 @@ changes or a phase lands, edit the matching section in the same commit.
 | 2 | Capture: camera, Photos, Files, clipboard, PDF; pages editor; Vision OCR | Done, on device |
 | 3 | Classify + extract + review screen (pills, main/secondary) | Done, on device |
 | 4 | Vault: AES-GCM sealing, Face ID key, people, retention, .md export, expenses.csv | Done, Face ID on device **unverified** |
-| 5 | Keyboard extension: fill from vault, formats, inference | Done; Face ID from the keyboard **unverified** |
+| 5 | Keyboard extension: fill from vault, formats, inference | Done; Face ID verified on device 12 Oct. Selector bar rebuilt, **unverified on device** |
 | 6 | Summaries: Apple Foundation Models, Qwen3-4B via MLX for Chinese, Writing Tools | Done; quality **unverified** on device |
 | 7 | Claude opt-in: Redactor, CloudGate, approval sheet, send log, API key | Done; first live send **unverified** |
 | 7a | Batch import: one document per image, queued review/save, merge/split | Done 12 Oct |
 
-CI: `core-tests.yml` (123 tests) and `app-build.yml` (Simulator build incl. MLX) both green at `66963c1`.
+CI: `core-tests.yml` (145 tests) and `app-build.yml` (Simulator build incl. MLX) both green at `66963c1`;
+local run after the keyboard rebuild is green too (130 in the Core bundle, 15 in the OCR bundle).
 
 Device fixes already shipped on 12 Oct: environment injection for presented sheets (crash on save),
 owner picker wrapping, identity/card/receipt titles from fields, keyboard lock row rendering,
@@ -76,14 +77,33 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
 - Q1 (a): one document per image for Photos and Files. PDFs stay one document each. Camera stays one document.
 - Q2: after save or Skip, the next document's review opens with "n of N". Last save returns to the library.
 
+12 Oct · checkpoints 11 and 12 (keyboard, from device screenshots)
+- Space bar always reads "space". The transient "inserted <field>" label was a bug, not a feature.
+- Keyboard stays 300pt. Three key rows fit; the rest scroll behind a fade with an "n more" cue.
+- Locked keyboard shows one large Face ID panel, not greyed bank-card keys.
+- The two chip rows (people, then documents) are replaced by one selector bar plus a picker that
+  replaces the keys. Reason: the person row rendered blurred and clipped inside the keyboard host,
+  and chip rows do not scale past ten documents.
+- The picker is one flat list of every document and every person's shared fields, most recently used
+  first. "Shared fields" stopped being a separate concept and is now just a row.
+- No emoji anywhere in the UI, docs or mocks. Headers and titles use ·, never an em dash. Check marks
+  and arrows are fine and stay.
+- The globe/mic strip below the keyboard is iOS chrome on every home-indicator iPhone. No keyboard
+  height removes it; `needsInputModeSwitchKey` is false for that reason.
+- Typed search inside the picker is NOT possible: a UITextField that becomes first responder inside a
+  keyboard extension stops `textDocumentProxy.insertText` from working, and this keyboard has no letter
+  keys to type with. Evan chose a person filter instead: wrapping buttons at the top of the picker that
+  narrow the list without typing. `FillPicker.filter(_:query:)` stays, tested and unused, in case the
+  keyboard ever grows its own letter keys.
+
 ## 3. Open device validations (do these next, in order)
 
 1. Scan a real passport: MRZ pill green? Title "Passport · SURNAME"? Owner picker readable?
 2. Scan NRIC, a receipt, an English letter, a Chinese contract. Report misreads with screenshots.
 3. Vault: does Face ID prompt on "Save to Vault"? Does the vault tab unlock? Auto-lock after 60 s in background?
-4. Keyboard: enable in Settings with Full Access. Tap the Face ID key. If no prompt appears, keyboard
-   extensions may be blocked from LocalAuthentication; the fallback is to unlock in the app and share the
-   session via the App Group for a short window (design needed — ask Evan).
+4. ~~Keyboard: Face ID from the keyboard.~~ **Done 12 Oct** — Evan's screenshots show the keyboard
+   unlocking and filling a passport surname into Notes. LocalAuthentication is not blocked for the
+   extension, so the App Group fallback is not needed. Re-test after the selector bar rebuild.
 5. Summaries: Apple model availability message; summary quality on the English letter; Qwen download
    size and speed on the Chinese contract; memory behaviour.
 6. Claude: paste a key, send the English letter, confirm the log row, the restored placeholders and the cost.

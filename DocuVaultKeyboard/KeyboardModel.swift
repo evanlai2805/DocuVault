@@ -35,7 +35,13 @@ final class KeyboardModel {
     private(set) var key: SymmetricKey?
     private(set) var status: String?
     var isSecureField = false
-    var lastInserted: String?        // label flashed after an insert
+
+    /// Picker: one flat list of every document and every person's shared fields.
+    var isPickerOpen = false
+    var searchText = ""
+    var personFilter: UUID?          // nil = every person
+    private var lastUsed: [String: Date] = [:]
+    private static let lastUsedDefaultsKey = "keyboard.lastUsed"
 
     /// What the host text field tells us; refreshed on every textDidChange.
     var fieldContext = FillInference.Context(region: Locale.current.region?.identifier ?? "SG")
@@ -85,8 +91,13 @@ final class KeyboardModel {
                                     checksOK: d.allChecksPassed) }
             }
             docsByPerson = map
-            selectedPerson = people.first?.id
-            selectedDoc = currentDocs.first?.id
+            loadLastUsed()
+            if let first = entries.first {
+                select(first)
+            } else {
+                selectedPerson = people.first?.id
+                selectedDoc = currentDocs.first?.id
+            }
             status = people.isEmpty ? "No people in the vault yet — add one in DocuVault" : nil
         } catch {
             status = "Could not open the vault store"
@@ -94,6 +105,59 @@ final class KeyboardModel {
     }
 
     private func rank(_ k: PersonKind) -> Int { switch k { case .me: 0; case .family: 1; case .partner: 2; case .client: 3; case .other: 4 } }
+
+    // MARK: Picker
+
+    /// Every row the picker can show, most recently used first. Shared fields sit alongside the
+    /// documents rather than forming a separate idea.
+    var entries: [FillEntry] {
+        var out: [FillEntry] = []
+        for p in people {
+            for d in docsByPerson[p.id] ?? [] {
+                out.append(FillEntry(title: d.title, personName: p.name, personID: p.id, kind: .document(d.id)))
+            }
+            out.append(FillEntry(title: "Shared fields", personName: p.name, personID: p.id, kind: .shared))
+        }
+        return FillPicker.sorted(out, lastUsed: lastUsed)
+    }
+
+    var visibleEntries: [FillEntry] {
+        FillPicker.filter(FillPicker.filter(entries, person: personFilter), query: searchText)
+    }
+
+    var currentEntryKind: FillEntry.Kind { selectedDoc.map { .document($0) } ?? .shared }
+
+    var currentEntry: FillEntry? {
+        guard let person = selectedPerson else { return nil }
+        let id = FillPicker.key(personID: person, kind: currentEntryKind)
+        return entries.first { $0.id == id }
+    }
+
+    func select(_ e: FillEntry) {
+        selectedPerson = e.personID
+        switch e.kind {
+        case .document(let id): selectedDoc = id
+        case .shared: selectedDoc = nil
+        }
+        closePicker()
+    }
+
+    func openPicker() { searchText = ""; personFilter = nil; isPickerOpen = true }
+    func closePicker() { searchText = ""; personFilter = nil; isPickerOpen = false }
+
+    /// Remembered across launches in the App Group, so the row you filled from last is on top.
+    private var sharedDefaults: UserDefaults? { UserDefaults(suiteName: AppFiles.appGroupID) }
+
+    private func loadLastUsed() {
+        guard let raw = sharedDefaults?.dictionary(forKey: Self.lastUsedDefaultsKey) as? [String: Double] else { return }
+        lastUsed = raw.mapValues { Date(timeIntervalSince1970: $0) }
+    }
+
+    private func markCurrentUsed() {
+        guard let person = selectedPerson else { return }
+        lastUsed[FillPicker.key(personID: person, kind: currentEntryKind)] = Date()
+        sharedDefaults?.set(lastUsed.mapValues(\.timeIntervalSince1970), forKey: Self.lastUsedDefaultsKey)
+    }
 
     // MARK: Unlock
 
@@ -173,21 +237,21 @@ final class KeyboardModel {
         case .text: text = raw
         }
         insertText(text)
-        lastInserted = spec.label
+        markCurrentUsed()
     }
 
     func insertDate(_ spec: FillFormats.KeySpec, style: FillFormats.DateStyle) {
         guard let raw = value(for: spec) else { return }
         dateOverride = style
         insertText(FillFormats.date(raw, style: style))
-        lastInserted = spec.label
+        markCurrentUsed()
     }
 
     func insertExpiry(_ spec: FillFormats.KeySpec, style: FillFormats.ExpiryStyle) {
         guard let raw = value(for: spec) else { return }
         expiryOverride = style
         insertText(FillFormats.expiry(raw, style: style))
-        lastInserted = spec.label
+        markCurrentUsed()
     }
 
     func backspace() { deleteBack() }

@@ -21,6 +21,21 @@ ten checkpoints, the open device-validation list, and the roadmap.
   check" when you did not.
 - Report work bottom-line first: what changed, what he must do, one next step. No recap of steps.
 
+## Bug reports by screenshot
+
+- Evan tests on the phone and drops screenshots into `Unresolved Issues Screenshots/` (git-ignored, local
+  only). He will not describe the bugs in words.
+- "Fix all bugs", "fix the bugs", or anything like it means: read every image in that folder and treat them
+  as the complete bug list for this round.
+- **Be certain before you fix.** A screenshot often shows several things that could be wrong, or shows
+  intended behaviour that only looks wrong. If you are unsure what the bug is, or unsure whether the issues
+  you spotted are the ones he wants fixed, ask. State per screenshot what you think you see, then one short
+  question with lettered options. Keep asking until there is no doubt left. A wrong fix costs far more than
+  the question, and guessing here is the same as hallucinating.
+- Once certain: fix, run `scripts/test-core.sh`, push, and tell him `git pull` then ⌘R.
+- Then move that screenshot into `Resolved Issues Screenshots/` (also git-ignored), so the unresolved
+  folder always holds exactly the outstanding bugs. If he reports the bug is still there, move it back.
+
 ## Repo layout
 
 ```
@@ -70,6 +85,20 @@ scripts/                 gen, test-core, build-sim, run-device, ci-status (use t
 9. Keep `project.yml` versions in step: `CFBundleVersion` identical for app and keyboard targets.
 10. Commit messages: imperative summary line, a short body saying what Evan decided when it applies.
 
+## Writing and symbols (applies to app UI, docs and mocks)
+
+- **No emoji anywhere.** Not in the app UI, not in checkpoint mocks, not in docs. Icons are SF Symbols
+  (`Image(systemName:)`). A mock that stands in for the UI uses the same restraint, because Evan reads it
+  as the design.
+- **Headers and titles never use an em dash or en dash.** They read as machine-written. Use the middle dot
+  `·`, which the app already uses (`Passport · CHAI`), or rewrite the line. Covers screen titles, card
+  titles, category labels and exported Markdown headings. Headings in existing docs (this file, HANDOFF,
+  the checkpoints) were deliberately left alone; new docs follow the rule.
+- Renaming a user-visible label that is also a stored value needs an alias for the old spelling. See
+  `ExpenseCategories.canonical` — receipts saved before a rename still resolve.
+- **Placeholders stay bare.** `Search`, never `Search documents…` and never with a glyph in front.
+- Prose inside sentences is unaffected; a dash used as punctuation mid-sentence is fine.
+
 ## Conventions
 
 - Field keys are camelCase strings shared by extractors, exporter, keyboard and redactor
@@ -79,5 +108,5 @@ scripts/                 gen, test-core, build-sim, run-device, ci-status (use t
 - Export: `vault/<person>/<type>-<title>.md`, `vault/index.md`, `expenses.csv`. Markdown is the interchange
   format; the app mirror is always written, folder sync is optional.
 - Tests live in `DocuVaultCore/Tests/`. OCR tests render text with CoreText (`TestImageFactory`).
-- When Evan reports a bug with a screenshot, fix it, push, and tell him `git pull` then ⌘R. Do not ask him
-  to describe what the screenshot shows unless the fix depends on it.
+- Bug reports arrive as screenshots, not prose — see “Bug reports by screenshot” above for the loop
+  (confirm the bug whenever it is unclear, then fix, test, push, and tell him `git pull` then ⌘R).
