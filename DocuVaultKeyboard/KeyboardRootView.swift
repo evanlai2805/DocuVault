@@ -170,7 +170,7 @@ struct KeyboardRootView: View {
                     .frame(maxWidth: .infinity).frame(height: 42).background(Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous)).shadow(color: .black.opacity(0.25), radius: 0, y: 1)
             }.buttonStyle(.plain)
-            bottomKey("delete.left", systemImage: true) { model.backspace() }.frame(width: 52)
+            RepeatingKey(systemImage: "delete.left", action: { model.backspace() }).frame(width: 52)
             Button { holdSpec == nil ? model.done() : (holdSpec = nil) } label: {
                 Text(holdSpec == nil ? "Done" : "Back").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
                     .frame(width: 70, height: 42).background(accent)
@@ -218,5 +218,48 @@ struct KeyboardRootView: View {
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
+    }
+}
+
+
+/// Backspace that behaves like Apple's: one delete on tap, then after a short hold it repeats,
+/// speeding up the longer you hold.
+struct RepeatingKey: View {
+    let systemImage: String
+    let action: () -> Void
+    @State private var pressed = false
+    @State private var repeater: Task<Void, Never>?
+
+    var body: some View {
+        Image(systemName: systemImage).font(.system(size: 18)).foregroundStyle(Color.primary)
+            .frame(maxWidth: .infinity).frame(height: 42)
+            .background(pressed ? Color.white : Color(red: 0xAD/255, green: 0xB3/255, blue: 0xBC/255))
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .shadow(color: .black.opacity(0.25), radius: 0, y: 1)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard !pressed else { return }
+                        pressed = true
+                        action()
+                        repeater = Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(400))      // initial delay, like UIKit
+                            var interval = 90
+                            var fired = 0
+                            while !Task.isCancelled {
+                                action()
+                                fired += 1
+                                if fired == 15 { interval = 45 }               // speed up after ~1.5 s
+                                try? await Task.sleep(for: .milliseconds(interval))
+                            }
+                        }
+                    }
+                    .onEnded { _ in
+                        pressed = false
+                        repeater?.cancel()
+                        repeater = nil
+                    }
+            )
     }
 }
