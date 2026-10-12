@@ -237,7 +237,25 @@ final class CaptureSession {
 
     var detectedLanguage: String { TextRules.detectLanguage(fullText).rawValue }
 
-    var guessedTitle: String { TitleGuesser.guess(from: allTextLines) }
+    /// Title from the text header; identity, card and receipt types use their key fields instead
+    /// ("Passport · CHAI", "Visa •4417", "NTUC FairPrice · 2026-10-10").
+    var guessedTitle: String {
+        func v(_ k: String) -> String? { extraction?.fields.first { $0.key == k && !$0.value.isEmpty }?.value }
+        switch chosenType {
+        case .passport, .nric, .chinaID:
+            if let n = v("surname") ?? v("name") { return "\(chosenType.displayName) · \(n)" }
+        case .bankCard:
+            let brand = v("brand") ?? v("issuer") ?? "Card"
+            if let l4 = v("last4") ?? v("cardLast4") { return "\(brand) •\(l4)" }
+            return brand
+        case .receipt:
+            if let m = v("merchant") { return v("date").map { "\(m) · \($0)" } ?? m }
+        case .businessCard:
+            if let n = v("name") { return v("company").map { "\(n) · \($0)" } ?? n }
+        default: break
+        }
+        return TitleGuesser.guess(from: allTextLines)
+    }
 
     /// Rule from checkpoint 1: identity-looking content is sensitive by default.
     var looksSensitive: Bool { OCREngine.looksLikeIdentityDocument(allTextLines) }

@@ -73,9 +73,13 @@ struct SaveDocumentView: View {
                         field("Owner") {
                             Picker("Owner", selection: $ownerID) {
                                 Text("Choose…").tag(Optional<UUID>.none)
-                                ForEach(people) { p in Text("\(p.name) · \(p.kind.displayName)").tag(Optional(p.id)) }
+                                ForEach(people) { p in Text(p.name).tag(Optional(p.id)) }
                             }
-                            .labelsHidden().tint(Theme.Colors.ink)
+                            .labelsHidden().tint(Theme.Colors.ink).lineLimit(1).fixedSize()
+                            if let p = people.first(where: { $0.id == ownerID }) {
+                                Text(p.kind.displayName).font(.system(size: 15)).foregroundStyle(Theme.Colors.ink2).lineLimit(1)
+                            }
+                            Spacer(minLength: 8)
                             Button { showAddPerson = true } label: { Image(systemName: "plus.circle.fill") }
                         }
                         Divider().padding(.leading, 16)

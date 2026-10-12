@@ -28,24 +28,32 @@ struct KeyboardRootView: View {
 
     // MARK: Rows
 
+    /// Locked: a plain row (no scroll view — it rendered blurred inside the keyboard host). Unlocked: scrolling person chips.
     private var topRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                lockButton
-                if !model.isUnlocked {
+        Group {
+            if !model.isUnlocked {
+                HStack(spacing: 8) {
+                    lockButton
                     Text(model.status ?? (model.hasFullAccess ? "Unlock with Face ID" : "Full Access is off — enable it in Settings"))
-                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(ink2).lineLimit(1)
-                } else {
-                    ForEach(model.people) { p in
-                        chip(p.name, on: p.id == model.selectedPerson) {
-                            model.selectedPerson = p.id
-                            model.selectedDoc = model.currentDocs.first?.id
+                        .font(.system(size: 13, weight: .semibold)).foregroundStyle(ink2).lineLimit(1).minimumScaleFactor(0.8)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 2)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        lockButton
+                        ForEach(model.people) { p in
+                            chip(p.name, on: p.id == model.selectedPerson) {
+                                model.selectedPerson = p.id
+                                model.selectedDoc = model.currentDocs.first?.id
+                            }
                         }
+                        if model.people.isEmpty { Text(model.status ?? "").font(.system(size: 13)).foregroundStyle(ink2) }
                     }
-                    if model.people.isEmpty { Text(model.status ?? "").font(.system(size: 13)).foregroundStyle(ink2) }
+                    .padding(.horizontal, 2)
                 }
             }
-            .padding(.horizontal, 2)
         }
         .frame(height: 34)
     }
