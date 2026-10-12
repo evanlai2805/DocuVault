@@ -13,6 +13,8 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     SWIFT_STRICT_CONCURRENCY: complete
+    ENABLE_USER_SCRIPT_SANDBOXING: YES          # Xcode "recommended settings"
+    STRING_CATALOG_GENERATE_SYMBOLS: YES
     DEVELOPMENT_TEAM: ""        # set in Xcode → Signing & Capabilities on first run
     CODE_SIGN_STYLE: Automatic
 
