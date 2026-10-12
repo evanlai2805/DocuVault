@@ -102,7 +102,7 @@ struct ScanHomeView: View {
             }
         }
         if images.isEmpty { errorMessage = "No readable images were selected." }
-        capture.add(images, source: .photos)
+        capture.addSeparate(images, source: .photos)   // one document per photo
     }
 
     private func importFiles(_ result: Result<[URL], Error>) async {
@@ -125,7 +125,7 @@ struct ScanHomeView: View {
                     images.append(cg)
                 }
             }
-            if !images.isEmpty { capture.add(images, source: .files) }
+            if !images.isEmpty { capture.addSeparate(images, source: .files) }   // one document per image file
         }
     }
 

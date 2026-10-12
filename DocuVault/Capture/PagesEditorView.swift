@@ -18,17 +18,19 @@ struct PagesEditorView: View {
             thumbnailStrip
         }
         .background(Theme.Colors.canvas)
-        .navigationTitle("\(capture.pages.count) page\(capture.pages.count == 1 ? "" : "s")")
+        .navigationTitle(capture.isBatch
+                         ? "Document \(capture.batchPosition) of \(capture.batchTotal) · \(capture.pages.count) page\(capture.pages.count == 1 ? "" : "s")"
+                         : "\(capture.pages.count) page\(capture.pages.count == 1 ? "" : "s")")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Discard", role: .destructive) { capture.reset(); onDone() }
+                Button(capture.isBatch ? "Discard all" : "Discard", role: .destructive) { capture.reset(); onDone() }
             }
             ToolbarItem(placement: .confirmationAction) {
                 if capture.ocrComplete && !capture.isRunningOCR {
                     Button("Review") { capture.classifyAndExtract(); goToSave = true }.fontWeight(.semibold)
                 } else {
-                    Button(capture.isRunningOCR ? "Reading…" : "Run OCR") {
+                    Button(capture.isRunningOCR ? "Reading \(capture.ocrProgress.done)/\(capture.ocrProgress.total)…" : (capture.isBatch ? "Run OCR on all" : "Run OCR")) {
                         Task { await capture.runOCR() }
                     }
                     .disabled(capture.isRunningOCR)
@@ -60,6 +62,16 @@ struct PagesEditorView: View {
             HStack(spacing: 24) {
                 Button { capture.rotate(page.id) } label: { Label("Rotate", systemImage: "rotate.right") }
                 Button(role: .destructive) { capture.remove(page.id) } label: { Label("Delete", systemImage: "trash") }
+                if capture.isBatch || capture.pages.count > 1 {
+                    Menu {
+                        if !capture.queue.isEmpty {
+                            Button { capture.mergeNextIntoCurrent() } label: { Label("Merge next document into this one", systemImage: "arrow.turn.down.left") }
+                        }
+                        if capture.pages.count > 1 {
+                            Button { capture.splitOff(page.id) } label: { Label("Split this page into its own document", systemImage: "arrow.turn.up.right") }
+                        }
+                    } label: { Label("Batch", systemImage: "square.stack") }
+                }
                 Spacer()
                 OCRStatusPill(state: page.ocr)
             }

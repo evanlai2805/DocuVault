@@ -7,6 +7,8 @@ import DocuVaultOCR
 /// Last step of capture: OCR summary card, title, language, type, then save.
 struct SaveDocumentView: View {
     let onDone: () -> Void
+    /// Batch: called instead of `onDone` when another document is waiting.
+    var onNext: () -> Void = {}
     @Environment(CaptureSession.self) private var capture
     @Environment(VaultSession.self) private var vault
     @Environment(\.modelContext) private var context
@@ -113,7 +115,7 @@ struct SaveDocumentView: View {
             .padding(16)
         }
         .background(Theme.Colors.canvas)
-        .navigationTitle("Save")
+        .navigationTitle(capture.isBatch ? "Save · \(capture.batchPosition) of \(capture.batchTotal)" : "Save")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
@@ -189,8 +191,12 @@ struct SaveDocumentView: View {
                 let ctx = context
                 Task { await SummaryService.shared.summarise(doc, text: text, context: ctx) }
             }
-            capture.reset()
-            onDone()
+            if capture.advance() {
+                onNext()
+                Task { await capture.prepareCurrent() }
+            } else {
+                onDone()
+            }
         } catch {
             self.error = "Save failed: \(error.localizedDescription)"
         }

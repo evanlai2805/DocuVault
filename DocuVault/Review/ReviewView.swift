@@ -13,9 +13,23 @@ struct ReviewView: View {
 
     private var ex: ExtractionResult? { capture.extraction }
 
+    /// Drop this document without saving and move to the next one in the batch.
+    private func skip() {
+        if capture.advance() { Task { await capture.prepareCurrent() } } else { onDone() }
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                if capture.verdict == nil {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                        Text("Reading document \(capture.batchPosition)…").font(.system(size: 16))
+                    }
+                    .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
                 typeCard
                 if let ex, !ex.warnings.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
@@ -45,14 +59,22 @@ struct ReviewView: View {
             .padding(16)
         }
         .background(Theme.Colors.canvas)
-        .navigationTitle("Review")
+        .navigationTitle(capture.isBatch ? "Review · \(capture.batchPosition) of \(capture.batchTotal)" : "Review")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if capture.isBatch {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Skip") { skip() }
+                }
+            }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Next") { goToSave = true }.fontWeight(.semibold)
+                Button("Next") { goToSave = true }.fontWeight(.semibold).disabled(capture.verdict == nil)
             }
         }
-        .navigationDestination(isPresented: $goToSave) { SaveDocumentView(onDone: onDone) }
+        .navigationDestination(isPresented: $goToSave) {
+            // Saved with more to come: pop back here and the next document is already classified.
+            SaveDocumentView(onDone: onDone, onNext: { goToSave = false })
+        }
         .sheet(item: $editing) { f in
             FieldEditSheet(field: f, hints: hints(for: f)) { newValue in capture.editField(key: f.key, value: newValue) }
                 .presentationDetents([.medium])

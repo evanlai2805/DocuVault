@@ -58,14 +58,62 @@ final class CaptureSession {
     var chosenType: DocumentType = .other
     var extraction: ExtractionResult?
 
+    /// Batch import (Evan, 12 Oct): one document per image. Documents waiting their turn live here;
+    /// `pages` is always the document being worked on.
+    var queue: [[DraftPage]] = []
+    private(set) var batchDone = 0
+
     var hasPages: Bool { !pages.isEmpty }
+    var batchTotal: Int { batchDone + (pages.isEmpty ? 0 : 1) + queue.count }
+    var batchPosition: Int { batchDone + 1 }
+    var isBatch: Bool { batchTotal > 1 }
+    var remainingAfterThis: Int { queue.count }
 
     func reset() {
         pages = []
+        queue = []
+        batchDone = 0
         isRunningOCR = false
         verdict = nil
         chosenType = .other
         extraction = nil
+    }
+
+    /// Current document is saved or skipped. Moves the next one in. Returns false when the batch is finished.
+    @discardableResult
+    func advance() -> Bool {
+        batchDone += 1
+        verdict = nil
+        chosenType = .other
+        extraction = nil
+        guard !queue.isEmpty else { reset(); return false }
+        pages = queue.removeFirst()
+        return true
+    }
+
+    /// Add one document to the batch: becomes current when nothing is open, otherwise waits in the queue.
+    func addDocument(_ newPages: [DraftPage], source: CaptureSource) {
+        guard !newPages.isEmpty else { return }
+        self.source = source
+        if pages.isEmpty { pages = newPages } else { queue.append(newPages) }
+    }
+
+    /// Photos and Files: each image is its own document.
+    func addSeparate(_ images: [CGImage], source: CaptureSource) {
+        for img in images { addDocument([DraftPage(original: img)], source: source) }
+    }
+
+    /// Pull the next queued document's pages into this one (a two-page letter photographed twice).
+    func mergeNextIntoCurrent() {
+        guard !queue.isEmpty else { return }
+        pages.append(contentsOf: queue.removeFirst())
+    }
+
+    /// Push one page out into its own document, next in the queue.
+    func splitOff(_ id: DraftPage.ID) {
+        guard pages.count > 1, let i = pages.firstIndex(where: { $0.id == id }) else { return }
+        let p = pages.remove(at: i)
+        queue.insert([p], at: 0)
     }
 
     /// Run after OCR. Rules pick the type; the user can override with `changeType`.
@@ -110,14 +158,14 @@ final class CaptureSession {
         pages.append(contentsOf: images.map { DraftPage(original: $0) })
     }
 
+    /// One PDF = one document.
     func addPDF(_ imported: [PDFImporter.ImportedPage]) {
-        source = .pdf
-        pages.append(contentsOf: imported.map { p in
+        addDocument(imported.map { p in
             var d = DraftPage(original: p.image)
             d.embeddedText = p.embeddedText
             if let t = p.embeddedText { d.ocr = .embedded(t) }
             return d
-        })
+        }, source: .pdf)
     }
 
     func remove(_ id: DraftPage.ID) { pages.removeAll { $0.id == id } }
@@ -136,7 +184,7 @@ final class CaptureSession {
 
     func move(from: IndexSet, to: Int) { pages.move(fromOffsets: from, toOffset: to) }
 
-    /// Run OCR on every queued page, one at a time, updating state as each finishes.
+    /// Run OCR on every queued page: the current document first, then the rest of the batch.
     func runOCR() async {
         guard !isRunningOCR else { return }
         isRunningOCR = true
@@ -152,6 +200,33 @@ final class CaptureSession {
                 pages[i].ocr = .failed(error.localizedDescription)
             }
         }
+        for d in queue.indices {
+            for i in queue[d].indices {
+                guard case .queued = queue[d][i].ocr else { continue }
+                queue[d][i].ocr = .running
+                let img = queue[d][i].processed()
+                do {
+                    let page = try await OCREngine.shared.recognize(img, mode: .auto)
+                    queue[d][i].ocr = .done(page)
+                } catch {
+                    queue[d][i].ocr = .failed(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    /// Make the current document ready for review: wait for any OCR in flight, read it if needed, then classify.
+    func prepareCurrent() async {
+        while isRunningOCR { try? await Task.sleep(for: .milliseconds(150)) }
+        if !ocrComplete { await runOCR() }
+        classifyAndExtract()
+    }
+
+    /// Pages read so far across the whole batch, for the progress label.
+    var ocrProgress: (done: Int, total: Int) {
+        let all = pages + queue.flatMap { $0 }
+        let done = all.filter { if case .queued = $0.ocr { return false }; if case .running = $0.ocr { return false }; return true }.count
+        return (done, all.count)
     }
 
     var allTextLines: [String] {
