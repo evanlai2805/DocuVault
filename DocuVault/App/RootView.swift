@@ -44,8 +44,6 @@ struct RootView: View {
                     .overlay(Image(systemName: "lock.shield.fill").font(.system(size: 48)).foregroundStyle(Theme.Colors.ink2))
             }
         }
-        .environment(capture)
-        .environment(vault)
         .onChange(of: scenePhase) { _, phase in
             vault.sceneDidChange(phase)
             if phase == .active { RetentionManager.sweep(context: context); CloudService.shared.prune(context: context) }
@@ -57,7 +55,6 @@ struct RootView: View {
         }
         .fullScreenCover(isPresented: $showScan) {
             NavigationStack { ScanHomeView(onDone: { showScan = false }) }
-                .environment(capture)
         }
         .sheet(isPresented: $showSearch) {
             NavigationStack { SearchView() }
@@ -67,6 +64,9 @@ struct RootView: View {
             // Pages arrived while the scan cover is closed (e.g. share sheet in a later phase): open it.
             if has && !showScan { showScan = true }
         }
+        // Last in the chain so the scan cover and search sheet inherit both sessions too.
+        .environment(capture)
+        .environment(vault)
     }
 }
 
