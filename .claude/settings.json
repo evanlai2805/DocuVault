@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/*)",
+      "Bash(./scripts/*)",
+      "Bash(xcodegen *)",
+      "Bash(xcodebuild *)",
+      "Bash(xcrun *)",
+      "Bash(swift test*)",
+      "Bash(swift build*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git pull*)",
+      "Bash(git push*)",
+      "Bash(gh run *)",
+      "Bash(gh api *)",
+      "Bash(open *.html)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(mkdir *)",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep"
+    ],
+    "deny": [
+      "Read(.env.local)",
+      "Read(**/*.p8)",
+      "Read(**/*.p12)",
+      "Bash(rm -rf *)"
+    ]
+  }
+}

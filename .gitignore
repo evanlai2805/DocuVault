@@ -7,3 +7,9 @@ DerivedData/
 
 # XcodeGen output (regenerate with: xcodegen generate)
 DocuVault.xcodeproj/
+
+# Claude Code: personal files stay local
+.claude/settings.local.json
+CLAUDE.local.md
+.env.local
+build/
