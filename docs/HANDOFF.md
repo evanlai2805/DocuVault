@@ -17,8 +17,8 @@ changes or a phase lands, edit the matching section in the same commit.
 | 7 | Claude opt-in: Redactor, CloudGate, approval sheet, send log, API key | Done; first live send **unverified** |
 | 7a | Batch import: one document per image, queued review/save, merge/split | Done 12 Oct |
 
-CI: `core-tests.yml` (145 tests) and `app-build.yml` (Simulator build incl. MLX) both green at `66963c1`;
-local run after the keyboard rebuild is green too (130 in the Core bundle, 15 in the OCR bundle).
+CI: `core-tests.yml` (145 tests) and `app-build.yml` (Simulator build incl. MLX) both green at `d72ba81`,
+the keyboard selector rebuild: 145 tests, 0 failures, 0 compiler warnings.
 
 Device fixes already shipped on 12 Oct: environment injection for presented sheets (crash on save),
 owner picker wrapping, identity/card/receipt titles from fields, keyboard lock row rendering,
