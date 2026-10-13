@@ -115,3 +115,59 @@ struct TombstoneList: View {
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
     }
 }
+
+/// The vault as a folder inside the Library (Evan, 13 Oct). Asks for Face ID on open; once unlocked,
+/// the documents by category, the same rows as the Vault tab.
+struct VaultFolderView: View {
+    @Environment(VaultSession.self) private var vault
+    @Query(filter: #Predicate<StoredDocument> { $0.sensitive && $0.deletedAt == nil }, sort: \StoredDocument.capturedAt, order: .reverse)
+    private var docs: [StoredDocument]
+    @State private var unlocking = false
+
+    var body: some View {
+        Group {
+            if vault.isUnlocked {
+                CardPage {
+                    if docs.isEmpty {
+                        Text("Nothing in the vault yet").font(.system(size: 17)).foregroundStyle(Theme.Colors.ink2)
+                            .frame(maxWidth: .infinity).padding(.vertical, 40)
+                    }
+                    ForEach(VaultCategory.allCases.filter { c in docs.contains(where: c.contains) }, id: \.self) { c in
+                        CardSection(title: c.title) {
+                            ForEach(docs.filter(c.contains)) { d in
+                                NavigationLink { DocumentDetailView(doc: d) } label: { VaultDocRow(doc: d) }.buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+            } else {
+                VStack(spacing: 14) {
+                    Spacer()
+                    Image(systemName: "faceid").font(.system(size: 40, weight: .medium)).foregroundStyle(.white)
+                        .frame(width: 80, height: 80).background(Theme.Colors.graphite)
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    Text("Vault locked").font(.system(size: 22, weight: .semibold))
+                    if let e = vault.lastError { Text(e).font(.system(size: 14)).foregroundStyle(Theme.Colors.danger).multilineTextAlignment(.center).padding(.horizontal, 32) }
+                    Button { Task { await unlock() } } label: {
+                        Text(unlocking ? "Unlocking…" : "Unlock").font(.system(size: 17, weight: .semibold))
+                            .padding(.horizontal, 28).padding(.vertical, 12)
+                            .foregroundStyle(.white).accentSheen(in: Capsule())
+                    }
+                    .disabled(unlocking)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+                .background(Theme.Colors.canvas)
+            }
+        }
+        .navigationTitle("Vault")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { if !vault.isUnlocked { await unlock() } }
+    }
+
+    private func unlock() async {
+        unlocking = true
+        await vault.unlock(reason: "Open the vault")
+        unlocking = false
+    }
+}

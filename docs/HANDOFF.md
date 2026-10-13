@@ -205,6 +205,10 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
 - Q1b: sheen (gradient #22282F → #5C6672 → #22282F, thin top highlight) only on filled buttons: Scan, Unlock, and the
   keyboard's Open and Done/Back (Done/Back added by Claude so the two return keys match). Flat everywhere else.
 - Q2: Search is a white circle with a black icon, like Photos. Unlock no longer has the lock-time line under it.
+- Vault in the Library and search (Evan: "confusing"; chose the locked folder): Browse has a Vault folder, like Photos'
+  Hidden album, that asks for Face ID and then lists vault documents by category. Search covers the vault while it is
+  open (title, owner, sealed text opened in memory); locked, it shows one "Search the Vault · Face ID" row that reveals
+  nothing. Recents stays library-only.
 - Face ID: the privacy shield no longer covers the vault while iOS shows its Face ID badge (the app is inactive then);
   seen in Evan's screen recording, fixed in b62dc6e.
 

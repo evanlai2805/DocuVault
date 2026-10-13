@@ -2,9 +2,13 @@ import SwiftUI
 import SwiftData
 
 /// Full-text search across titles and OCR text. English and Chinese substrings both work.
+/// The vault is searched too, only while it is open (Evan, 13 Oct): locked, it shows one Face ID row
+/// that says nothing about what is inside.
 struct SearchView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(VaultSession.self) private var vault
     @Query(filter: #Predicate<StoredDocument> { !$0.sensitive && $0.deletedAt == nil }, sort: \StoredDocument.capturedAt, order: .reverse) private var docs: [StoredDocument]
+    @Query(filter: #Predicate<StoredDocument> { $0.sensitive && $0.deletedAt == nil }, sort: \StoredDocument.capturedAt, order: .reverse) private var vaultDocs: [StoredDocument]
     @State private var query = ""
     @FocusState private var focused: Bool
 
@@ -12,6 +16,17 @@ struct SearchView: View {
         let q = query.trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else { return [] }
         return docs.filter { $0.title.localizedCaseInsensitiveContains(q) || $0.fullText.localizedCaseInsensitiveContains(q) }
+    }
+
+    /// Vault matches on title, owner and the sealed text, opened in memory with the vault key.
+    private var vaultResults: [StoredDocument] {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty, vault.isUnlocked else { return [] }
+        return vaultDocs.filter { d in
+            d.title.localizedCaseInsensitiveContains(q)
+                || (d.person?.name.localizedCaseInsensitiveContains(q) ?? false)
+                || (vault.revealText(d)?.localizedCaseInsensitiveContains(q) ?? false)
+        }
     }
 
     var body: some View {
@@ -35,16 +50,19 @@ struct SearchView: View {
                 Spacer()
                 VStack(spacing: 6) {
                     Text("Search your library").font(.system(size: 22, weight: .semibold))
-                    Text("Matches titles and recognised text. Vault documents are not searched.").font(.system(size: 17)).multilineTextAlignment(.center).padding(.horizontal, 24)
+                    Text("Matches titles and recognised text, and the Vault once Face ID opens it.").font(.system(size: 17)).multilineTextAlignment(.center).padding(.horizontal, 24)
                 }
                 .foregroundStyle(Theme.Colors.ink2)
                 Spacer()
-            } else if results.isEmpty {
-                Spacer()
-                Text("No matches").font(.system(size: 22, weight: .semibold)).foregroundStyle(Theme.Colors.ink2)
-                Spacer()
             } else {
                 ScrollView {
+                  VStack(alignment: .leading, spacing: 16) {
+                    if results.isEmpty && vault.isUnlocked && vaultResults.isEmpty {
+                        Text("No matches").font(.system(size: 22, weight: .semibold)).foregroundStyle(Theme.Colors.ink2)
+                            .frame(maxWidth: .infinity).padding(.top, 60)
+                    }
+                    if !results.isEmpty {
+                    sectionLabel("Library")
                     LazyVStack(spacing: 0) {
                         ForEach(results) { doc in
                             NavigationLink { DocumentDetailView(doc: doc) } label: {
@@ -62,7 +80,10 @@ struct SearchView: View {
                     }
                     .background(Theme.Colors.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .padding(.horizontal, 16)
+                    }
+                    vaultSection
+                  }
+                  .padding(.horizontal, 16)
                 }
             }
         }
@@ -71,6 +92,32 @@ struct SearchView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
         .onAppear { focused = true }
+    }
+
+    @ViewBuilder private var vaultSection: some View {
+        if !vault.isUnlocked {
+            sectionLabel("Vault")
+            Button { Task { await vault.unlock(reason: "Search the vault") } } label: {
+                CardRow(title: "Search the Vault", icon: "lock.fill", tint: Theme.Colors.graphite, value: "Face ID", chevron: true)
+            }
+            .buttonStyle(.plain)
+            .background(Theme.Colors.canvas)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        } else if !vaultResults.isEmpty {
+            sectionLabel("Vault")
+            VStack(spacing: 0) {
+                ForEach(vaultResults) { d in
+                    NavigationLink { DocumentDetailView(doc: d) } label: { VaultDocRow(doc: d) }.buttonStyle(.plain)
+                    if d.id != vaultResults.last?.id { Divider().padding(.leading, 76) }
+                }
+            }
+            .background(Theme.Colors.canvas)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+    }
+
+    private func sectionLabel(_ t: String) -> some View {
+        Text(t.uppercased()).font(.system(size: 14)).tracking(0.5).foregroundStyle(Theme.Colors.ink2).padding(.horizontal, 4)
     }
 
     private func snippet(_ doc: StoredDocument) -> String? {

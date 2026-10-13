@@ -46,6 +46,7 @@ struct LibraryView: View {
             case .folder(let f): LibraryFolderPager(start: f)
             case .person(let id, let name): LibraryFolderView(title: name) { $0.person?.id == id }
             case .deleted: RecentlyDeletedView()
+            case .vault: VaultFolderView()
             }
         }
     }
@@ -71,6 +72,24 @@ struct LibraryView: View {
                                   count: docs.filter { $0.person?.id == p.id }.count, route: .person(p.id, p.name), plainIcon: true)
                     }
                 }
+            }
+            // The vault as a locked folder, like Photos' Hidden album (Evan, 13 Oct). No count: nothing
+            // about what is inside shows until Face ID passes.
+            section("Vault") {
+                NavigationLink(value: LibraryRoute.vault) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "lock.fill").font(.system(size: 17, weight: .medium)).foregroundStyle(.white)
+                            .frame(width: 40, height: 40).background(Theme.Colors.graphite)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        Text("Vault").font(.system(size: 17, weight: .semibold)).foregroundStyle(Theme.Colors.ink)
+                        Spacer()
+                        Text("Face ID").font(.system(size: 17)).foregroundStyle(Theme.Colors.ink2)
+                        Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.Colors.ink2)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
             section(nil) {
                 folderRow("Recently deleted", subtitle: "Kept \(RetentionManager.recentlyDeletedDays) days", icon: "trash",
@@ -133,6 +152,7 @@ enum LibraryRoute: Hashable {
     case folder(LibraryFolder)
     case person(UUID, String)
     case deleted
+    case vault
 }
 
 /// Folders are built from the document type, so nothing is filed by hand (checkpoint 16 Q3).
