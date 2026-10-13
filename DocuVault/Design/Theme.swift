@@ -9,7 +9,9 @@ enum Theme {
         static let ink = Color.primary
         static let ink2 = Color(.secondaryLabel)
         static let hairline = Color(.separator)
-        static let accent = Color(red: 0x2F/255, green: 0x6B/255, blue: 0xFF/255)
+        /// Gunmetal (checkpoint 17b, Evan chose A): the colour of actions. Replaced iOS blue, which read as a
+        /// generic app rather than a vault. Flat everywhere except the filled buttons, which wear `accentSheen`.
+        static let accent = Color(red: 0x3A/255, green: 0x42/255, blue: 0x4C/255)
         static let graphite = Color(red: 0x1C/255, green: 0x1C/255, blue: 0x1E/255)
         static let lavenderBG = Color(red: 0xF4/255, green: 0xEE/255, blue: 0xFC/255)
         static let lavenderBorder = Color(red: 0xDC/255, green: 0xCF/255, blue: 0xF3/255)
@@ -19,6 +21,14 @@ enum Theme {
         static let danger = Color(red: 0x8E/255, green: 0x1F/255, blue: 0x1F/255)
         static let cloud = Color(red: 0xC9/255, green: 0x61/255, blue: 0x2B/255)
     }
+
+    /// Machined gunmetal for the few filled action buttons: Scan, Unlock, the keyboard's Open and Done.
+    /// Lightens through the middle; `accentSheen(in:)` adds the thin top highlight.
+    static let accentSheen = LinearGradient(
+        colors: [Color(red: 0x22/255, green: 0x28/255, blue: 0x2F/255),
+                 Color(red: 0x5C/255, green: 0x66/255, blue: 0x72/255),
+                 Color(red: 0x22/255, green: 0x28/255, blue: 0x2F/255)],
+        startPoint: .topLeading, endPoint: .bottomTrailing)
 
     /// Gradient cards keyed by state, not by document type.
     enum CardStyle {
@@ -274,5 +284,18 @@ extension Date {
         let iso = String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
         let day = FillFormats.display(iso)
         return time ? day + String(format: " · %02d:%02d", c.hour ?? 0, c.minute ?? 0) : day
+    }
+}
+
+extension View {
+    /// Fill a filled action button with the gunmetal sheen (checkpoint 17b): gradient, a thin highlight
+    /// along the top edge, a soft shadow. Only Scan, Unlock and the keyboard's return keys use it.
+    func accentSheen<S: Shape>(in shape: S) -> some View {
+        self
+            .background(shape.fill(Theme.accentSheen))
+            .overlay(shape.stroke(LinearGradient(colors: [.white.opacity(0.35), .clear, .black.opacity(0.2)],
+                                                 startPoint: .top, endPoint: .bottom), lineWidth: 1))
+            .clipShape(shape)
+            .shadow(color: .black.opacity(0.18), radius: 5, y: 3)
     }
 }

@@ -99,6 +99,7 @@ struct KeyboardRootView: View {
         // The app is light-only (design-system.md). In dark mode the system label colours turned
         // white on the white keys (Evan's screenshot, 13 Oct), so the keyboard pins itself to light.
         .environment(\.colorScheme, .light)
+        .tint(Palette.accent)
     }
 
     @ViewBuilder private var content: some View {
@@ -491,12 +492,15 @@ struct KeyboardRootView: View {
                 .buttonStyle(.plain)
                 Button { model.openTopMatch() } label: {
                     let on = model.topMatch != nil
-                    Text("Open").font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(on ? .white : Palette.ink3)
+                    let key = RoundedRectangle(cornerRadius: System.radius, style: .continuous)
+                    let label = Text("Open").font(.system(size: 16, weight: .semibold))
                         .frame(maxWidth: .infinity).frame(height: System.keyHeight)
-                        .background(on ? Palette.accent : Palette.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: System.radius, style: .continuous))
-                        .shadow(color: .black.opacity(0.12), radius: 0, y: 1)
+                    if on {
+                        label.foregroundStyle(.white).sheen(in: key)
+                    } else {
+                        label.foregroundStyle(Palette.ink3).background(Palette.surface).clipShape(key)
+                            .shadow(color: .black.opacity(0.12), radius: 0, y: 1)
+                    }
                 }
                 .buttonStyle(.plain).frame(width: System.returnWidth)
                 .disabled(model.topMatch == nil)
@@ -733,9 +737,8 @@ struct KeyboardRootView: View {
             RepeatingKey(systemImage: "delete.left", action: { model.backspace() }).frame(width: 52)
             Button { dismissOrBack() } label: {
                 Text(isShowingBack ? "Back" : "Done").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
-                    .frame(width: 70, height: 42).background(Palette.accent)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .shadow(color: Palette.accent.opacity(0.35), radius: 4, y: 2)
+                    .frame(width: 70, height: 42)
+                    .sheen(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }.buttonStyle(.plain)
         }
     }
@@ -762,7 +765,12 @@ struct KeyboardRootView: View {
 /// The app's design tokens, mirrored for the keyboard target (it cannot import the app's Theme).
 /// Keep in step with `DocuVault/Design/Theme.swift`.
 enum Palette {
-    static let accent = Color(red: 0x2F/255, green: 0x6B/255, blue: 0xFF/255)
+    static let accent = Color(red: 0x3A/255, green: 0x42/255, blue: 0x4C/255)   // gunmetal, checkpoint 17b
+    static let sheen = LinearGradient(
+        colors: [Color(red: 0x22/255, green: 0x28/255, blue: 0x2F/255),
+                 Color(red: 0x5C/255, green: 0x66/255, blue: 0x72/255),
+                 Color(red: 0x22/255, green: 0x28/255, blue: 0x2F/255)],
+        startPoint: .topLeading, endPoint: .bottomTrailing)
     static let graphite = Color(red: 0x1C/255, green: 0x1C/255, blue: 0x1E/255)
     static let navy = Color(red: 0x1B/255, green: 0x0F/255, blue: 0x55/255)
     static let verified = Color(red: 0x1B/255, green: 0x7F/255, blue: 0x4C/255)
@@ -821,5 +829,18 @@ struct RepeatingKey: View {
                         repeater = nil
                     }
             )
+    }
+}
+
+extension View {
+    /// The app's gunmetal sheen for the return keys (Open, Done, Back). Mirrors `accentSheen(in:)` in
+    /// the app's Theme, which this target cannot import.
+    func sheen<S: Shape>(in shape: S) -> some View {
+        self
+            .background(shape.fill(Palette.sheen))
+            .overlay(shape.stroke(LinearGradient(colors: [.white.opacity(0.35), .clear, .black.opacity(0.2)],
+                                                 startPoint: .top, endPoint: .bottom), lineWidth: 1))
+            .clipShape(shape)
+            .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
     }
 }

@@ -199,6 +199,15 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
 - AutoFill text insertion (iOS 18+, `ProvidesTextToInsert`, checked in the SDK) is on the roadmap as a second way to
   fill, keeping Apple's keyboard. The custom keyboard stays the main tool.
 
+13 Oct · checkpoint 17b answers (accent colour; built, unverified on device)
+- Q1 A: gunmetal #3A424C replaces the blue #2F6BFF as the accent, in the app (`Theme.Colors.accent`) and the keyboard
+  (`Palette.accent`), and as the app-wide tint so iOS back arrows, Cancel and Save follow.
+- Q1b: sheen (gradient #22282F → #5C6672 → #22282F, thin top highlight) only on filled buttons: Scan, Unlock, and the
+  keyboard's Open and Done/Back (Done/Back added by Claude so the two return keys match). Flat everywhere else.
+- Q2: Search is a white circle with a black icon, like Photos. Unlock no longer has the lock-time line under it.
+- Face ID: the privacy shield no longer covers the vault while iOS shows its Face ID badge (the app is inactive then);
+  seen in Evan's screen recording, fixed in b62dc6e.
+
 ## 3. Open device validations (do these next, in order)
 - 13 Oct, checkpoint 16 build: existing documents survive the update (two new stored properties); Recents, Browse,
   grid and select mode; Move to Vault on a test document; vault item tap-copy, hold menu, Large type; favourites on

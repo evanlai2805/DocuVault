@@ -118,7 +118,7 @@ struct LibraryView: View {
             Spacer()
             VStack(spacing: 6) {
                 Text("Nothing scanned yet").font(.system(size: 22, weight: .semibold))
-                Text("Tap the blue Scan button to add your first document").font(.system(size: 17))
+                Text("Tap Scan to add your first document").font(.system(size: 17))
             }
             .foregroundStyle(Theme.Colors.ink2)
             .multilineTextAlignment(.center)

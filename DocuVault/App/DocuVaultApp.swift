@@ -16,6 +16,7 @@ struct DocuVaultApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .tint(Theme.Colors.accent)   // iOS back arrows, Cancel, Save and menus follow the gunmetal
         }
         .modelContainer(container)
     }

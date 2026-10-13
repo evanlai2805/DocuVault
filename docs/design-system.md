@@ -27,7 +27,7 @@ Reference: Flighty 4.11 (iOS 26). Follow it tightly. Light theme only.
 | ink | #000000 | titles |
 | ink2 | #8A8A8E | secondary text (iOS secondaryLabel) |
 | hairline | #E5E5EA | chip borders, separators |
-| accent | #2F6BFF | selected tab, links, primary button |
+| accent | #3A424C gunmetal (13 Oct, checkpoint 17b; was #2F6BFF) | selected tab, links, field labels, chips. Flat everywhere; the filled buttons (Scan, Unlock, keyboard Open/Done/Back) use the sheen gradient #22282F → #5C6672 → #22282F with a thin top highlight |
 | navy-card | linear 160° #1B0F55 → #163C8C | Library / document stat card |
 | red-card | linear 160° #5B0E0E → #8E1F1F | warnings, expiring, delays |
 | green-card | linear 160° #0C4A2E → #1B7F4C | verified / vault OK |
@@ -38,7 +38,7 @@ Reference: Flighty 4.11 (iOS 26). Follow it tightly. Light theme only.
 ## Layout decisions (Evan, 11 Oct)
 - No layered sheet. Regular full-screen views on `canvas`; no colour wash behind.
 - Layout follows function. Summary cards appear only where a summary helps (Library header, OCR result, vault alerts). Lists and field tables stay plain.
-- Tab bar: two floating glass pills. Left pill: Library · Vault · Settings. Right pill: Scan (left, accent-filled circle) and Search (right, graphite circle). Scan and Search are colour-coded so they read at a glance.
+- Tab bar: two floating glass pills. Left pill: Library · Vault · Settings. Right pill: Scan (left, gunmetal sheen circle) and Search (right, white circle with a black icon, like Photos). Scan and Search are colour-coded so they read at a glance.
 
 ## Shape & spacing
 - Cards: radius 28, padding 24, full width minus 16 side gutter, 16 between cards.

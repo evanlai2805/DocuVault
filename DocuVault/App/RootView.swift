@@ -105,8 +105,9 @@ struct FloatingTabBar: View {
             .glassEffect(.regular, in: Capsule())
 
             HStack(spacing: 6) {
-                actionCircle("camera.viewfinder", fill: Theme.Colors.accent, label: "Scan", action: onScan)
-                actionCircle("magnifyingglass", fill: Theme.Colors.graphite, label: "Search", action: onSearch)
+                actionCircle("camera.viewfinder", primary: true, label: "Scan", action: onScan)
+                // White, like the Photos search circle, so it never reads as a second dark button (17b Q2).
+                actionCircle("magnifyingglass", primary: false, label: "Search", action: onSearch)
             }
             .padding(5)
             .frame(height: Self.height)
@@ -137,14 +138,18 @@ struct FloatingTabBar: View {
         .accessibilityLabel(title)
     }
 
-    private func actionCircle(_ icon: String, fill: Color, label: String, action: @escaping () -> Void) -> some View {
+    @ViewBuilder private func actionCircle(_ icon: String, primary: Bool, label: String, action: @escaping () -> Void) -> some View {
+        let glyph = Image(systemName: icon)
+            .font(.system(size: 20, weight: .semibold))
+            .frame(width: Self.height - 10, height: Self.height - 10)
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: Self.height - 10, height: Self.height - 10)
-                .background(fill)
-                .clipShape(Circle())
+            if primary {
+                glyph.foregroundStyle(.white).accentSheen(in: Circle())
+            } else {
+                glyph.foregroundStyle(Theme.Colors.ink)
+                    .background(Circle().fill(.white))
+                    .overlay(Circle().stroke(Theme.Colors.hairline, lineWidth: 0.5))
+            }
         }
         .buttonStyle(.pressScale)
         .accessibilityLabel(label)

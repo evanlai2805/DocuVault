@@ -56,7 +56,7 @@ struct VaultView: View {
             Button { Task { await tryUnlock() } } label: {
                 Text(unlocking ? "Unlocking…" : "Unlock").font(.system(size: 17, weight: .semibold))
                     .padding(.horizontal, 28).padding(.vertical, 12)
-                    .background(Theme.Colors.accent).foregroundStyle(.white).clipShape(Capsule())
+                    .foregroundStyle(.white).accentSheen(in: Capsule())
             }
             .disabled(unlocking)
             Spacer()
