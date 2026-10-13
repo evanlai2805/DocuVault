@@ -238,6 +238,9 @@ final class KeyboardModel {
 
     func typeSearch(_ letter: String) { searchText += letter }
     func backspaceSearch() { if !searchText.isEmpty { searchText.removeLast() } }
+    /// The best match while typing; the pad's blue Open key loads it, like Search on Apple's keyboard.
+    var topMatch: FillEntry? { searchText.isEmpty ? nil : searchResults.first }
+    func openTopMatch() { if let e = topMatch { select(e) } }
 
     func setDateStyle(_ style: FillFormats.DateStyle?) { dateOverride = style; KeyboardVault.touch() }
 

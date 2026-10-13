@@ -8,6 +8,16 @@ final class KeyboardViewController: UIInputViewController {
 
     private var model: KeyboardModel!
     private var host: UIHostingController<KeyboardRootView>!
+    private var heightConstraint: NSLayoutConstraint?
+
+    /// A keyboard cannot draw above its own top edge, so search matches grow the keyboard upward
+    /// instead of floating over the app the way Telegram's list does (Evan, 13 Oct).
+    private func trackHeight() {
+        let target = withObservationTracking { KeyboardRootView.preferredHeight(model) } onChange: { [weak self] in
+            Task { @MainActor in self?.trackHeight() }
+        }
+        if heightConstraint?.constant != target { heightConstraint?.constant = target }
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,8 +43,10 @@ final class KeyboardViewController: UIInputViewController {
         let h = view.heightAnchor.constraint(equalToConstant: KeyboardRootView.height)
         h.priority = .defaultHigh
         h.isActive = true
+        heightConstraint = h
         host.didMove(toParent: self)
         model.load()
+        trackHeight()
         // Phone locked: drop the key at once, whatever the lock window says. Checked on the device
         // that iOS delivers this to a keyboard extension; the lock window still applies if it does not.
         NotificationCenter.default.addObserver(forName: UIApplication.protectedDataWillBecomeUnavailableNotification,

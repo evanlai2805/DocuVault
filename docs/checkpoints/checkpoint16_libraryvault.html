@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 16 · Library and vault</title>
+<style>
+:root{--ink:#000;--ink2:#8A8A8E;--hair:#E5E5EA;--canvas:#F2F2F7;--accent:#2F6BFF;--g:#1B7F4C;--a:#B5731B;--r:#8E1F1F;--graph:#1C1C1E}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px;max-width:900px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:22px}
+.phone{width:100%;max-width:360px;margin:0 auto;height:720px;border-radius:44px;background:#F2F2F7;position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;flex-direction:column}
+.hlabel{position:absolute;right:8px;top:8px;background:#0B2A4A;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;z-index:9}
+.cap{font-size:13px;color:#374151;margin:8px 2px 0;line-height:1.45;max-width:360px;margin-left:auto;margin-right:auto}.cap b{color:#0B2A4A}
+.note{background:#fff;border-left:4px solid var(--accent);padding:10px 12px;margin:14px 0;font-size:14px;border-radius:0 10px 10px 0;line-height:1.5;max-width:1100px}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px;max-width:1100px;line-height:1.45}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+table{width:100%;max-width:1100px;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 4px;font-size:13px}
+.flow .box{background:#fff;border:1px solid #C9D3E0;border-radius:10px;padding:7px 10px;font-weight:600;color:#0B2A4A}
+.flow .arr{color:#6B7A90;font-weight:700}
+svg{display:block}
+
+.app{flex:1;padding:0 14px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.status{height:46px;flex:none}
+.nav{display:flex;justify-content:space-between;align-items:center;height:34px;font-weight:600;font-size:16px;flex:none}
+.navbtn{color:var(--accent);font-size:16px;font-weight:500;display:flex;align-items:center;gap:6px}
+.navbtn svg{width:20px;height:20px}
+.big{font-size:32px;font-weight:800;letter-spacing:-.5px;margin:2px 2px 10px;flex:none}
+.segc{display:flex;background:#E4E4E9;border-radius:9px;padding:2px;flex:none}
+.segc span{flex:1;text-align:center;font-size:13px;padding:6px 0;border-radius:7px;color:#333}
+.segc span.on{background:#fff;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.tools{display:flex;justify-content:space-between;align-items:center;margin:10px 4px 0;font-size:13px;color:var(--ink2);flex:none}
+.tools .r{display:flex;gap:14px;color:var(--accent);align-items:center}.tools svg{width:18px;height:18px}
+.secl{font-size:12px;color:var(--ink2);letter-spacing:.5px;text-transform:uppercase;margin:14px 4px 6px;display:flex;justify-content:space-between;flex:none}
+.card{background:#fff;border-radius:20px;overflow:hidden;flex:none}
+.row{display:flex;align-items:center;gap:12px;padding:9px 14px;border-top:1px solid var(--hair);font-size:15px}
+.card .row:first-child{border-top:none}
+.row .t{flex:1;min-width:0}.row .t b{display:block;font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t small{display:block;color:var(--ink2);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .n{color:var(--ink2);font-size:15px}
+.chev{color:#C7C7CC;font-weight:700;font-size:15px}
+.thumb{width:34px;height:44px;border-radius:6px;flex:none;background:linear-gradient(#FFF,#ECEEF2);border:1px solid #E1E3E8;position:relative;overflow:hidden}
+.thumb:before{content:"";position:absolute;left:5px;right:5px;top:7px;height:24px;background:repeating-linear-gradient(#C9CDD4 0 2px,transparent 2px 5px)}
+.thumb.rc{background:linear-gradient(#FFFDF6,#F3EFE4)}
+.ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none;background:#EEF0F4;color:#3A3A3C}
+.ic svg{width:18px;height:18px}
+.ic.fold{background:transparent;color:var(--accent)}.ic.fold svg{width:28px;height:28px}
+.flag{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#fff;background:var(--r);padding:3px 7px;border-radius:999px;white-space:nowrap}
+.flag svg{width:10px;height:10px}
+.pill{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.pill.v{background:rgba(27,127,76,.14);color:var(--g)}.pill.n{background:#EEF0F4;color:#555}
+.star{color:#C7C7CC}.star svg{width:16px;height:16px}.star.on{color:var(--accent)}
+
+/* gradient cards */
+.gcard{border-radius:24px;padding:14px 16px;color:#fff;flex:none}
+.gcard.navy{background:linear-gradient(135deg,#1B0F55,#163C8C)}
+.gcard.red{background:linear-gradient(135deg,#5B0E0E,#8E1F1F)}
+.gcard.green{background:linear-gradient(135deg,#0C4A2E,#1B7F4C)}
+.gcard.graph{background:linear-gradient(135deg,#1C1C1E,#3A3A3C)}
+.gcard .h{font-size:19px;font-weight:700}.gcard .s{font-size:12px;opacity:.8}
+.stats{display:flex;gap:10px;margin-top:10px}.stats div{flex:1}.stats b{display:block;font-size:26px;font-weight:800}.stats span{font-size:11px;opacity:.8}
+.arow{display:flex;align-items:center;gap:10px;padding:9px 0 0;margin-top:9px;border-top:1px solid rgba(255,255,255,.18);font-size:14px}
+.arow .t{flex:1}.arow .t small{display:block;opacity:.78;font-size:12px}
+.arow .chev{color:rgba(255,255,255,.6)}
+
+/* floating tab bar, same shape as the app today */
+.tabbar{position:absolute;left:12px;right:12px;bottom:18px;display:flex;gap:8px;align-items:center;z-index:6}
+.tb{flex:1;height:58px;border-radius:29px;display:flex;align-items:center;justify-content:space-around;padding:0 6px}
+.tb div{display:flex;flex-direction:column;align-items:center;font-size:10px;font-weight:600;color:#555;gap:2px;padding:5px 10px;border-radius:22px}
+.tb div.on{color:var(--accent);background:rgba(47,107,255,.10)}.tb svg{width:21px;height:21px}
+.tr{height:58px;border-radius:29px;display:flex;align-items:center;gap:4px;padding:0 6px}
+.tr span{width:46px;height:46px;border-radius:23px;display:flex;align-items:center;justify-content:center;color:#fff}
+.tr svg{width:20px;height:20px}
+.glass{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.95);box-shadow:0 4px 18px rgba(0,0,0,.12),inset 0 1px 0 #fff;backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6)}
+.fade{position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(to top,#F2F2F7 40%,rgba(242,242,247,0));z-index:5}
+
+/* grid view */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;margin-top:12px;flex:none}
+.tile{text-align:center;font-size:11.5px;position:relative}
+.tile .pg{height:96px;border-radius:8px;background:linear-gradient(#FFFDF6,#F3EFE4);border:1px solid #E1E3E8;position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tile .pg:before{content:"";position:absolute;left:10px;right:10px;top:12px;height:58px;background:repeating-linear-gradient(#CFC9BA 0 2px,transparent 2px 6px)}
+.tile b{display:block;margin-top:5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tile small{color:var(--ink2)}
+.tile .ck{position:absolute;right:6px;bottom:44px;width:22px;height:22px;border-radius:11px;border:1.5px solid #fff;background:rgba(0,0,0,.18);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.tile .ck.on{background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff}.tile .ck svg{width:12px;height:12px}
+.tile.sel .pg{outline:2px solid var(--accent)}
+.actbar{position:absolute;left:12px;right:12px;bottom:18px;height:58px;border-radius:29px;display:flex;justify-content:space-around;align-items:center;z-index:6;font-size:11px;font-weight:600;color:var(--accent)}
+.actbar div{display:flex;flex-direction:column;align-items:center;gap:2px}.actbar svg{width:21px;height:21px}.actbar .del{color:var(--r)}
+
+/* long press */
+.dim{position:absolute;inset:0;background:rgba(242,242,247,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:7}
+.lp{position:absolute;left:28px;right:28px;top:96px;z-index:8}
+.lp .prev{background:#fff;border-radius:16px;height:230px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:16px;position:relative;overflow:hidden}
+.lp .prev .tt{font-weight:700;font-size:13px}.lp .prev .ln{height:118px;margin-top:10px;background:repeating-linear-gradient(#D2D5DB 0 2px,transparent 2px 7px)}
+.lp .prev small{position:absolute;left:16px;bottom:12px;color:var(--ink2);font-size:11px}
+.menu{background:rgba(250,250,252,.96);border-radius:14px;margin-top:10px;width:230px;box-shadow:0 10px 30px rgba(0,0,0,.18);overflow:hidden}
+.menu div{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:1px solid var(--hair);font-size:15px}
+.menu div:first-child{border-top:none}.menu svg{width:17px;height:17px}.menu .del{color:#D70015}
+.menu .gap{height:7px;padding:0;background:#E9E9EE}
+
+/* vault item */
+.ihead{display:flex;align-items:center;gap:12px;margin:6px 2px 14px;flex:none}
+.ihead .tile2{width:58px;height:58px;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,#0C4A2E,#1B7F4C);flex:none}
+.ihead .tile2 svg{width:28px;height:28px}
+.ihead .tt{flex:1}.ihead .tt b{display:block;font-size:21px;font-weight:700}.ihead .tt small{color:var(--ink2);font-size:13.5px}
+.fld{padding:8px 14px;border-top:1px solid var(--hair);display:flex;align-items:center;gap:8px}
+.card .fld:first-child{border-top:none}
+.fld .t{flex:1}.fld .t small{display:block;color:var(--accent);font-size:12px;font-weight:500}.fld .t b{display:block;font-size:16.5px;font-weight:500;margin-top:1px}
+.fld .t b.warn{color:var(--r)}.fld .t em{font-style:normal;font-size:12px;color:var(--r);font-weight:600}
+.fld.hot{background:rgba(47,107,255,.07)}
+.toast{position:absolute;left:50%;transform:translateX(-50%);top:58px;z-index:8;background:#1C1C1E;color:#fff;font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:20px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.25);display:flex;gap:7px;align-items:center}
+.toast svg{width:14px;height:14px}.toast small{opacity:.7;font-weight:500}
+.hold{position:absolute;right:20px;top:300px;z-index:8;width:236px}
+.ltype{flex:1;background:linear-gradient(160deg,#1C1C1E,#2C2C2E);color:#fff;display:flex;flex-direction:column;padding:0 16px}
+.ltype .close{align-self:flex-end;margin-top:54px;width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center}
+.ltype .close svg{width:14px;height:14px}
+.ltype .lab{margin-top:70px;text-align:center;opacity:.7;font-size:14px}
+.chars{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:20px}
+.chars div{background:rgba(255,255,255,.08);border-radius:12px;text-align:center;padding:12px 0 6px;font-size:44px;font-weight:700;font-family:-apple-system,"SF Pro Display",sans-serif}
+.chars div small{display:block;font-size:11px;opacity:.55;font-weight:600;margin-top:2px}
+.chars div.l{color:#8FB3FF}
+.ltype .foot{margin-top:auto;margin-bottom:40px;text-align:center;font-size:12.5px;opacity:.6;line-height:1.5}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute">
+ <symbol id="folder" viewBox="0 0 24 24"><path fill="currentColor" d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2H19.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
+ <symbol id="doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></g></symbol>
+ <symbol id="lib" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2.5h8.5L19 7v14.5H6zM14 3v4.5h4.5"/></symbol>
+ <symbol id="shield" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z"/></symbol>
+ <symbol id="gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M5.5 18.5l2.1-2.1M16.4 7.6l2.1-2.1"/></g></symbol>
+ <symbol id="scan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></g></symbol>
+ <symbol id="search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></g></symbol>
+ <symbol id="list" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".8"/><circle cx="4.5" cy="12" r=".8"/><circle cx="4.5" cy="18" r=".8"/></g></symbol>
+ <symbol id="gridi" viewBox="0 0 24 24"><g fill="currentColor"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></g></symbol>
+ <symbol id="sort" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4v16M3.5 16.5L7 20l3.5-3.5M17 20V4M13.5 7.5L17 4l3.5 3.5"/></g></symbol>
+ <symbol id="person" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5z"/></g></symbol>
+ <symbol id="bldg" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 21V5l8-2v18M12 8h8v13M7 8h2M7 12h2M7 16h2M15 12h2M15 16h2M2.5 21h19"/></g></symbol>
+ <symbol id="plane" viewBox="0 0 24 24"><path fill="currentColor" d="M21 15.5v-1.8l-7.5-4.5V4.5a1.5 1.5 0 0 0-3 0v4.7L3 13.7v1.8l7.5-2.3v4.7l-2 1.5V21l3.5-1 3.5 1v-1.6l-2-1.5v-4.7z"/></symbol>
+ <symbol id="idc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M5.8 16c.6-1.6 1.8-2.4 3.2-2.4s2.6.8 3.2 2.4M14.5 10h4M14.5 13.5h3"/></g></symbol>
+ <symbol id="ccard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M6.5 15h4"/></g></symbol>
+ <symbol id="starf" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1-4.5-4.2 6.1-.8z"/></symbol>
+ <symbol id="trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5M14 11v5"/></g></symbol>
+ <symbol id="share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></g></symbol>
+ <symbol id="move" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2h8.4A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/><path d="M9 13h6M12.5 10.5L15 13l-2.5 2.5" stroke-linecap="round"/></g></symbol>
+ <symbol id="copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></g></symbol>
+ <symbol id="pencil" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 20l1-4L16 5l3 3L8 19z"/></symbol>
+ <symbol id="lock" viewBox="0 0 24 24"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zm2 0h6V7a3 3 0 0 0-6 0z"/></symbol>
+ <symbol id="tri" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3l10 18H2zm-1 6v6h2V9zm0 8v2h2v-2z"/></symbol>
+ <symbol id="tick" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+ <symbol id="xmark" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.6" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></symbol>
+ <symbol id="large" viewBox="0 0 24 24"><text x="2" y="18" font-size="15" font-weight="700" font-family="-apple-system,sans-serif" fill="currentColor">Aa</text></symbol>
+ <symbol id="text" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 10h16M4 14h11M4 18h8"/></g></symbol>
+ <symbol id="ell" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></g></symbol>
+ <symbol id="trayclock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2" stroke-linecap="round"/></g></symbol>
+</svg>
+
+<h1>Checkpoint 16 · Library and vault</h1>
+<p class="sub">You asked for the Library to work like the Files app and the Vault like 1Password. I read it that way: the Library becomes a file browser (recents, folders, grid, long-press menu, select mode); the Vault becomes a password manager for documents (categories, favourites, an attention card, tap to copy, large type). Nothing here changes how documents are read, checked or sealed. All frames use today’s floating tab bar, colours and fonts.</p>
+
+<div class="flow"><span class="box">Library · Recents</span><span class="arr">→</span><span class="box">Browse · folders by type and person</span><span class="arr">→</span><span class="box">Grid or list · sort · select</span><span class="arr">|</span><span class="box">Vault · attention, favourites, categories, people</span><span class="arr">→</span><span class="box">Item · tap copies · hold for more</span></div>
+
+<h3>1 · Library, the Files model</h3>
+<div class="grid">
+
+<div><div class="phone"><span class="hlabel">1 · recents</span><div class="app"><div class="status"></div>
+<div class="big">Library</div>
+<div class="segc"><span class="on">Recents</span><span>Browse</span></div>
+<div class="tools"><span>32 documents</span><span class="r"><svg><use href="#sort"/></svg><svg><use href="#gridi"/></svg><svg><use href="#ell"/></svg></span></div>
+<div class="secl">Today</div>
+<div class="card">
+<div class="row"><div class="thumb"></div><div class="t"><b>Harbour Capital · Term sheet</b><small>Contract · 4 pages · 13/OCT/2026</small></div><span class="chev">›</span></div>
+<div class="row"><div class="thumb rc"></div><div class="t"><b>Ya Kun Kaya Toast · 7.40</b><small>Receipt · Food and drink</small></div><span class="chev">›</span></div>
+</div>
+<div class="secl">This week</div>
+<div class="card">
+<div class="row"><div class="thumb"></div><div class="t"><b>租赁合同 · 上海</b><small>Contract · 中文 · 6 pages · 10/OCT/2026</small></div><span class="flag"><svg><use href="#tri"/></svg>Review</span><span class="chev">›</span></div>
+<div class="row"><div class="thumb"></div><div class="t"><b>IRAS · Notice of assessment</b><small>Letter · 2 pages · 09/OCT/2026</small></div><span class="chev">›</span></div>
+<div class="row"><div class="thumb rc"></div><div class="t"><b>Grab · 14.20</b><small>Receipt · Transport</small></div><span class="chev">›</span></div>
+</div>
+<div class="secl">September</div>
+<div class="card">
+<div class="row"><div class="thumb"></div><div class="t"><b>Tan Wei Ming · Business card</b><small>Business card · 22/SEP/2026</small></div><span class="chev">›</span></div>
+</div>
+<div class="fade"></div>
+<div class="tabbar"><div class="tb glass"><div class="on"><svg><use href="#lib"/></svg>Library</div><div><svg><use href="#shield"/></svg>Vault</div><div><svg><use href="#gear"/></svg>Settings</div></div><div class="tr glass"><span style="background:var(--accent)"><svg><use href="#scan"/></svg></span><span style="background:var(--graph)"><svg><use href="#search"/></svg></span></div></div>
+</div></div>
+<p class="cap"><b>Recents is the home.</b> Newest first, grouped Today · This week · by month, the way Files groups Recents. The filter chips go; Browse replaces them. Sort, list/grid and the select menu sit on one quiet row. The navy stat card moves to Browse (Q2).</p></div>
+
+<div><div class="phone"><span class="hlabel">2 · browse</span><div class="app"><div class="status"></div>
+<div class="big">Library</div>
+<div class="segc"><span>Recents</span><span class="on">Browse</span></div>
+<div class="gcard navy" style="margin-top:12px"><div class="h">All-time DocuVault</div><div class="s">Documents · 文件 · Pages</div>
+<div class="stats"><div><b>32</b><span>Documents</span></div><div><b>118</b><span>Pages read</span></div><div><b>14</b><span>Receipts</span></div><div><b>9</b><span>In vault</span></div></div></div>
+<div class="secl">Folders</div>
+<div class="card">
+<div class="row"><div class="ic fold"><svg><use href="#folder"/></svg></div><div class="t"><b>Contracts and letters</b></div><span class="n">11</span><span class="chev">›</span></div>
+<div class="row"><div class="ic fold"><svg><use href="#folder"/></svg></div><div class="t"><b>Receipts</b></div><span class="n">14</span><span class="chev">›</span></div>
+<div class="row"><div class="ic fold"><svg><use href="#folder"/></svg></div><div class="t"><b>Business cards</b></div><span class="n">4</span><span class="chev">›</span></div>
+<div class="row"><div class="ic fold"><svg><use href="#folder"/></svg></div><div class="t"><b>中文</b><small>Chinese and mixed</small></div><span class="n">6</span><span class="chev">›</span></div>
+</div>
+<div class="secl">People</div>
+<div class="card">
+<div class="row"><div class="ic"><svg><use href="#bldg"/></svg></div><div class="t"><b>Harbour Capital</b><small>Client</small></div><span class="n">7</span><span class="chev">›</span></div>
+<div class="row"><div class="ic"><svg><use href="#person"/></svg></div><div class="t"><b>Evan Lai</b><small>Me</small></div><span class="n">12</span><span class="chev">›</span></div>
+</div>
+<div class="card" style="margin-top:12px">
+<div class="row"><div class="ic"><svg><use href="#trash"/></svg></div><div class="t"><b>Recently deleted</b><small>Kept 30 days</small></div><span class="n">2</span><span class="chev">›</span></div>
+</div>
+<div class="fade"></div>
+<div class="tabbar"><div class="tb glass"><div class="on"><svg><use href="#lib"/></svg>Library</div><div><svg><use href="#shield"/></svg>Vault</div><div><svg><use href="#gear"/></svg>Settings</div></div><div class="tr glass"><span style="background:var(--accent)"><svg><use href="#scan"/></svg></span><span style="background:var(--graph)"><svg><use href="#search"/></svg></span></div></div>
+</div></div>
+<p class="cap"><b>Browse is the Files sidebar.</b> Folders are built from document type, so nothing needs filing by hand. People lists only owners of library documents; their vault documents stay in the Vault. Recently deleted holds a deleted document for 30 days (Q4).</p></div>
+
+<div><div class="phone"><span class="hlabel">3 · folder in grid, selecting</span><div class="app"><div class="status"></div>
+<div class="nav"><span class="navbtn">‹ Browse</span><span>Receipts</span><span class="navbtn" style="font-weight:600">Done</span></div>
+<div class="tools" style="margin-top:6px"><span>2 selected</span><span class="r">Sorted by date <svg><use href="#list"/></svg></span></div>
+<div class="tiles">
+<div class="tile sel"><div class="pg"></div><span class="ck on"><svg><use href="#tick"/></svg></span><b>Ya Kun · 7.40</b><small>13/OCT</small></div>
+<div class="tile sel"><div class="pg"></div><span class="ck on"><svg><use href="#tick"/></svg></span><b>Grab · 14.20</b><small>11/OCT</small></div>
+<div class="tile"><div class="pg"></div><span class="ck"></span><b>Cold Storage · 86.15</b><small>08/OCT</small></div>
+<div class="tile"><div class="pg"></div><span class="ck"></span><b>SingTel · 48.00</b><small>02/OCT</small></div>
+<div class="tile"><div class="pg"></div><span class="ck"></span><b>Grab · 22.60</b><small>30/SEP</small></div>
+<div class="tile"><div class="pg"></div><span class="ck"></span><b>Toast Box · 5.80</b><small>29/SEP</small></div>
+<div class="tile"><div class="pg"></div><span class="ck"></span><b>Uniqlo · 59.90</b><small>21/SEP</small></div>
+<div class="tile"><div class="pg"></div><span class="ck"></span><b>Shell · 70.00</b><small>18/SEP</small></div>
+<div class="tile"><div class="pg"></div><span class="ck"></span><b>Grab · 9.10</b><small>15/SEP</small></div>
+</div>
+<div class="actbar glass"><div><svg><use href="#share"/></svg>Share</div><div><svg><use href="#doc"/></svg>Export CSV</div><div><svg><use href="#move"/></svg>Move</div><div class="del"><svg><use href="#trash"/></svg>Delete</div></div>
+</div></div>
+<p class="cap"><b>Grid and select mode.</b> The grid shows the first page of each document. Select mode swaps the tab bar for an action bar. Export CSV appears only when every selected document is a receipt. Move assigns an owner or sends the documents to the Vault.</p></div>
+
+<div><div class="phone"><span class="hlabel">4 · long press</span><div class="app"><div class="status"></div>
+<div class="big">Library</div>
+<div class="segc"><span class="on">Recents</span><span>Browse</span></div>
+<div class="card" style="margin-top:20px"><div class="row"><div class="thumb"></div><div class="t"><b>Harbour Capital · Term sheet</b><small>Contract · 4 pages</small></div></div></div>
+<div class="dim"></div>
+<div class="lp"><div class="prev"><div class="tt">TERM SHEET · HARBOUR CAPITAL PTE. LTD.</div><div class="ln"></div><small>Page 1 of 4</small></div>
+<div class="menu">
+<div>Share<svg><use href="#share"/></svg></div>
+<div>Rename<svg><use href="#pencil"/></svg></div>
+<div>Copy text<svg><use href="#text"/></svg></div>
+<div>Move to person<svg><use href="#move"/></svg></div>
+<div>Move to Vault<svg><use href="#lock"/></svg></div>
+<div class="gap"></div>
+<div class="del">Delete<svg><use href="#trash"/></svg></div>
+</div></div>
+</div></div>
+<p class="cap"><b>Long press, as in Files.</b> A page preview with the actions you would otherwise open the document for. Rename edits the title only. Delete goes to Recently deleted, not straight out of the app. The same menu works in grid view and in search results.</p></div>
+
+</div>
+
+<h3>2 · Vault, the 1Password model</h3>
+<div class="grid">
+
+<div><div class="phone"><span class="hlabel">5 · vault home</span><div class="app"><div class="status"></div>
+<div class="nav" style="justify-content:flex-end;gap:16px"><span class="navbtn"><svg><use href="#lock"/></svg></span><span class="navbtn"><svg><use href="#ell"/></svg></span></div>
+<div class="big" style="margin-top:-4px">Vault</div>
+<div class="gcard red"><div class="h">2 need attention</div>
+<div class="arow"><div class="t">Passport · LAI<small>Evan Lai · Expires in 5 months</small></div><span class="chev">›</span></div>
+<div class="arow"><div class="t">NRIC · TAN<small>Harbour Capital · Deletes in 3 d</small></div><span class="chev">›</span></div>
+</div>
+<div class="secl">Favourites</div>
+<div class="card">
+<div class="row"><div class="ic"><svg><use href="#plane"/></svg></div><div class="t"><b>Passport · LAI</b><small>K7654321</small></div><span class="star on"><svg><use href="#starf"/></svg></span></div>
+<div class="row"><div class="ic"><svg><use href="#ccard"/></svg></div><div class="t"><b>DBS Visa</b><small>•4821</small></div><span class="star on"><svg><use href="#starf"/></svg></span></div>
+</div>
+<div class="secl">Categories</div>
+<div class="card">
+<div class="row"><div class="ic"><svg><use href="#plane"/></svg></div><div class="t"><b>Passports</b></div><span class="n">3</span><span class="chev">›</span></div>
+<div class="row"><div class="ic"><svg><use href="#idc"/></svg></div><div class="t"><b>ID cards</b><small>NRIC / FIN · China ID</small></div><span class="n">4</span><span class="chev">›</span></div>
+<div class="row"><div class="ic"><svg><use href="#ccard"/></svg></div><div class="t"><b>Bank cards</b></div><span class="n">2</span><span class="chev">›</span></div>
+</div>
+<div class="secl">People</div>
+<div class="card">
+<div class="row"><div class="ic"><svg><use href="#person"/></svg></div><div class="t"><b>Evan Lai</b><small>Me · Passport · NRIC · Bank card</small></div><span class="n">4</span><span class="chev">›</span></div>
+</div>
+<div class="fade"></div>
+<div class="tabbar"><div class="tb glass"><div><svg><use href="#lib"/></svg>Library</div><div class="on"><svg><use href="#shield"/></svg>Vault</div><div><svg><use href="#gear"/></svg>Settings</div></div><div class="tr glass"><span style="background:var(--accent)"><svg><use href="#scan"/></svg></span><span style="background:var(--graph)"><svg><use href="#search"/></svg></span></div></div>
+</div></div>
+<p class="cap"><b>Four sections, top to bottom.</b> The red card collects everything that needs you: a document expiring soon (Q5), a client document about to be deleted, a check that failed. It disappears when there is nothing. Favourites, then Categories (1Password’s list), then People (1Password’s vaults). Deleted by retention moves under the menu.</p></div>
+
+<div><div class="phone"><span class="hlabel">6 · item, tap copies</span><div class="app"><div class="status"></div>
+<div class="toast"><svg><use href="#tick"/></svg>Copied Passport no. <small>· Clears in 60 s</small></div>
+<div class="nav"><span class="navbtn">‹ Vault</span><span></span><span class="navbtn">Edit</span></div>
+<div class="ihead"><div class="tile2"><svg><use href="#plane"/></svg></div><div class="tt"><b>Passport · LAI</b><small>Evan Lai · Me · 3/3 checks</small></div><span class="star on"><svg><use href="#starf"/></svg></span></div>
+<div class="card">
+<div class="fld hot"><div class="t"><small>Passport no.</small><b>K7654321</b></div><span class="pill v">✓</span></div>
+<div class="fld"><div class="t"><small>Surname</small><b>LAI</b></div><span class="pill v">✓</span></div>
+<div class="fld"><div class="t"><small>Given names</small><b>ZE XUAN EVAN</b></div></div>
+<div class="fld"><div class="t"><small>Date of birth</small><b>28/MAY/1999</b></div><span class="pill v">✓</span></div>
+<div class="fld"><div class="t"><small>Expiry</small><b class="warn">02/APR/2027</b><em>Expires in 5 months</em></div><span class="pill v">✓</span></div>
+<div class="fld"><div class="t"><small>Nationality</small><b>Singaporean</b></div></div>
+</div>
+<div class="secl">Scan</div>
+<div class="card"><div class="row"><div class="thumb"></div><div class="t"><b>1 page</b><small>Opens full screen, pinch to zoom</small></div><span class="chev">›</span></div></div>
+</div></div>
+<p class="cap"><b>Tap a field to copy it</b>, as in 1Password. The pill confirms it, and the clipboard clears itself after 60 s and never syncs to your other devices (that is how copy works today). Labels sit above values, so long values get the full width. Edit moves to the toolbar and the hold menu (Q7).</p></div>
+
+<div><div class="phone"><span class="hlabel">6b · hold a field</span><div class="app"><div class="status"></div>
+<div class="nav"><span class="navbtn">‹ Vault</span><span></span><span class="navbtn">Edit</span></div>
+<div class="ihead"><div class="tile2"><svg><use href="#plane"/></svg></div><div class="tt"><b>Passport · LAI</b><small>Evan Lai · Me · 3/3 checks</small></div><span class="star on"><svg><use href="#starf"/></svg></span></div>
+<div class="card">
+<div class="fld"><div class="t"><small>Passport no.</small><b>K7654321</b></div><span class="pill v">✓</span></div>
+<div class="fld"><div class="t"><small>Surname</small><b>LAI</b></div><span class="pill v">✓</span></div>
+<div class="fld"><div class="t"><small>Given names</small><b>ZE XUAN EVAN</b></div></div>
+<div class="fld hot"><div class="t"><small>Date of birth</small><b>28/MAY/1999</b></div><span class="pill v">✓</span></div>
+<div class="fld"><div class="t"><small>Expiry</small><b class="warn">02/APR/2027</b><em>Expires in 5 months</em></div><span class="pill v">✓</span></div>
+</div>
+<div class="dim" style="background:rgba(242,242,247,.35)"></div>
+<div class="hold"><div class="menu" style="width:236px">
+<div>Copy<svg><use href="#copy"/></svg></div>
+<div>Copy as 28/05/1999<span></span></div>
+<div>Copy as 1999-05-28<span></span></div>
+<div>Copy as 28 May 1999<span></span></div>
+<div class="gap"></div>
+<div>Large type<svg><use href="#large"/></svg></div>
+<div>Edit<svg><use href="#pencil"/></svg></div>
+</div></div>
+</div></div>
+<p class="cap"><b>Hold for more.</b> The same wordings the keyboard’s hold menu offers (date formats, card number with or without spaces, Singaporean · SGP), so the two never disagree. Large type and Edit sit below.</p></div>
+
+<div><div class="phone"><span class="hlabel">7 · large type</span><div class="ltype">
+<div class="close"><svg><use href="#xmark"/></svg></div>
+<div class="lab">Passport no. · Passport · LAI</div>
+<div class="chars">
+<div class="l">K<small>1</small></div><div>7<small>2</small></div><div>6<small>3</small></div><div>5<small>4</small></div>
+<div>4<small>5</small></div><div>3<small>6</small></div><div>2<small>7</small></div><div>1<small>8</small></div>
+</div>
+<div class="foot">Letters in blue, digits in white.<br>Turn the phone sideways for one line.<br>Locks with the vault.</div>
+</div></div>
+<p class="cap"><b>Large type</b>, 1Password’s feature for reading a number aloud over the phone or typing it into another device. Each character in its own box with its position, so “K, seven, six…” is easy to follow. Letters and digits are coloured apart so O and 0 never get confused.</p></div>
+
+</div>
+
+<div class="note"><b>Unchanged:</b> the lock screen, the Face ID flow, the person page, the review screen and the keyboard. Library documents can still be owned by a person; the Vault still never appears in Library search. Search keeps its place in the right-hand pill.</div>
+
+<h3>Rules that are code, not prompt</h3>
+<table>
+<tr><th>Rule</th><th>Where it lives</th></tr>
+<tr><td>Library Recents, Browse, folders and search never list a vault document</td><td>The same <code>!sensitive</code> query the Library uses today</td></tr>
+<tr><td>A copied vault value is local-only and clears after 60 s</td><td><code>Clipboard.copy(_, sensitive: true)</code>, unchanged</td></tr>
+<tr><td>Copy-as wordings come from the keyboard’s formatter, not a second copy of it</td><td><code>FillFormats</code> and <code>FillVariants</code> in the core package, already tested</td></tr>
+<tr><td>Expiry warnings are computed from the stored expiry date, never guessed</td><td>New core helper with tests: passport, NRIC/FIN, China ID, bank card (MM/YY)</td></tr>
+<tr><td>Retention deletion skips Recently deleted; a client document past its date is gone</td><td><code>RetentionManager</code> deletes as today and writes the tombstone</td></tr>
+<tr><td>Recently deleted empties itself after 30 days and on “Delete all documents”</td><td>A deletedAt date on the document; the sweep that already runs on unlock and launch</td></tr>
+<tr><td>Favourites store document IDs only</td><td>One Boolean on the document, so the keyboard reads it from the shared store</td></tr>
+<tr><td>Large type is drawn in-app only and closes when the vault locks</td><td>Same <code>VaultSession</code> lock that hides every vault screen</td></tr>
+</table>
+
+<h3>Questions</h3>
+<div class="q">Q1 · Library opens on Recents, Browse one tap away (frames 1 and 2). Recommended: <b>yes</b>. The filter chips go, because the folders do the same job.</div>
+<div class="q">Q2 · The navy “All-time DocuVault” stat card moves from the top of the Library to the top of Browse. Recommended: <b>Browse only</b>, so Recents starts with documents.</div>
+<div class="q">Q3 · Folders are automatic, by type. Do you also want folders you create yourself, such as one per deal? Recommended: <b>automatic only for now</b>; People already groups a client’s documents.</div>
+<div class="q">Q4 · Deleting a library document sends it to Recently deleted for 30 days. Recommended: <b>yes</b>. Client retention still deletes outright, as promised.</div>
+<div class="q">Q5 · When does a document join the red attention card? Recommended: <b>passport within 6 months of expiry</b> (the common entry rule abroad), <b>NRIC, China ID and bank cards within 1 month</b>.</div>
+<div class="q">Q6 · Should the bank card number be hidden (•••• 4821) until you tap Reveal, like a 1Password password? Recommended: <b>yes for the card number only</b>; every other field shows once the vault is open.</div>
+<div class="q">Q7 · Tapping a field today opens the edit sheet. In this design a tap copies, and Edit moves to the toolbar and the hold menu. Recommended: <b>tap copies</b>. It is what you will do most often.</div>
+<div class="q">Q8 · Favourites also go to the top of the keyboard’s start page. Recommended: <b>yes</b>, so My passport is always one tap away.</div>
+</body></html>

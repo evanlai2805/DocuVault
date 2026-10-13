@@ -19,6 +19,37 @@ struct KeyboardRootView: View {
     static let menuWidth: CGFloat = 220
     static let holdDelay: Duration = .milliseconds(350)
 
+    /// Apple's English keyboard on iPhone 17 Pro, measured from Evan's Telegram screenshot (13 Oct, 3x):
+    /// keys 43pt tall and 33.3pt wide, 6pt apart, rows 11pt apart, 6.7pt side margins, about 22pt type.
+    /// Bottom row 43 · 43 · 191 · 93pt; here Back spans the first two slots.
+    enum System {
+        static let keyHeight: CGFloat = 43
+        static let rowGap: CGFloat = 11
+        static let keyGap: CGFloat = 6
+        static let sideInset: CGFloat = 2.0 / 3.0   // on top of the keyboard's 6pt padding: 6.7pt in all
+        static let modifierWidth: CGFloat = 45.3
+        static let returnWidth: CGFloat = 93
+        static let radius: CGFloat = 8.5
+        static let font: CGFloat = 22
+        /// Four rows: 4 × 43 + 3 × 11.
+        static let padHeight: CGFloat = 4 * keyHeight + 3 * rowGap
+    }
+
+    /// Search matches sit in a card above the bar, Telegram style; each row adds to the keyboard's height.
+    static let matchRowHeight: CGFloat = 44
+    static let maxMatches = 4
+
+    static func matchCount(_ model: KeyboardModel) -> Int {
+        guard model.isUnlocked, model.panel == .search, !model.searchText.isEmpty else { return 0 }
+        return max(1, min(maxMatches, model.searchResults.count))   // "No match" takes one row
+    }
+
+    /// 300pt, plus the match card while a search has letters in it.
+    static func preferredHeight(_ model: KeyboardModel) -> CGFloat {
+        let n = matchCount(model)
+        return n == 0 ? height : height + CGFloat(n) * matchRowHeight + 6
+    }
+
     @Bindable var model: KeyboardModel
     let showsGlobe: Bool
 
@@ -32,12 +63,14 @@ struct KeyboardRootView: View {
     @State private var menuSize: CGSize = .zero
     @State private var contentSize: CGSize = .zero
     @State private var scanScale: CGFloat = 1
+    @State private var shifted = false               // search pad: next letter upper case
 
     private static let spring = Animation.spring(response: 0.38, dampingFraction: 0.62)
 
     var body: some View {
         VStack(spacing: 6) {
             if model.isUnlocked {
+                if Self.matchCount(model) > 0 { matchCard }
                 bar
                 ZStack(alignment: .topLeading) {
                     content
@@ -58,7 +91,8 @@ struct KeyboardRootView: View {
             } else {
                 unlockPanel
             }
-            bottomRow
+            // The search pad brings its own bottom row, laid out like Apple's.
+            if !(model.isUnlocked && model.panel == .search) { bottomRow }
         }
         .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, 6)
         .background(Palette.canvas)
@@ -86,8 +120,11 @@ struct KeyboardRootView: View {
             Button { model.openSearch() } label: {
                 HStack(spacing: 6) {
                     if model.panel == .search {
-                        Text(model.searchText).font(.system(size: 14, weight: .semibold)).lineLimit(1)
-                        Rectangle().fill(Palette.accent).frame(width: 1.5, height: 16)
+                        // Caret is grey and touches the last letter (Evan, 13 Oct).
+                        HStack(spacing: 1) {
+                            Text(model.searchText).font(.system(size: 14, weight: .semibold)).lineLimit(1)
+                            Rectangle().fill(Palette.ink2).frame(width: 1.5, height: 16)
+                        }
                         Spacer(minLength: 0)
                     } else {
                         Text("Search").font(.system(size: 14)).foregroundStyle(Palette.ink2)
@@ -369,55 +406,148 @@ struct KeyboardRootView: View {
 
     // MARK: Search
 
-    /// The keyboard's own letter pad: letters go to the query, never to the form (13c Q3). Full height
-    /// until something is typed; then the two best matches sit above a shorter pad (Evan, 15 follow-up).
+    /// The keyboard's own letter pad: letters go to the query, never to the form (13c Q3). Laid out like
+    /// Apple's English keyboard and never resized (Evan, 13 Oct). Above it, a strip of recent documents
+    /// before you type, and the Open hint once you do; matches show in the card above the bar.
     private var searchPanel: some View {
-        let results = model.searchResults
-        let typing = !model.searchText.isEmpty
-        let rowH: CGFloat = typing ? 36 : 58
-        return VStack(spacing: 6) {
-            if typing {
-                VStack(spacing: 4) {
-                    if results.isEmpty {
-                        Text("No match").font(.system(size: 13)).foregroundStyle(Palette.ink2).frame(height: 32)
-                    } else {
-                        ForEach(results.prefix(2)) { e in entryRow(e, height: 32) }
+        VStack(spacing: 5) {
+            searchStrip.frame(height: 36)
+            GeometryReader { geo in searchPad(width: geo.size.width) }
+                .frame(height: System.padHeight)
+                .padding(.horizontal, System.sideInset)
+        }
+        .frame(maxHeight: .infinity, alignment: .bottom)
+    }
+
+    @ViewBuilder private var searchStrip: some View {
+        if let top = model.topMatch {
+            Text("Open loads \(Self.shortTitle(top.title)) · \(top.personName)")
+                .font(.system(size: 13)).foregroundStyle(Palette.ink2).lineLimit(1)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if !model.searchText.isEmpty {
+            Color.clear
+        } else {
+            // Most recent first, like the system keyboard's three suggestion slots.
+            let recent = Array(model.entries.prefix(3))
+            HStack(spacing: 0) {
+                ForEach(Array(recent.enumerated()), id: \.element.id) { i, e in
+                    if i > 0 { Rectangle().fill(Palette.ink3).frame(width: 1, height: 22) }
+                    Button { model.select(e) } label: {
+                        VStack(spacing: 1) {
+                            Text(Self.shortTitle(e.title)).font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
+                            Text(e.personName).font(.system(size: 11, weight: .medium)).foregroundStyle(Palette.navy)
+                        }
+                        .lineLimit(1).minimumScaleFactor(0.8).padding(.horizontal, 4)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
                     }
-                }
-                .frame(height: 68, alignment: .top)
-            }
-            VStack(spacing: typing ? 5 : 6) {
-                padRow(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"], height: rowH)
-                padRow(["a", "s", "d", "f", "g", "h", "j", "k", "l"], height: rowH)
-                HStack(spacing: 4) {
-                    padKey("Back", height: rowH, wide: true) { model.back() }
-                    padRow(["z", "x", "c", "v", "b", "n", "m"], height: rowH)
-                    padKey("delete.left", height: rowH, wide: true, symbol: true) { model.backspaceSearch() }
+                    .buttonStyle(.plain)
                 }
             }
         }
-        .frame(maxHeight: .infinity, alignment: .top)
     }
 
-    private func padRow(_ letters: [String], height: CGFloat) -> some View {
-        HStack(spacing: 4) {
-            ForEach(letters, id: \.self) { l in padKey(l, height: height) { model.typeSearch(l) } }
+    private func searchPad(width: CGFloat) -> some View {
+        let gap = System.keyGap
+        let letterWidth = (width - 9 * gap) / 10
+        return VStack(spacing: System.rowGap) {
+            letterRow(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"], width: letterWidth)
+            letterRow(["a", "s", "d", "f", "g", "h", "j", "k", "l"], width: letterWidth)
+            HStack(spacing: gap) {
+                Button { shifted.toggle() } label: {
+                    systemKey { Image(systemName: shifted ? "shift.fill" : "shift").font(.system(size: 19)) }
+                }
+                .buttonStyle(.plain).frame(width: System.modifierWidth)
+                Spacer(minLength: 0)
+                letterRow(["z", "x", "c", "v", "b", "n", "m"], width: letterWidth)
+                Spacer(minLength: 0)
+                RepeatingKey(systemImage: "delete.left", height: System.keyHeight, radius: System.radius, fill: Palette.surface) {
+                    model.backspaceSearch()
+                }
+                .frame(width: System.modifierWidth)
+            }
+            HStack(spacing: gap) {
+                if showsGlobe {
+                    Button { model.globe() } label: { systemKey { Image(systemName: "globe").font(.system(size: 19)) } }
+                        .buttonStyle(.plain).frame(width: System.modifierWidth)
+                }
+                Button { model.back() } label: { systemKey { Text("Back").font(.system(size: 16)) } }
+                    .buttonStyle(.plain).frame(width: showsGlobe ? System.modifierWidth : 2 * System.modifierWidth + gap)
+                Button { model.typeSearch(" ") } label: {
+                    systemKey { Text("space").font(.system(size: 16)).foregroundStyle(Palette.ink2) }
+                }
+                .buttonStyle(.plain)
+                Button { model.openTopMatch() } label: {
+                    let on = model.topMatch != nil
+                    Text("Open").font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(on ? .white : Palette.ink3)
+                        .frame(maxWidth: .infinity).frame(height: System.keyHeight)
+                        .background(on ? Palette.accent : Palette.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: System.radius, style: .continuous))
+                        .shadow(color: .black.opacity(0.12), radius: 0, y: 1)
+                }
+                .buttonStyle(.plain).frame(width: System.returnWidth)
+                .disabled(model.topMatch == nil)
+            }
         }
     }
 
-    private func padKey(_ title: String, height: CGFloat, wide: Bool = false, symbol: Bool = false, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Group {
-                if symbol { Image(systemName: title).font(.system(size: 16)) }
-                else { Text(title).font(.system(size: wide ? 13 : (height > 40 ? 20 : 17), weight: wide ? .medium : .regular)) }
+    private func letterRow(_ letters: [String], width: CGFloat) -> some View {
+        HStack(spacing: System.keyGap) {
+            ForEach(letters, id: \.self) { l in
+                let shown = shifted ? l.uppercased() : l
+                Button { model.typeSearch(shown); shifted = false } label: {
+                    systemKey { Text(shown).font(.system(size: System.font)) }
+                }
+                .buttonStyle(.plain).frame(width: width)
             }
+        }
+    }
+
+    /// One white key with Apple's height, corner and bottom shadow.
+    private func systemKey<Label: View>(@ViewBuilder _ label: () -> Label) -> some View {
+        label()
             .foregroundStyle(Palette.ink)
-            .frame(maxWidth: .infinity).frame(width: wide ? 44 : nil, height: height)
-            .background(wide ? Palette.surfaceOff : Palette.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .frame(maxWidth: .infinity).frame(height: System.keyHeight)
+            .background(Palette.surface)
+            .clipShape(RoundedRectangle(cornerRadius: System.radius, style: .continuous))
             .shadow(color: .black.opacity(0.12), radius: 0, y: 1)
+            .contentShape(Rectangle())
+    }
+
+    /// Up to four matches above the bar, Telegram style. The top row is tinted: Open loads it.
+    private var matchCard: some View {
+        let results = Array(model.searchResults.prefix(Self.maxMatches))
+        return VStack(spacing: 0) {
+            if results.isEmpty {
+                Text("No match").font(.system(size: 15)).foregroundStyle(Palette.ink2)
+                    .frame(maxWidth: .infinity).frame(height: Self.matchRowHeight)
+            }
+            ForEach(Array(results.enumerated()), id: \.element.id) { i, e in
+                Button { model.select(e) } label: {
+                    HStack(spacing: 8) {
+                        if case .shared = e.kind {
+                            Image(systemName: "person.fill").font(.system(size: 14)).foregroundStyle(Palette.ink)
+                        }
+                        Text(Self.shortTitle(e.title)).font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.ink)
+                        Spacer(minLength: 4)
+                        Text(e.personName).font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.navy)
+                    }
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                    .padding(.horizontal, 14)
+                    .frame(maxWidth: .infinity).frame(height: Self.matchRowHeight)
+                    .background(i == 0 ? Palette.accent.opacity(0.08) : Color.clear)
+                    .overlay(alignment: .top) {
+                        if i > 0 { Rectangle().fill(Palette.hairline).frame(height: 0.5).padding(.leading, 14) }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .buttonStyle(.plain)
+        .background(Palette.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
+        .frame(height: CGFloat(Self.matchCount(model)) * Self.matchRowHeight)
     }
 
     // MARK: Menu
@@ -640,15 +770,18 @@ enum Palette {
 /// speeding up the longer you hold.
 struct RepeatingKey: View {
     let systemImage: String
+    var height: CGFloat = 42
+    var radius: CGFloat = 12
+    var fill: Color = Palette.surfaceOff
     let action: () -> Void
     @State private var pressed = false
     @State private var repeater: Task<Void, Never>?
 
     var body: some View {
         Image(systemName: systemImage).font(.system(size: 18)).foregroundStyle(Palette.ink)
-            .frame(maxWidth: .infinity).frame(height: 42)
-            .background(pressed ? Palette.surface : Palette.surfaceOff)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .frame(maxWidth: .infinity).frame(height: height)
+            .background(pressed ? (fill == Palette.surface ? Palette.surfaceOff : Palette.surface) : fill)
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .shadow(color: .black.opacity(0.10), radius: 1, y: 1)
             .contentShape(Rectangle())
             .gesture(
