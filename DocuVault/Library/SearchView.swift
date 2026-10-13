@@ -4,7 +4,7 @@ import SwiftData
 /// Full-text search across titles and OCR text. English and Chinese substrings both work.
 struct SearchView: View {
     @Environment(\.dismiss) private var dismiss
-    @Query(filter: #Predicate<StoredDocument> { !$0.sensitive }, sort: \StoredDocument.capturedAt, order: .reverse) private var docs: [StoredDocument]
+    @Query(filter: #Predicate<StoredDocument> { !$0.sensitive && $0.deletedAt == nil }, sort: \StoredDocument.capturedAt, order: .reverse) private var docs: [StoredDocument]
     @State private var query = ""
     @FocusState private var focused: Bool
 

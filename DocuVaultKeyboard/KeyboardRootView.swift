@@ -171,16 +171,17 @@ struct KeyboardRootView: View {
 
     // MARK: Start page
 
-    /// Two most used, then two most recent (13c). Captions 13pt, rows 36pt: 195pt in all.
+    /// Two most used, then two most recent (13c). Captions 13pt, rows 36pt: 195pt in all. With
+    /// favourites starred in the app, up to two favourites take the Most used slot (checkpoint 16 Q8).
     private var startPage: some View {
-        let page = model.startPage
+        let page = startPageRows
         return VStack(spacing: 5) {
             if page.mostUsed.isEmpty, page.recent.isEmpty {
                 Text(model.status ?? "Nothing in the vault yet")
                     .font(.system(size: 13)).foregroundStyle(Palette.ink2).padding(.top, 20)
             }
             if !page.mostUsed.isEmpty {
-                caption("Most used")
+                caption(model.favouriteEntries.isEmpty ? "Most used" : "Favourites")
                 ForEach(page.mostUsed) { e in entryRow(e, height: 36) }
             }
             if !page.recent.isEmpty {
@@ -189,6 +190,17 @@ struct KeyboardRootView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var startPageRows: FillPicker.StartPage {
+        let page = model.startPage
+        let favs = Array(model.favouriteEntries.prefix(2))
+        guard !favs.isEmpty else { return page }
+        let ids = Set(favs.map(\.id))
+        let rest = (page.mostUsed + page.recent + model.entries).filter { !ids.contains($0.id) }
+        var seen = Set<String>()
+        let recent = rest.filter { seen.insert($0.id).inserted }.prefix(2)
+        return FillPicker.StartPage(mostUsed: favs, recent: Array(recent))
     }
 
     private func caption(_ text: String) -> some View {

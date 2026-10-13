@@ -16,7 +16,13 @@ enum RetentionManager {
     static func sweep(context: ModelContext, now: Date = Date()) {
         let all = (try? context.fetch(FetchDescriptor<StoredDocument>())) ?? []
         var changed = false
-        for doc in all where Retention.status(expiresAt: doc.expiresAt, now: now) == .due {
+        // Recently deleted (checkpoint 16 Q4): gone for good 30 days after the hand delete.
+        for doc in all {
+            guard let d = doc.deletedAt, now.timeIntervalSince(d) >= Double(recentlyDeletedDays) * 86_400 else { continue }
+            delete(doc, context: context)
+            changed = true
+        }
+        for doc in all where doc.deletedAt == nil && Retention.status(expiresAt: doc.expiresAt, now: now) == .due {
             let owner = doc.person?.name ?? "—"
             let days = doc.person?.retentionDays ?? RetentionPolicy.clientDefaultDays
             context.insert(StoredTombstone(line: Retention.tombstoneLine(title: doc.title, type: doc.type, owner: owner, deletedAt: now, retentionDays: days), deletedAt: now))
@@ -43,6 +49,25 @@ enum RetentionManager {
                 .replacingOccurrences(of: "after 0 d", with: "by hand"), deletedAt: now))
             delete(doc, context: context)
         }
+        try? context.save()
+    }
+
+    static let recentlyDeletedDays = 30
+
+    /// A hand delete of a library document moves it to Recently deleted. Vault documents delete
+    /// outright: a sealed copy lingering in a bin is the opposite of what the vault promises.
+    static func trash(_ doc: StoredDocument, context: ModelContext) {
+        if doc.sensitive {
+            delete(doc, context: context)
+        } else {
+            doc.deletedAt = Date()
+            doc.favourite = false
+        }
+        try? context.save()
+    }
+
+    static func restore(_ doc: StoredDocument, context: ModelContext) {
+        doc.deletedAt = nil
         try? context.save()
     }
 

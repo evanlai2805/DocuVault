@@ -9,8 +9,8 @@ struct VaultView: View {
     @Query(sort: \StoredPerson.createdAt) private var people: [StoredPerson]
     @Query(filter: #Predicate<StoredDocument> { $0.sensitive }, sort: \StoredDocument.capturedAt, order: .reverse) private var docs: [StoredDocument]
     @Query(sort: \StoredTombstone.deletedAt, order: .reverse) private var tombstones: [StoredTombstone]
-    @State private var filter: PersonKind? = nil
     @State private var showAddPerson = false
+    @State private var showTombstones = false
     @State private var showExport = false
     @State private var unlocking = false
 
@@ -25,6 +25,7 @@ struct VaultView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button { showExport = true } label: { Label("Export", systemImage: "square.and.arrow.up") }
+                        Button { showTombstones = true } label: { Label("Deleted by retention", systemImage: "clock.arrow.circlepath") }
                         Button { vault.lock() } label: { Label("Lock now", systemImage: "lock.fill") }
                     } label: { Image(systemName: "ellipsis.circle") }
                 }
@@ -32,6 +33,7 @@ struct VaultView: View {
         }
         .sheet(isPresented: $showAddPerson) { AddPersonSheet() }
         .sheet(isPresented: $showExport) { NavigationStack { ExportView() } }
+        .sheet(isPresented: $showTombstones) { NavigationStack { TombstoneList(tombstones: tombstones) } }
         .task { if !vault.isUnlocked && !unlocking { await tryUnlock() } }
     }
 
@@ -63,78 +65,120 @@ struct VaultView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private var filtered: [StoredPerson] { filter.map { k in people.filter { $0.kind == k } } ?? people }
     private var unassigned: [StoredDocument] { docs.filter { $0.person == nil } }
+    private var favourites: [StoredDocument] { docs.filter(\.favourite) }
 
+    /// Vault home, the 1Password model (checkpoint 16): what needs you, favourites, categories, people.
     private var content: some View {
         ScrollView {
             VStack(spacing: 16) {
-                ChipRow(items: [(Optional<PersonKind>.none, "Everyone")] + PersonKind.allCases.map { (Optional($0), $0.displayName) },
-                        selection: $filter)
-                    .padding(.horizontal, -16)
+                let items = attention
+                if !items.isEmpty { attentionCard(items) }
 
-                let warnings = RetentionManager.warnings(in: docs)
-                if let w = warnings.first {
-                    GradientCard(style: .red) {
-                        Text("\(warnings.count)").font(.system(size: 44, weight: .bold)).monospacedDigit()
-                        Text(warnings.count == 1 ? "Document expiring soon" : "Documents expiring soon").font(.system(size: 21, weight: .semibold))
-                        Text("\(w.doc.person?.name ?? "Client") · \(w.doc.title) · Deletes in \(w.daysLeft) d").font(.system(size: 16)).opacity(0.85)
-                        HStack(spacing: 8) {
-                            ForEach(Retention.Action.allCases, id: \.self) { a in
-                                Button(a.rawValue) { RetentionManager.apply(a, to: w.doc, context: context) }
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .padding(.horizontal, 12).padding(.vertical, 10)
-                                    .background(Color.white.opacity(a == .deleteNow ? 0.08 : 0.14))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            }
-                        }
-                        .padding(.top, 14)
-                    }
-                }
-
-                if people.isEmpty && unassigned.isEmpty {
+                if docs.isEmpty && people.isEmpty {
                     emptyState
                 } else {
+                    if !favourites.isEmpty {
+                        sectionHeader("Favourites", trailing: "")
+                        card { ForEach(favourites) { d in docLink(d, last: d.id == favourites.last?.id) } }
+                    }
+
+                    let cats = VaultCategory.allCases.filter { c in docs.contains(where: c.contains) }
+                    if !cats.isEmpty {
+                        sectionHeader("Categories", trailing: "")
+                        card {
+                            ForEach(cats, id: \.self) { c in
+                                NavigationLink { VaultCategoryView(category: c) } label: {
+                                    HStack(spacing: 12) {
+                                        IconRow(title: c.title, subtitle: c.subtitle, systemImage: c.icon, light: true)
+                                        Text("\(docs.filter(c.contains).count)").font(.system(size: 17)).foregroundStyle(Theme.Colors.ink2)
+                                        Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.Colors.ink2)
+                                    }
+                                    .padding(.horizontal, 16).padding(.vertical, 4).contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                if c != cats.last { Divider().padding(.leading, 76) }
+                            }
+                        }
+                    }
+
                     sectionHeader("People", trailing: "\(docs.count) document\(docs.count == 1 ? "" : "s")")
-                    VStack(spacing: 0) {
-                        ForEach(filtered) { p in
+                    card {
+                        ForEach(people) { p in
                             NavigationLink { PersonView(person: p) } label: { personRow(p) }.buttonStyle(.plain)
-                            if p.id != filtered.last?.id { Divider().padding(.leading, 76) }
+                            Divider().padding(.leading, 76)
                         }
                         Button { showAddPerson = true } label: {
                             IconRow(title: "Add person or entity", subtitle: "Me · Family · Client · Partner", systemImage: "plus", tint: Theme.Colors.accent)
                                 .padding(.horizontal, 16)
                         }.buttonStyle(.plain)
                     }
-                    .background(Theme.Colors.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                     if !unassigned.isEmpty {
                         sectionHeader("Unassigned", trailing: "Assign an owner")
-                        VStack(spacing: 0) {
-                            ForEach(unassigned) { d in
-                                NavigationLink { DocumentDetailView(doc: d) } label: { DocumentRow(doc: d) }.buttonStyle(.plain)
-                                if d.id != unassigned.last?.id { Divider().padding(.leading, 76) }
-                            }
-                        }
-                        .background(Theme.Colors.surface)
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        card { ForEach(unassigned) { d in docLink(d, last: d.id == unassigned.last?.id) } }
                     }
-                }
-
-                if !tombstones.isEmpty {
-                    sectionHeader("Deleted by retention", trailing: "\(tombstones.count)")
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(tombstones.prefix(10)) { t in
-                            Text(DisplayText.displayDates(in: DisplayText.capitalisedSegments(String(t.line.replacingOccurrences(of: "~~", with: "").dropFirst(2))))).font(.system(size: 14)).foregroundStyle(Theme.Colors.ink2)
-                        }
-                    }
-                    .padding(16).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Theme.Colors.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
             }
             .padding(16)
+        }
+    }
+
+    private func card<C: View>(@ViewBuilder _ rows: () -> C) -> some View {
+        VStack(spacing: 0) { rows() }
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private func docLink(_ d: StoredDocument, last: Bool) -> some View {
+        Group {
+            NavigationLink { DocumentDetailView(doc: d) } label: { VaultDocRow(doc: d) }.buttonStyle(.plain)
+            if !last { Divider().padding(.leading, 76) }
+        }
+    }
+
+    // MARK: Attention (checkpoint 16 Q5)
+
+    struct AttentionItem: Identifiable {
+        let doc: StoredDocument
+        let line: String
+        var id: UUID { doc.id }
+    }
+
+    /// Everything that needs Evan, one line per document: retention deleting soon, an expiry inside its
+    /// window, or a check that failed. Retention first, then expiry, then checks.
+    private var attention: [AttentionItem] {
+        var out: [AttentionItem] = []
+        var seen = Set<UUID>()
+        func add(_ d: StoredDocument, _ line: String) { if seen.insert(d.id).inserted { out.append(.init(doc: d, line: line)) } }
+        for w in RetentionManager.warnings(in: docs) { add(w.doc, "Deletes in \(w.daysLeft) d") }
+        for d in docs {
+            let fields = Dictionary(d.fields.map { ($0.key, vault.reveal($0) ?? "") }, uniquingKeysWith: { a, _ in a })
+            if let phrase = DocumentExpiry.phrase(DocumentExpiry.status(type: d.type, fields: fields)) { add(d, phrase) }
+        }
+        for d in docs where !d.allChecksPassed { add(d, "A check failed") }
+        return out
+    }
+
+    private func attentionCard(_ items: [AttentionItem]) -> some View {
+        GradientCard(style: .red) {
+            Text(items.count == 1 ? "1 needs attention" : "\(items.count) need attention").font(.system(size: 21, weight: .semibold))
+            ForEach(items.prefix(5)) { item in
+                NavigationLink { DocumentDetailView(doc: item.doc) } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.doc.title).font(.system(size: 16, weight: .semibold))
+                            Text([item.doc.person?.name, item.line].compactMap { $0 }.joined(separator: " · ")).font(.system(size: 14)).opacity(0.8)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).opacity(0.6)
+                    }
+                    .padding(.top, 12)
+                    .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.18)).frame(height: 0.5).padding(.top, 5) }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 

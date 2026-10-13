@@ -189,15 +189,19 @@ struct FieldRow: View {
                 .foregroundStyle(field.check == .missing ? Theme.Colors.danger : Theme.Colors.ink)
                 .lineLimit(2).minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            tag
+            FieldCheckTag(field: field, needsVerification: needsVerification)
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
         .contentShape(Rectangle())
     }
+}
 
-    /// Checkpoint 15: the user sees whether a value passed, failed, or was verified by them. Never how
-    /// it was read, so OCR and Regex carry no tag at all.
-    @ViewBuilder private var tag: some View {
+/// Checkpoint 15: the user sees whether a value passed, failed, or was verified by them. Never how
+/// it was read, so OCR and Regex carry no tag at all.
+struct FieldCheckTag: View {
+    let field: ExtractedField
+    var needsVerification = false
+    var body: some View {
         if needsVerification || field.check == .failed {
             ReviewFlag(text: "Check")
         } else {

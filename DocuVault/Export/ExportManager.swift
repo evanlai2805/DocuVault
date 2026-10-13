@@ -66,7 +66,7 @@ final class ExportManager {
         var csv = ""
         var skipped = 0
 
-        for doc in docs.sorted(by: { $0.capturedAt < $1.capturedAt }) {
+        for doc in docs.sorted(by: { $0.capturedAt < $1.capturedAt }) where doc.deletedAt == nil {
             let owner = doc.person?.name ?? (doc.sensitive ? "Unassigned" : "Library")
             let kind = doc.person?.kind ?? .other
             var fields: [ExtractedField] = []

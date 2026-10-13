@@ -10,6 +10,7 @@ struct RootView: View {
     @State private var tab: AppTab = .library
     @State private var capture = CaptureSession()
     @State private var vault = VaultSession()
+    @State private var chrome = AppChrome()
     @State private var showScan = false
     @State private var showSearch = false
 
@@ -27,7 +28,11 @@ struct RootView: View {
             // and a List ignored the padding, so its last rows stayed under the bar.
             .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 92) }
 
-            FloatingTabBar(tab: $tab, onScan: { showScan = true }, onSearch: { showSearch = true })
+            if let selection = chrome.selection {
+                SelectionBar(model: selection)
+            } else {
+                FloatingTabBar(tab: $tab, onScan: { showScan = true }, onSearch: { showSearch = true })
+            }
 
         }
         .overlay {
@@ -55,6 +60,7 @@ struct RootView: View {
         // Last in the chain so the scan cover and search sheet inherit both sessions too.
         .environment(capture)
         .environment(vault)
+        .environment(chrome)
     }
 }
 

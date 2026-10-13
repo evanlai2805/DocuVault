@@ -92,4 +92,14 @@ enum PageStore {
     static func delete(_ fileName: String) {
         try? FileManager.default.removeItem(at: AppFiles.pagesDirectory.appendingPathComponent(fileName))
     }
+
+    /// A sealed copy of a plain page, bytes unchanged (Move to Vault, checkpoint 16). The plain file stays
+    /// until the caller has switched the page over, so a failure part-way leaves nothing unreadable.
+    static func sealedCopy(_ fileName: String, key: SymmetricKey) throws -> String {
+        let url = AppFiles.pagesDirectory.appendingPathComponent(fileName)
+        let sealed = try VaultCrypto.seal(try Data(contentsOf: url), key: key)
+        let name = UUID().uuidString + ".jpg.enc"
+        try sealed.write(to: AppFiles.pagesDirectory.appendingPathComponent(name), options: [.atomic, .completeFileProtection])
+        return name
+    }
 }

@@ -27,6 +27,11 @@ final class StoredDocument {
     var notes: String
     /// DocumentSummary encoded. Sealed with the vault key for sensitive documents (rare: summaries are hidden for ID types).
     var summaryJSON: Data?
+    /// Starred in the Vault (checkpoint 16); also tops the keyboard's start page.
+    var favourite: Bool = false
+    /// Set when a library document is deleted by hand. It sits in Recently deleted for 30 days, then the
+    /// sweep removes it. Retention deletions never set this: they delete outright, as promised.
+    var deletedAt: Date? = nil
 
     init(id: UUID = UUID(), title: String, type: DocumentType, language: String, sensitive: Bool,
          capturedAt: Date = Date(), source: CaptureSource, fullText: String, pages: [StoredPage] = [],

@@ -45,6 +45,7 @@ final class KeyboardModel {
         let type: DocumentType
         let fields: [String: (value: Data?, plain: String)]   // key → sealed or plain
         let firstPageFile: String?                            // for the scan circle
+        var favourite = false                                 // starred in the app's Vault (checkpoint 16)
         static func == (a: Doc, b: Doc) -> Bool { a.id == b.id }
         func hash(into h: inout Hasher) { h.combine(id) }
     }
@@ -133,11 +134,12 @@ final class KeyboardModel {
                 .sorted { a, b in rank(a.kind) == rank(b.kind) ? a.name < b.name : rank(a.kind) < rank(b.kind) }
             var map: [UUID: [Doc]] = [:]
             for p in persons {
-                map[p.id] = p.documents.filter { $0.sensitive }
+                map[p.id] = p.documents.filter { $0.sensitive && $0.deletedAt == nil }
                     .sorted { FillFormats.order($0.type) < FillFormats.order($1.type) }
                     .map { d in Doc(id: d.id, title: d.title, type: d.type,
                                     fields: Dictionary(uniqueKeysWithValues: d.fields.map { ($0.key, ($0.sealedValue, $0.value)) }),
-                                    firstPageFile: d.pages.sorted { $0.index < $1.index }.first?.imageFileName) }
+                                    firstPageFile: d.pages.sorted { $0.index < $1.index }.first?.imageFileName,
+                                    favourite: d.favourite) }
             }
             docsByPerson = map
             loadUsage()
@@ -188,6 +190,12 @@ final class KeyboardModel {
     }
 
     var startPage: FillPicker.StartPage { FillPicker.startPage(entries, useCounts: useCounts, lastUsed: lastUsed) }
+
+    /// Starred documents, which take the place of Most used on the start page (checkpoint 16 Q8).
+    var favouriteEntries: [FillEntry] {
+        let starred = Set(docsByPerson.values.joined().filter(\.favourite).map(\.id))
+        return entries.filter { if case .document(let id) = $0.kind { return starred.contains(id) }; return false }
+    }
     var hasUsage: Bool { !lastUsed.isEmpty }
 
     var searchResults: [FillEntry] { FillPicker.filter(entries, query: searchText) }

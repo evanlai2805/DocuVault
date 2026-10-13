@@ -16,6 +16,7 @@ changes or a phase lands, edit the matching section in the same commit.
 | 6 | Summaries: Apple Foundation Models, Qwen3-4B via MLX for Chinese, Writing Tools | Done; quality **unverified** on device |
 | 7 | Claude opt-in: Redactor, CloudGate, approval sheet, send log, API key | Done; first live send **unverified** |
 | 7a | Batch import: one document per image, queued review/save, merge/split | Done 12 Oct |
+| 16 | Library (Files model) and Vault (1Password model) | Built 13 Oct, **unverified on device** |
 
 CI: `core-tests.yml` (145 tests) and `app-build.yml` (Simulator build incl. MLX) both green at `d72ba81`,
 the keyboard selector rebuild: 145 tests, 0 failures, 0 compiler warnings.
@@ -153,7 +154,34 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
   tag failed checksums `.failed`; documents saved before that are flagged by `FieldEdit.needsVerification` (checked
   key tagged `.ocr` on a document whose checks do not all pass). Markdown export labels: FAILED / verified.
 
+13 Oct · keyboard search pad (Evan's screenshots; built, unverified on device)
+- The pad never shrinks and copies Apple's English keyboard, measured from his Telegram screenshot at 3x: keys 43pt
+  tall and 33.3pt wide, 6pt key gaps, 11pt row gaps, 6.7pt side margins, about 22pt type. Rows: q to p, a to l,
+  shift · z to m · delete, then Back · space · Open (Back spans Apple's 123 and emoji slots; Open is the return key).
+- Open (blue) loads the top match. The caret is grey and touches the last letter; the field's blue ring stays.
+- Matches: a keyboard cannot draw above its own top edge (Apple's custom keyboard guide), so the Telegram-style list
+  grows the keyboard upward instead: up to four 44pt rows above the bar while letters are typed. Before typing, a
+  strip shows the three most recent rows. Telegram uses Apple's own keyboard; a third-party keyboard cannot.
+
+13 Oct · checkpoint 16 answers (library and vault; built, unverified on device)
+- Approved with every recommended default, except Q2: the All-time DocuVault stat card is removed entirely.
+- Library = Files: Recents (Today · This week · month) and Browse (folders by type, people, Recently deleted).
+  List or grid, sort by date, name or type, select mode with Share · Export CSV · Move · Delete replacing the tab bar,
+  long-press menu with a page preview. Folders are automatic only (Q3). Hand-deleted library documents sit in Recently
+  deleted for 30 days (Q4); vault documents and retention deletions still delete outright.
+- Move to Vault seals text, fields and pages with the vault key and leaves no plain OCR boxes or summary, the same
+  shape as a fresh vault save. Plain page files are removed only after the store saves.
+- Vault = 1Password: red attention card (retention, expiry, failed checks), Favourites, Categories, People.
+  Deleted by retention moved into the menu. Expiry window (Q5): passport 6 months, NRIC, China ID and bank card
+  1 month (`DocumentExpiry`). Retention actions moved from the home card onto the document.
+- Item screen: icon tile coloured by state, star, labels above values. A tap copies what the row shows (Q7); hold for
+  Copy as (same formatters as the keyboard, `CopyVariants`), Large type and Edit. Card number masked until Reveal (Q6).
+- Favourites lead the keyboard start page in the Most used slot (Q8).
+
 ## 3. Open device validations (do these next, in order)
+- 13 Oct, checkpoint 16 build: existing documents survive the update (two new stored properties); Recents, Browse,
+  grid and select mode; Move to Vault on a test document; vault item tap-copy, hold menu, Large type; favourites on
+  the keyboard start page. Keyboard search: keys stay full size, matches grow the keyboard upward, Open loads.
 - 13 Oct build: passport keyboard shows all ten keys with no scroll and no blur; switching apps and back
   inside a minute stays unlocked, after a minute asks for Face ID; locking the phone locks the keyboard
   (unproven: iOS may not deliver `protectedDataWillBecomeUnavailable` to an extension); editing a vault

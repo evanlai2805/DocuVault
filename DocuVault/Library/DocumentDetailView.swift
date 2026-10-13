@@ -16,6 +16,10 @@ struct DocumentDetailView: View {
     @State private var editing: StoredField?
     @State private var editScan: CGImage?
     @State private var editError: String?
+    @State private var toast: String?
+    @State private var largeType: LargeTypeView.Item?
+    @State private var panRevealed = false
+    @State private var showScan = false
 
     private var pages: [StoredPage] { doc.orderedPages }
     private var page: StoredPage? { pages.indices.contains(pageIndex) ? pages[pageIndex] : nil }
@@ -30,7 +34,9 @@ struct DocumentDetailView: View {
                 if doc.sensitive && !vault.isUnlocked {
                     HintBanner(badge: "LOCKED", title: "Vault is locked", detail: "Open the Vault tab and pass Face ID to see this document.")
                 }
-                if let page, let cg = PageStore.load(page.imageFileName, vaultKey: vault.key) {
+                if doc.sensitive && vault.isUnlocked { vaultHeader }
+                if retentionDaysLeft != nil { retentionBanner }
+                if !doc.sensitive, let page, let cg = PageStore.load(page.imageFileName, vaultKey: vault.key) {
                     ZStack(alignment: .topLeading) {
                         Image(decorative: cg, scale: 1).resizable().scaledToFit()
                         if let ocr {
@@ -42,7 +48,7 @@ struct DocumentDetailView: View {
                     .clipped()
                 }
 
-                if pages.count > 1 {
+                if !doc.sensitive && pages.count > 1 {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(Array(pages.enumerated()), id: \.element.id) { i, p in
@@ -74,6 +80,8 @@ struct DocumentDetailView: View {
                     if !secondary.isEmpty { fieldsCard(secondary, title: "Secondary") }
                 }
 
+                if doc.sensitive && vault.isUnlocked && !pages.isEmpty { scanRow }
+
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text("Text").font(.system(size: 14)).textCase(.uppercase).tracking(0.5).foregroundStyle(Theme.Colors.ink2)
@@ -97,8 +105,22 @@ struct DocumentDetailView: View {
             .padding(16)
         }
         .background(Theme.Colors.canvas)
-        .navigationTitle(doc.title)
+        .navigationTitle(doc.sensitive && vault.isUnlocked ? "" : doc.title)
         .navigationBarTitleDisplayMode(.inline)
+        .overlay(alignment: .top) {
+            if let toast {
+                Label(toast, systemImage: "checkmark")
+                    .font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(Theme.Colors.graphite).clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .fullScreenCover(item: $largeType) { LargeTypeView(item: $0) }
+        .fullScreenCover(isPresented: $showScan) { scanViewer }
+        .onChange(of: vault.isUnlocked) { _, open in if !open { panRevealed = false; showScan = false } }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if let first = doc.orderedFields.first {
@@ -124,11 +146,11 @@ struct DocumentDetailView: View {
         } message: { Text(editError ?? "") }
         .confirmationDialog("Delete this document?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
-                for p in doc.pages { PageStore.delete(p.imageFileName) }
-                context.delete(doc)
-                try? context.save()
+                RetentionManager.trash(doc, context: context)
                 dismiss()
             }
+        } message: {
+            Text(doc.sensitive ? "Vault documents are deleted for good." : "It stays in Recently deleted for \(RetentionManager.recentlyDeletedDays) days.")
         }
     }
 
@@ -173,16 +195,185 @@ struct DocumentDetailView: View {
             }
             .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 4)
             ForEach(fields) { f in
-                Button { beginEdit(f) } label: { FieldRow(field: shown(f), needsVerification: needsVerification(f)) }
+                Button { copy(f) } label: { fieldRow(f) }
                     .buttonStyle(.plain)
-                    .contextMenu {
-                        Button { Clipboard.copy(vault.reveal(f) ?? "", sensitive: doc.sensitive) } label: { Label("Copy", systemImage: "doc.on.doc") }
-                        Button { beginEdit(f) } label: { Label("Edit", systemImage: "pencil") }
-                    }
+                    .contextMenu { fieldMenu(f) }
                 if f.id != fields.last?.id { Divider().padding(.leading, 16) }
             }
         }
         .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    // MARK: Fields, the 1Password way (checkpoint 16)
+
+    /// Label above value, so long values get the full width. A card number stays masked until Reveal (Q6).
+    private func fieldRow(_ f: StoredField) -> some View {
+        let e = shown(f)
+        let masked = f.key == "pan" && !panRevealed && !e.value.isEmpty && vault.reveal(f) != nil
+        let display = masked ? "•••• •••• •••• " + String(e.value.filter(\.isNumber).suffix(4))
+                             : (e.value.isEmpty ? "—" : CopyVariants.shown(fieldKey: f.key, value: e.value, type: doc.type))
+        let expiry = DocumentExpiry.keys.contains(f.key) ? DocumentExpiry.phrase(expiryStatus) : nil
+        return HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(f.labelEN)
+                    if let zh = f.labelZH { Text(zh) }
+                }
+                .font(.system(size: 13)).foregroundStyle(Theme.Colors.accent)
+                Text(display)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(expiry != nil || e.check == .missing ? Theme.Colors.danger : Theme.Colors.ink)
+                    .lineLimit(3).minimumScaleFactor(0.8)
+                if let expiry { Text(expiry).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.Colors.danger) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if f.key == "pan", vault.reveal(f) != nil {
+                Button(panRevealed ? "Hide" : "Reveal") { panRevealed.toggle() }
+                    .font(.system(size: 15, weight: .semibold)).buttonStyle(.borderless)
+            }
+            FieldCheckTag(field: e, needsVerification: needsVerification(f))
+        }
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .contentShape(Rectangle())
+    }
+
+    /// Hold: Copy, the same wordings the keyboard's hold menu inserts, Large type, Edit.
+    @ViewBuilder private func fieldMenu(_ f: StoredField) -> some View {
+        if let v = vault.reveal(f), !v.isEmpty {
+            Button { copy(f) } label: { Label("Copy", systemImage: "doc.on.doc") }
+            ForEach(CopyVariants.options(fieldKey: f.key, value: v, type: doc.type, fields: revealedFields)) { o in
+                Button("Copy as \(o.text)") { copyText(o.text, label: f.labelEN) }
+            }
+            Divider()
+            Button { largeType = .init(label: f.labelEN, value: CopyVariants.shown(fieldKey: f.key, value: v, type: doc.type)) } label: {
+                Label("Large type", systemImage: "textformat.size")
+            }
+        }
+        Button { beginEdit(f) } label: { Label("Edit", systemImage: "pencil") }
+    }
+
+    /// A tap copies what the row shows (Q7). Vault copies stay on this phone and clear after 60 s.
+    private func copy(_ f: StoredField) {
+        Task {
+            if doc.sensitive && !vault.isUnlocked { await vault.unlock(reason: "Copy from this document") }
+            guard let v = vault.reveal(f), !v.isEmpty else { return }
+            copyText(CopyVariants.shown(fieldKey: f.key, value: v, type: doc.type), label: f.labelEN)
+        }
+    }
+
+    private func copyText(_ text: String, label: String) {
+        Clipboard.copy(text, sensitive: doc.sensitive)
+        let line = doc.sensitive ? "Copied \(label) · Clears in 60 s" : "Copied \(label)"
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { toast = line }
+        Task {
+            try? await Task.sleep(for: .seconds(1.6))
+            withAnimation(.easeOut(duration: 0.2)) { if toast == line { toast = nil } }
+        }
+    }
+
+    private var revealedFields: [String: String] {
+        Dictionary(doc.fields.map { ($0.key, vault.reveal($0) ?? "") }, uniquingKeysWith: { a, _ in a })
+    }
+
+    private var expiryStatus: DocumentExpiry.Status { DocumentExpiry.status(type: doc.type, fields: revealedFields) }
+
+    // MARK: Vault item header and scan (checkpoint 16)
+
+    /// Icon tile coloured by state: green when every check passes, red when one failed, graphite when
+    /// there is nothing to check. Then title, owner and the favourite star.
+    private var vaultHeader: some View {
+        let style: Theme.CardStyle = doc.checksTotal == 0 ? .graphite : (doc.allChecksPassed ? .green : .red)
+        let checks = doc.checksTotal == 0 ? nil : "\(doc.checksPassed)/\(doc.checksTotal) checks"
+        return HStack(spacing: 14) {
+            Image(systemName: VaultDocRow.icon(doc.type)).font(.system(size: 26, weight: .semibold)).foregroundStyle(.white)
+                .frame(width: 60, height: 60).background(style.gradient)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(doc.title).font(.system(size: 22, weight: .bold)).lineLimit(2).minimumScaleFactor(0.8)
+                Text([doc.person?.name, doc.person?.kind.displayName, checks].compactMap { $0 }.joined(separator: " · "))
+                    .font(.system(size: 15)).foregroundStyle(Theme.Colors.ink2)
+            }
+            Spacer(minLength: 0)
+            Button { doc.favourite.toggle(); try? context.save() } label: {
+                Image(systemName: doc.favourite ? "star.fill" : "star").font(.system(size: 22))
+                    .foregroundStyle(doc.favourite ? Theme.Colors.accent : Theme.Colors.ink2)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(doc.favourite ? "Remove from favourites" : "Add to favourites")
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private var scanRow: some View {
+        Button { showScan = true } label: {
+            HStack(spacing: 14) {
+                Image(systemName: "doc.viewfinder").font(.system(size: 20, weight: .semibold)).foregroundStyle(Theme.Colors.ink)
+                    .frame(width: 44, height: 44).background(Theme.Colors.canvas)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(pages.count == 1 ? "1 page" : "\(pages.count) pages").font(.rowTitle).foregroundStyle(Theme.Colors.ink)
+                    Text("Opens full screen, pinch to zoom").font(.rowSubtitle).foregroundStyle(Theme.Colors.ink2)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.Colors.ink2)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 10)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Sealed pages are decrypted into memory only while this viewer is open.
+    private var scanViewer: some View {
+        NavigationStack {
+            TabView {
+                ForEach(pages) { p in
+                    if let cg = PageStore.load(p.imageFileName, vaultKey: vault.key) { ZoomableImage(image: cg) }
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: pages.count > 1 ? .always : .never))
+            .background(Color.black)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showScan = false } } }
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+    }
+
+    // MARK: Retention (moved here from the Vault home's card, checkpoint 16)
+
+    private var retentionDaysLeft: Int? {
+        if case .warning(let left) = Retention.status(expiresAt: doc.expiresAt) { return left }
+        return nil
+    }
+
+    private var retentionBanner: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "clock.badge.exclamationmark").font(.system(size: 15, weight: .bold))
+                Text("Deletes in \(retentionDaysLeft ?? 0) d").font(.system(size: 17, weight: .semibold))
+            }
+            .foregroundStyle(Theme.Colors.danger)
+            HStack(spacing: 8) {
+                ForEach(Retention.Action.allCases, id: \.self) { a in
+                    Button(a.rawValue) {
+                        let deleting = a == .deleteNow
+                        RetentionManager.apply(a, to: doc, context: context)
+                        if deleting { dismiss() }
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(a == .deleteNow ? Theme.Colors.danger : Theme.Colors.ink)
+                    .frame(maxWidth: .infinity).frame(height: 40)
+                    .background(Theme.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.danger.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Theme.Colors.danger.opacity(0.25)))
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
