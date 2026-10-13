@@ -15,7 +15,7 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     ENABLE_USER_SCRIPT_SANDBOXING: YES          # Xcode "recommended settings"
     STRING_CATALOG_GENERATE_SYMBOLS: YES
-    DEVELOPMENT_TEAM: ""        # set in Xcode → Signing & Capabilities on first run
+    DEVELOPMENT_TEAM: ${DOCUVAULT_TEAM_ID}   # from .env.local via scripts/gen.sh; empty on CI (no signing there)
     CODE_SIGN_STYLE: Automatic
 
 packages:
