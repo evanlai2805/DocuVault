@@ -15,12 +15,19 @@ final class VaultSession {
     private(set) var key: SymmetricKey?
     private(set) var lastError: String?
     private var backgroundedAt: Date?
+    /// True from the moment Face ID is asked for until the app is active again. iOS marks the app
+    /// inactive while its Face ID badge is up, and the key arrives during that time; the privacy shield
+    /// (meant for the app switcher) must not cover the vault Evan just opened (screen recording, 13 Oct).
+    private(set) var isAuthenticating = false
+    private var phase: ScenePhase = .active
 
     var isUnlocked: Bool { key != nil }
 
     /// Load the key (prompts Face ID) or create it on first use.
     func unlock(reason: String = "Unlock your DocuVault") async {
         lastError = nil
+        isAuthenticating = true
+        defer { if phase == .active { isAuthenticating = false } }
         do {
             key = try await Task.detached(priority: .userInitiated) { try VaultKeychain.loadOrCreateKey(reason: reason) }.value
         } catch {
@@ -32,10 +39,13 @@ final class VaultSession {
     func lock() { key = nil }
 
     func sceneDidChange(_ phase: ScenePhase) {
+        self.phase = phase
         switch phase {
         case .background, .inactive:
+            if phase == .background { isAuthenticating = false }   // the app switcher snapshot is shielded again
             if backgroundedAt == nil { backgroundedAt = Date() }
         case .active:
+            isAuthenticating = false
             if let t = backgroundedAt, Date().timeIntervalSince(t) >= Self.autoLockSeconds { lock() }
             backgroundedAt = nil
         @unknown default: break

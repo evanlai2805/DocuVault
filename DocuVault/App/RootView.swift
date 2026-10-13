@@ -40,7 +40,7 @@ struct RootView: View {
         }
         .overlay {
             // Privacy shield in the app switcher while the vault is open.
-            if scenePhase != .active && vault.isUnlocked {
+            if scenePhase != .active && vault.isUnlocked && !vault.isAuthenticating {
                 Rectangle().fill(.ultraThinMaterial).ignoresSafeArea()
                     .overlay(Image(systemName: "lock.shield.fill").font(.system(size: 48)).foregroundStyle(Theme.Colors.ink2))
             }

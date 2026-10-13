@@ -184,7 +184,7 @@ struct VaultView: View {
     private func personRow(_ p: StoredPerson) -> some View {
         let n = p.documents.count
         let types = Array(Set(p.documents.map { $0.type.displayName })).sorted().prefix(3).joined(separator: " · ")
-        let icon = switch p.kind { case .me: "person.fill"; case .family: "person.2.fill"; case .client: "building.2.fill"; case .partner: "handshake.fill"; case .other: "person.crop.circle" }
+        let icon = switch p.kind { case .me: "person.fill"; case .family: "person.2.fill"; case .client: "building.2.fill"; case .partner: "briefcase.fill"; case .other: "person.crop.circle" }
         let nearest = p.documents.compactMap { d -> Int? in if case .warning(let l) = Retention.status(expiresAt: d.expiresAt) { return l }; return nil }.min()
         return HStack(spacing: 16) {
             IconRow(title: p.name, subtitle: n == 0 ? "No documents yet" : (types.isEmpty ? "\(n) documents" : types), systemImage: icon, light: true)
