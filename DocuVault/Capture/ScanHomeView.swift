@@ -62,7 +62,7 @@ struct ScanHomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 4) {
                 Button { showCamera = true } label: {
-                    IconRow(title: "Scan with camera", subtitle: "Multi-page · Auto edge detection", systemImage: "camera.fill", tint: Theme.Colors.accent)
+                    IconRow(title: "Scan with camera", subtitle: "Multi-page · Auto edge detection", systemImage: "camera.fill", tint: Theme.Colors.accentFill)
                 }
                 .disabled(!DocumentCameraView.isSupported)
 

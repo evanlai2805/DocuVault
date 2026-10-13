@@ -108,7 +108,7 @@ struct VaultView: View {
                             Divider().padding(.leading, 76)
                         }
                         Button { showAddPerson = true } label: {
-                            IconRow(title: "Add person or entity", subtitle: "Me · Family · Client · Partner", systemImage: "plus", tint: Theme.Colors.accent)
+                            IconRow(title: "Add person or entity", subtitle: "Me · Family · Client · Partner", systemImage: "plus", tint: Theme.Colors.accentFill)
                                 .padding(.horizontal, 16)
                         }.buttonStyle(.plain)
                     }

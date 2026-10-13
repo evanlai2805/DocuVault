@@ -191,7 +191,7 @@ struct DocumentCollection: View {
         return Image(systemName: on ? "checkmark.circle.fill" : "circle")
             .font(.system(size: 22))
             .foregroundStyle(on ? Theme.Colors.accent : Theme.Colors.ink2)
-            .background(Circle().fill(.white).padding(2))
+            .background(Circle().fill(Theme.Colors.surface).padding(2))
     }
 
     private func toggle(_ doc: StoredDocument) {

@@ -1,25 +1,34 @@
 import SwiftUI
 import DocuVaultCore
 
-/// Design tokens from docs/design-system.md. Light theme only.
+/// Design tokens from docs/design-system.md. Every colour has a light and a dark value and follows the
+/// phone's setting (checkpoint 19). Dark text colours keep at least 4.5 to 1 against the dark card #1C1C1E.
 enum Theme {
     enum Colors {
         static let canvas = Color(.systemGroupedBackground)
-        static let surface = Color.white
+        static let surface = Color(.secondarySystemGroupedBackground)   // white cards on grey; #1C1C1E on black
         static let ink = Color.primary
         static let ink2 = Color(.secondaryLabel)
         static let hairline = Color(.separator)
         /// Gunmetal (checkpoint 17b, Evan chose A): the colour of actions. Replaced iOS blue, which read as a
         /// generic app rather than a vault. Flat everywhere except the filled buttons, which wear `accentSheen`.
-        static let accent = Color(red: 0x3A/255, green: 0x42/255, blue: 0x4C/255)
-        static let graphite = Color(red: 0x1C/255, green: 0x1C/255, blue: 0x1E/255)
-        static let lavenderBG = Color(red: 0xF4/255, green: 0xEE/255, blue: 0xFC/255)
-        static let lavenderBorder = Color(red: 0xDC/255, green: 0xCF/255, blue: 0xF3/255)
-        static let lavenderText = Color(red: 0x6E/255, green: 0x2F/255, blue: 0xC4/255)
-        static let verified = Color(red: 0x1B/255, green: 0x7F/255, blue: 0x4C/255)
-        static let warning = Color(red: 0xB5/255, green: 0x73/255, blue: 0x1B/255)
-        static let danger = Color(red: 0x8E/255, green: 0x1F/255, blue: 0x1F/255)
-        static let cloud = Color(red: 0xC9/255, green: 0x61/255, blue: 0x2B/255)
+        /// Dark: steel, because gunmetal on #1C1C1E is 1.7 to 1 (checkpoint 19).
+        static let accent = Color(light: 0x3A424C, dark: 0xA9B4C2)
+        /// Gunmetal in both modes, for tiles and fills that carry white content.
+        static let accentFill = Color(light: 0x3A424C, dark: 0x3A424C)
+        /// Icon tiles with white glyphs. Lifted in dark so a tile does not vanish into the card.
+        static let graphite = Color(light: 0x1C1C1E, dark: 0x3A3A3C)
+        static let lavenderBG = Color(light: 0xF4EEFC, dark: 0x251D38)
+        static let lavenderBorder = Color(light: 0xDCCFF3, dark: 0x45386A)
+        static let lavenderText = Color(light: 0x6E2FC4, dark: 0xC9B3F5)
+        static let verified = Color(light: 0x1B7F4C, dark: 0x4CC38A)
+        /// Green in both modes, for filled buttons with white text.
+        static let verifiedFill = Color(light: 0x1B7F4C, dark: 0x1B7F4C)
+        static let warning = Color(light: 0xB5731B, dark: 0xE3A341)
+        static let danger = Color(light: 0x8E1F1F, dark: 0xFF6B61)
+        static let cloud = Color(light: 0xC9612B, dark: 0xF08A55)
+        /// The selected tab's pill and other faint washes.
+        static let wash = Color(light: 0x000000, dark: 0xFFFFFF, lightAlpha: 0.07, darkAlpha: 0.10)
     }
 
     /// Machined gunmetal for the few filled action buttons: Scan, Unlock, the keyboard's Open and Done.
@@ -81,6 +90,7 @@ struct GradientCard<Content: View>: View {
             .background(style.gradient)
             .foregroundStyle(.white)
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+            .darkEdge(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
     }
 }
 
@@ -211,7 +221,7 @@ struct IconRow: View {
 
 struct CircleGlassButton: View {
     let systemImage: String
-    var fill: Color = .white.opacity(0.9)
+    var fill: Color = Theme.Colors.surface.opacity(0.9)
     var foreground: Color = Theme.Colors.ink
     let action: () -> Void
     var body: some View {
@@ -287,7 +297,29 @@ extension Date {
     }
 }
 
+extension Color {
+    /// A colour with a light and a dark value, resolved by the phone's setting (checkpoint 19).
+    init(light: UInt32, dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) {
+        func ui(_ hex: UInt32, _ a: CGFloat) -> UIColor {
+            UIColor(red: CGFloat(hex >> 16 & 0xFF) / 255, green: CGFloat(hex >> 8 & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: a)
+        }
+        self.init(uiColor: UIColor { $0.userInterfaceStyle == .dark ? ui(dark, darkAlpha) : ui(light, lightAlpha) })
+    }
+}
+
+/// In dark mode a gradient card gets a thin light edge, so a graphite card does not melt into the
+/// black page (graphite on black is 1.5 to 1). Light mode is unchanged.
+private struct DarkEdge<S: Shape>: ViewModifier {
+    let shape: S
+    @Environment(\.colorScheme) private var scheme
+    func body(content: Content) -> some View {
+        content.overlay { if scheme == .dark { shape.stroke(Color.white.opacity(0.10), lineWidth: 1) } }
+    }
+}
+
 extension View {
+    func darkEdge<S: Shape>(_ shape: S) -> some View { modifier(DarkEdge(shape: shape)) }
+
     /// Fill a filled action button with the gunmetal sheen (checkpoint 17b): gradient, a thin highlight
     /// along the top edge, a soft shadow. Only Scan, Unlock and the keyboard's return keys use it.
     func accentSheen<S: Shape>(in shape: S) -> some View {

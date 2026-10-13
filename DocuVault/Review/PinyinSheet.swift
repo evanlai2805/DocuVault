@@ -51,7 +51,7 @@ struct PinyinSheet: View {
                     Text(s.syllables[i]).font(.system(size: 13, weight: .medium)).foregroundStyle(isSurname ? .white : Theme.Colors.ink2)
                 }
                 .frame(width: 64, height: 76)
-                .background(isSurname ? Theme.Colors.accent : Theme.Colors.surface)
+                .background(isSurname ? Theme.Colors.accentFill : Theme.Colors.surface)
                 .foregroundStyle(isSurname ? .white : Theme.Colors.ink)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.Colors.hairline))

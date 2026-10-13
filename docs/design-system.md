@@ -1,6 +1,6 @@
 # DocuVault design system
 
-Reference: Flighty 4.11 (iOS 26). Follow it tightly. Light theme only.
+Reference: Flighty 4.11 (iOS 26). Follow it tightly. Light and dark: every token has both values and follows the phone (checkpoint 19).
 
 ## Type — SF Pro, system font, no custom fonts
 | Role | Spec |
@@ -27,7 +27,7 @@ Reference: Flighty 4.11 (iOS 26). Follow it tightly. Light theme only.
 | ink | #000000 | titles |
 | ink2 | #8A8A8E | secondary text (iOS secondaryLabel) |
 | hairline | #E5E5EA | chip borders, separators |
-| accent | #3A424C gunmetal (13 Oct, checkpoint 17b; was #2F6BFF) | selected tab, links, field labels, chips. Flat everywhere; the filled buttons (Scan, Unlock, keyboard Open/Done/Back) use the sheen gradient #22282F → #5C6672 → #22282F with a thin top highlight |
+| accent | #3A424C gunmetal (13 Oct, checkpoint 17b; was #2F6BFF); dark #A9B4C2 steel | selected tab, links, field labels, chips. Flat everywhere; the filled buttons (Scan, Unlock, keyboard Open/Done/Back) use the sheen gradient #22282F → #5C6672 → #22282F with a thin top highlight |
 | navy-card | linear 160° #1B0F55 → #163C8C | Library / document stat card |
 | red-card | linear 160° #5B0E0E → #8E1F1F | warnings, expiring, delays |
 | green-card | linear 160° #0C4A2E → #1B7F4C | verified / vault OK |

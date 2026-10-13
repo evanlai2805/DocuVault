@@ -130,7 +130,7 @@ struct FloatingTabBar: View {
             }
             .foregroundStyle(on ? Theme.Colors.accent : Theme.Colors.ink)
             .frame(maxWidth: .infinity).frame(height: Self.height - 8)
-            .background(on ? Color.black.opacity(0.07) : .clear)
+            .background(on ? Theme.Colors.wash : .clear)
             .clipShape(Capsule())
             .contentShape(Capsule())
         }
@@ -147,7 +147,7 @@ struct FloatingTabBar: View {
                 glyph.foregroundStyle(.white).accentSheen(in: Circle())
             } else {
                 glyph.foregroundStyle(Theme.Colors.ink)
-                    .background(Circle().fill(.white))
+                    .background(Circle().fill(Theme.Colors.surface))
                     .overlay(Circle().stroke(Theme.Colors.hairline, lineWidth: 0.5))
             }
         }

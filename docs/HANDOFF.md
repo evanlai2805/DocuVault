@@ -19,6 +19,7 @@ changes or a phase lands, edit the matching section in the same commit.
 | 16 | Library (Files model) and Vault (1Password model) | Built 13 Oct, **unverified on device** |
 | 17 | One card design, swipe, Settings cut, gunmetal accent | Built 13 Oct, partly seen on device |
 | 18 | Chinese model: background download, hash check, install flow | Built 13 Oct, model load **unverified on device** |
+| 19 | Dark mode (app and keyboard) and the keyboard search rebuild | Built 13 Oct; app checked in the Simulator, keyboard **unverified on device** |
 
 CI: `core-tests.yml` (145 tests) and `app-build.yml` (Simulator build incl. MLX) both green at `d72ba81`,
 the keyboard selector rebuild: 145 tests, 0 failures, 0 compiler warnings.
@@ -234,7 +235,26 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
 - Settings, Claude and Summaries: destructive confirmations are drop-down menus anchored to the row (`ConfirmRow`),
   not dialogs pinned to the top of the page (Evan's screenshots).
 
+13 Oct · checkpoint 19 answers (dark mode; Evan: "checkpoint 19 looks good"; built) and the keyboard search rebuild ("yes")
+- Q1: the dark values as mocked. Every `Theme.Colors` token and keyboard `Palette` token is a light/dark pair
+  (`Color(light:dark:)`): steel #A9B4C2 accent, red #FF6B61, green #4CC38A, amber #E3A341, navy #9AA9F0 for keyboard
+  names, cards #1C1C1E on black. Fills that carry white text stay fixed (`accentFill`, `verifiedFill`). Gradient cards
+  gain a 10% white edge in dark only (`darkEdge`). The sheen is unchanged in both modes.
+- Q2: follows the phone; no switch in Settings. The keyboard's two light pins are gone.
+- Q3: not yet answered. The headless Simulator keeps a hardware keyboard attached, so Apple's keyboard could not be
+  measured there. The keyboard's dark greys (keys #6B6B6B, modifiers #464646, base #2B2B2B) are placeholders until
+  Evan sends a screenshot of Apple's dark keyboard.
+- Keyboard resize: `allowsSelfSizing = true` on the input view and the height rule at priority 999; the change animates.
+- The search pad is one UIKit view (`SearchPad.swift`): every touch goes to the nearest key, a callout rises on touch,
+  the letter types on lift, a second finger commits the first (rollover), each key clicks (system sounds 1104, 1155,
+  1156) and taps (light haptic). Delete repeats after 0.4 s.
+- Search ranks by word starts (`FillPicker.search`): title start, then name start, then other word starts; inside a
+  word only from three letters. Pinyin matches from any character. Matched letters are highlighted. Passports, NRICs
+  and China IDs whose stored title does not name the type show by type (`FillPicker.entryTitle`).
+
 ## 3. Open device validations (do these next, in order)
+- Checkpoint 19 on the iPhone: the keyboard grows upward with matches; no dead taps between keys; callout, click and
+  tap on each key; fast typing drops nothing; the app and keyboard in dark mode.
 - Checkpoint 18 on the iPhone: download on Wi-Fi, hash check, install, load, and the Try it summary.
 - 13 Oct, checkpoint 16 build: existing documents survive the update (two new stored properties); Recents, Browse,
   grid and select mode; Move to Vault on a test document; vault item tap-copy, hold menu, Large type; favourites on

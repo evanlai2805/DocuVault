@@ -417,7 +417,7 @@ struct DocumentDetailView: View {
                 Button { Task { await verifyAll() } } label: {
                     Text("Verified").font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
                         .frame(maxWidth: .infinity).frame(height: 44)
-                        .background(Theme.Colors.verified)
+                        .background(Theme.Colors.verifiedFill)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
                 .buttonStyle(.pressScale)

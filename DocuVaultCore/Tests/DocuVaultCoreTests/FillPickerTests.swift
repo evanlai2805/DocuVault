@@ -99,6 +99,67 @@ final class FillPickerTests: XCTestCase {
         XCTAssertEqual(FillPicker.filter(sample(), query: "shared").map(\.title), ["Shared fields"])
     }
 
+    // MARK: Ranked search (keyboard rebuild, 13 Oct)
+
+    func testSingleLetterMatchesWordStartsOnly() {
+        // "g" used to find Ben Ong because "Ong" contains a g.
+        XCTAssertTrue(FillPicker.search(sample(), query: "g").isEmpty)
+        XCTAssertEqual(FillPicker.search(sample(), query: "o").map(\.entry.title), ["Passport · ONG"])
+    }
+
+    func testTitleStartRanksBeforeLaterWords() {
+        let a = FillEntry(title: "Passport · CHAI", personName: "Celine Chai", personID: celine, kind: .document(UUID()))
+        let b = FillEntry(title: "Contact details", personName: "Ben Ong", personID: ben, kind: .shared)
+        // a is more recent, but b's title starts with the letter.
+        XCTAssertEqual(FillPicker.search([a, b], query: "c").map(\.entry.title), ["Contact details", "Passport · CHAI"])
+    }
+
+    func testNameStartRanksBeforeOtherWords() {
+        let a = FillEntry(title: "Bank Card", personName: "Celine Chai", personID: celine, kind: .document(UUID()))
+        let b = FillEntry(title: "Lease", personName: "Ben Ong", personID: ben, kind: .document(UUID()))
+        XCTAssertEqual(FillPicker.search([a, b], query: "b").map(\.entry.title), ["Bank Card", "Lease"])
+        XCTAssertEqual(FillPicker.search([b, a], query: "ben").map(\.entry.title), ["Lease"])
+    }
+
+    func testInsideWordNeedsThreeLetters() {
+        XCTAssertTrue(FillPicker.search(sample(), query: "or").isEmpty)
+        XCTAssertEqual(FillPicker.search(sample(), query: "port").map(\.entry.title), ["Passport · CHAI", "Passport · ONG"])
+    }
+
+    func testInsideWordRanksAfterWordStarts() {
+        let a = FillEntry(title: "Passport", personName: "Ann Lee", personID: celine, kind: .document(UUID()))
+        let b = FillEntry(title: "Port permit", personName: "Ann Lee", personID: celine, kind: .document(UUID()))
+        XCTAssertEqual(FillPicker.search([a, b], query: "port").map(\.entry.title), ["Port permit", "Passport"])
+    }
+
+    func testEveryQueryWordMustMatch() {
+        XCTAssertEqual(FillPicker.search(sample(), query: "pass ben").map(\.entry.title), ["Passport · ONG"])
+        XCTAssertEqual(FillPicker.search(sample(), query: "pass ce").map(\.entry.title), ["Passport · CHAI"])
+    }
+
+    func testHighlightsTheMatchedLetters() {
+        let m = FillPicker.search(sample(), query: "pass ce").first
+        XCTAssertEqual(m?.titleHighlight, [0..<4])
+        XCTAssertEqual(m?.personHighlight, [0..<2])
+        XCTAssertEqual(FillPicker.search(sample(), query: "chai").first?.titleHighlight, [11..<15])
+    }
+
+    func testPinyinMatchesFromAnyCharacterAndHighlightsIt() {
+        XCTAssertEqual(FillPicker.search(sample(), query: "fenz").map(\.entry.title), ["身份证"])
+        XCTAssertEqual(FillPicker.search(sample(), query: "shenf").first?.titleHighlight, [0..<2])
+        XCTAssertEqual(FillPicker.search(sample(), query: "she").first?.titleHighlight, [0..<1])
+    }
+
+    // MARK: Keyboard titles
+
+    func testIdentityDocumentsAreNamedByType() {
+        XCTAssertEqual(FillPicker.entryTitle(stored: "REPUBLIC OF SINGAPORE", type: .passport), "Passport")
+        XCTAssertEqual(FillPicker.entryTitle(stored: "Passport · CHAI", type: .passport), "Passport · CHAI")
+        XCTAssertEqual(FillPicker.entryTitle(stored: "MINISTRY OF HOME AFFAIRS", type: .nric), "NRIC / FIN")
+        XCTAssertEqual(FillPicker.entryTitle(stored: "居民身份证", type: .chinaID), "居民身份证")
+        XCTAssertEqual(FillPicker.entryTitle(stored: "DBS Altitude", type: .bankCard), "DBS Altitude")
+    }
+
     // MARK: Person filter
 
     func testNilPersonKeepsEveryone() {

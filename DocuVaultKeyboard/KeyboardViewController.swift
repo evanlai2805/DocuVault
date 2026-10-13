@@ -12,11 +12,18 @@ final class KeyboardViewController: UIInputViewController {
 
     /// A keyboard cannot draw above its own top edge, so search matches grow the keyboard upward
     /// instead of floating over the app the way Telegram's list does (Evan, 13 Oct).
+    /// The first build never grew on the phone: iOS sizes a keyboard from its own constraints only when
+    /// `allowsSelfSizing` is on (it is off by default), and our height rule sat at a priority iOS's own
+    /// height rule beat. Both are fixed in viewDidLoad.
     private func trackHeight() {
         let target = withObservationTracking { KeyboardRootView.preferredHeight(model) } onChange: { [weak self] in
             Task { @MainActor in self?.trackHeight() }
         }
-        if heightConstraint?.constant != target { heightConstraint?.constant = target }
+        guard let c = heightConstraint, c.constant != target else { return }
+        c.constant = target
+        UIView.animate(withDuration: 0.22, delay: 0, options: [.curveEaseOut, .beginFromCurrentState]) {
+            self.view.superview?.layoutIfNeeded() ?? self.view.layoutIfNeeded()
+        }
     }
 
     override func viewDidLoad() {
@@ -32,7 +39,6 @@ final class KeyboardViewController: UIInputViewController {
         addChild(host)
         host.view.translatesAutoresizingMaskIntoConstraints = false
         host.view.backgroundColor = .clear
-        host.overrideUserInterfaceStyle = .light   // light-only design; dark mode made the keys illegible
         view.addSubview(host.view)
         NSLayoutConstraint.activate([
             host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -40,8 +46,9 @@ final class KeyboardViewController: UIInputViewController {
             host.view.topAnchor.constraint(equalTo: view.topAnchor),
             host.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+        (view as? UIInputView)?.allowsSelfSizing = true
         let h = view.heightAnchor.constraint(equalToConstant: KeyboardRootView.height)
-        h.priority = .defaultHigh
+        h.priority = UILayoutPriority(999)
         h.isActive = true
         heightConstraint = h
         host.didMove(toParent: self)

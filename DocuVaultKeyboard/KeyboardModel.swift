@@ -182,7 +182,7 @@ final class KeyboardModel {
         var out: [FillEntry] = []
         for p in people {
             for d in docsByPerson[p.id] ?? [] {
-                out.append(FillEntry(title: d.title, personName: p.name, personID: p.id, kind: .document(d.id)))
+                out.append(FillEntry(title: FillPicker.entryTitle(stored: d.title, type: d.type), personName: p.name, personID: p.id, kind: .document(d.id)))
             }
             out.append(FillEntry(title: "Contact details", personName: p.name, personID: p.id, kind: .shared))
         }
@@ -198,7 +198,9 @@ final class KeyboardModel {
     }
     var hasUsage: Bool { !lastUsed.isEmpty }
 
-    var searchResults: [FillEntry] { FillPicker.filter(entries, query: searchText) }
+    /// Ranked by word starts, with the letters to highlight (keyboard rebuild, 13 Oct).
+    var searchMatches: [FillPicker.Match] { FillPicker.search(entries, query: searchText) }
+    var searchResults: [FillEntry] { searchMatches.map(\.entry) }
 
     var menuEntries: [FillEntry] { FillPicker.filter(entries, person: personFilter) }
 

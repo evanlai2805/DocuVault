@@ -225,11 +225,11 @@ struct CloudApprovalSheet: View {
         VStack(spacing: 4) {
             Button { Task { await send() } } label: {
                 HStack(spacing: 8) {
-                    if sending { ProgressView().tint(.white) }
+                    if sending { ProgressView().tint(Color(.systemBackground)) }
                     Text(sending ? "Sending…" : "Send once").font(.system(size: 17, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity).padding(.vertical, 16)
-                .background(Theme.Colors.ink).foregroundStyle(.white)
+                .background(Theme.Colors.ink).foregroundStyle(Color(.systemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
             .buttonStyle(.pressScale)

@@ -50,17 +50,101 @@ public enum FillPicker {
             .map(\.element)
     }
 
-    /// Matches the query against the title and the person. Chinese is also matched by its pinyin,
-    /// so "shen" finds 身份证 and "zu" finds 租赁合同 on a keyboard with no Chinese input.
+    /// The rows that match, best first. A thin wrapper over `search`, kept for the menu and the tests.
     public static func filter(_ entries: [FillEntry], query: String) -> [FillEntry] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return entries }
-        let roman = romanised(q)
-        return entries.filter { e in
-            if e.title.localizedStandardContains(q) || e.personName.localizedStandardContains(q) { return true }
-            guard !roman.isEmpty else { return false }
-            return romanised(e.title).contains(roman) || romanised(e.personName).contains(roman)
+        return search(entries, query: q).map(\.entry)
+    }
+
+    /// One search result, with the letters to highlight as character offsets into the title and the
+    /// person's name.
+    public struct Match: Equatable, Sendable {
+        public let entry: FillEntry
+        public let titleHighlight: [Range<Int>]
+        public let personHighlight: [Range<Int>]
+    }
+
+    /// Search as the keyboard types (Evan, 13 Oct: "g" found Ben Ong). Each word of the query must match
+    /// the start of a word in the title or the person's name; "pass ce" finds Passport · Celine Chai.
+    /// Chinese matches by pinyin from any character, so "shen" and "fenz" both find 身份证. From three
+    /// letters on, a match inside a word also counts, ranked after the word starts.
+    /// Order: rows whose title starts with the query, then whose name starts with it, then the rest;
+    /// ties keep the incoming order, which is most recently used first.
+    public static func search(_ entries: [FillEntry], query: String) -> [Match] {
+        let tokens = query.split(whereSeparator: \.isWhitespace).map { romanised(String($0)) }.filter { !$0.isEmpty }
+        guard !tokens.isEmpty else { return [] }
+        var scored: [(rank: Int, offset: Int, match: Match)] = []
+        for (offset, e) in entries.enumerated() {
+            let title = units(e.title), person = units(e.personName)
+            var th: [Range<Int>] = [], ph: [Range<Int>] = []
+            var inner = false
+            var lead = 2
+            var ok = true
+            for (n, t) in tokens.enumerated() {
+                if let r = find(t, in: title, wordStartOnly: true) {
+                    th.append(r); if n == 0, r.lowerBound == 0 { lead = 0 }
+                } else if let r = find(t, in: person, wordStartOnly: true) {
+                    ph.append(r); if n == 0, r.lowerBound == 0 { lead = 1 }
+                } else if t.count >= 3, let r = find(t, in: title, wordStartOnly: false) {
+                    th.append(r); inner = true
+                } else if t.count >= 3, let r = find(t, in: person, wordStartOnly: false) {
+                    ph.append(r); inner = true
+                } else { ok = false; break }
+            }
+            guard ok else { continue }
+            scored.append(((inner ? 3 : 0) + lead, offset, Match(entry: e, titleHighlight: th, personHighlight: ph)))
         }
+        return scored.sorted { $0.rank == $1.rank ? $0.offset < $1.offset : $0.rank < $1.rank }.map(\.match)
+    }
+
+    /// One character of a title or name, romanised, and whether a word starts there. Every Chinese
+    /// character starts a word, so pinyin can match from any of them.
+    private struct Unit { let roman: String; let wordStart: Bool }
+
+    private static func units(_ s: String) -> [Unit] {
+        var out: [Unit] = []
+        var afterSeparator = true
+        for ch in s {
+            let roman = String(Pinyin.syllable(for: ch).filter { $0.isLetter || $0.isNumber }).uppercased()
+            let chinese = ch.unicodeScalars.contains { (0x4E00...0x9FFF).contains($0.value) }
+            out.append(Unit(roman: roman, wordStart: !roman.isEmpty && (afterSeparator || chinese)))
+            afterSeparator = roman.isEmpty
+        }
+        return out
+    }
+
+    /// The first place the token matches, as a character range. A token may end part way through a
+    /// pinyin syllable ("she" covers 身).
+    private static func find(_ token: String, in u: [Unit], wordStartOnly: Bool) -> Range<Int>? {
+        for i in u.indices where wordStartOnly ? u[i].wordStart : !u[i].roman.isEmpty {
+            var rest = Substring(token)
+            var j = i
+            while !rest.isEmpty, j < u.count, !u[j].roman.isEmpty {
+                let r = u[j].roman
+                if rest.hasPrefix(r) { rest = rest.dropFirst(r.count) }
+                else if r.hasPrefix(rest) { rest = "" }
+                else { break }
+                j += 1
+            }
+            if rest.isEmpty { return i..<j }
+        }
+        return nil
+    }
+
+    /// The keyboard names identity documents by their type (Evan, 13 Oct: a passport showed as
+    /// "REPUBLIC OF SINGAPORE"). A stored title that already names the type, such as "Passport · CHAI",
+    /// is kept; any other title on a passport, NRIC or China ID gives way to the type's name.
+    public static func entryTitle(stored: String, type: DocumentType) -> String {
+        let words: [String] = switch type {
+        case .passport: ["passport", "护照"]
+        case .nric: ["nric", "fin", "identity card"]
+        case .chinaID: ["id card", "身份证", "china id"]
+        default: []
+        }
+        guard !words.isEmpty else { return stored }
+        let lower = stored.lowercased()
+        return words.contains { lower.contains($0) } ? stored : type.displayName
     }
 
     /// The keyboard's start page (checkpoint 13c): the two most-used rows, then the two most recent,

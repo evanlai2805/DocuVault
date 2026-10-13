@@ -40,7 +40,7 @@ struct KeyboardRootView: View {
     static let maxMatches = 4
 
     static func matchCount(_ model: KeyboardModel) -> Int {
-        guard model.isUnlocked, model.panel == .search, !model.searchText.isEmpty else { return 0 }
+        guard model.isUnlocked, model.panel == .search, !model.searchText.trimmingCharacters(in: .whitespaces).isEmpty else { return 0 }
         return max(1, min(maxMatches, model.searchResults.count))   // "No match" takes one row
     }
 
@@ -63,14 +63,15 @@ struct KeyboardRootView: View {
     @State private var menuSize: CGSize = .zero
     @State private var contentSize: CGSize = .zero
     @State private var scanScale: CGFloat = 1
-    @State private var shifted = false               // search pad: next letter upper case
 
     private static let spring = Animation.spring(response: 0.38, dampingFraction: 0.62)
 
     var body: some View {
         VStack(spacing: 6) {
             if model.isUnlocked {
-                if Self.matchCount(model) > 0 { matchCard }
+                if Self.matchCount(model) > 0 {
+                    matchCard.transition(.move(edge: .bottom).combined(with: .opacity))
+                }
                 bar
                 ZStack(alignment: .topLeading) {
                     content
@@ -96,10 +97,8 @@ struct KeyboardRootView: View {
         }
         .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, 6)
         .background(Palette.canvas)
-        // The app is light-only (design-system.md). In dark mode the system label colours turned
-        // white on the white keys (Evan's screenshot, 13 Oct), so the keyboard pins itself to light.
-        .environment(\.colorScheme, .light)
         .tint(Palette.accent)
+        .animation(.snappy(duration: 0.22), value: Self.matchCount(model) > 0)
     }
 
     @ViewBuilder private var content: some View {
@@ -155,7 +154,7 @@ struct KeyboardRootView: View {
     private func circle(_ symbol: String, style: CircleStyle, action: @escaping () -> Void) -> some View {
         let fill: Color, fg: Color
         switch style {
-        case .matte: fill = Palette.graphite; fg = .white
+        case .matte: fill = Palette.matte; fg = Palette.matteInk
         case .accent: fill = Palette.accent; fg = .white
         case .ink: fill = Palette.glass; fg = Palette.ink
         case .dim: fill = Palette.glass; fg = Palette.ink3
@@ -426,7 +425,7 @@ struct KeyboardRootView: View {
     private var searchPanel: some View {
         VStack(spacing: 5) {
             searchStrip.frame(height: 36)
-            GeometryReader { geo in searchPad(width: geo.size.width) }
+            searchPad
                 .frame(height: System.padHeight)
                 .padding(.horizontal, System.sideInset)
         }
@@ -460,111 +459,68 @@ struct KeyboardRootView: View {
         }
     }
 
-    private func searchPad(width: CGFloat) -> some View {
-        let gap = System.keyGap
-        let letterWidth = (width - 9 * gap) / 10
-        return VStack(spacing: System.rowGap) {
-            letterRow(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"], width: letterWidth)
-            letterRow(["a", "s", "d", "f", "g", "h", "j", "k", "l"], width: letterWidth)
-            HStack(spacing: gap) {
-                Button { shifted.toggle() } label: {
-                    systemKey { Image(systemName: shifted ? "shift.fill" : "shift").font(.system(size: 19)) }
-                }
-                .buttonStyle(.plain).frame(width: System.modifierWidth)
-                Spacer(minLength: 0)
-                letterRow(["z", "x", "c", "v", "b", "n", "m"], width: letterWidth)
-                Spacer(minLength: 0)
-                RepeatingKey(systemImage: "delete.left", height: System.keyHeight, radius: System.radius, fill: Palette.surface) {
-                    model.backspaceSearch()
-                }
-                .frame(width: System.modifierWidth)
-            }
-            HStack(spacing: gap) {
-                if showsGlobe {
-                    Button { model.globe() } label: { systemKey { Image(systemName: "globe").font(.system(size: 19)) } }
-                        .buttonStyle(.plain).frame(width: System.modifierWidth)
-                }
-                Button { model.back() } label: { systemKey { Text("Back").font(.system(size: 16)) } }
-                    .buttonStyle(.plain).frame(width: showsGlobe ? System.modifierWidth : 2 * System.modifierWidth + gap)
-                Button { model.typeSearch(" ") } label: {
-                    systemKey { Text("space").font(.system(size: 16)).foregroundStyle(Palette.ink2) }
-                }
-                .buttonStyle(.plain)
-                Button { model.openTopMatch() } label: {
-                    let on = model.topMatch != nil
-                    let key = RoundedRectangle(cornerRadius: System.radius, style: .continuous)
-                    let label = Text("Open").font(.system(size: 16, weight: .semibold))
-                        .frame(maxWidth: .infinity).frame(height: System.keyHeight)
-                    if on {
-                        label.foregroundStyle(.white).sheen(in: key)
-                    } else {
-                        label.foregroundStyle(Palette.ink3).background(Palette.surface).clipShape(key)
-                            .shadow(color: .black.opacity(0.12), radius: 0, y: 1)
-                    }
-                }
-                .buttonStyle(.plain).frame(width: System.returnWidth)
-                .disabled(model.topMatch == nil)
-            }
-        }
+    /// One UIKit touch surface (see `SearchPad`): nearest-key hits, callouts, clicks and rollover.
+    private var searchPad: some View {
+        SearchPad(showsGlobe: showsGlobe, openEnabled: model.topMatch != nil,
+                  onLetter: { model.typeSearch($0) },
+                  onDelete: { model.backspaceSearch() },
+                  onSpace: { model.typeSearch(" ") },
+                  onBack: { model.back() },
+                  onOpen: { model.openTopMatch() },
+                  onGlobe: { model.globe() })
     }
 
-    private func letterRow(_ letters: [String], width: CGFloat) -> some View {
-        HStack(spacing: System.keyGap) {
-            ForEach(letters, id: \.self) { l in
-                let shown = shifted ? l.uppercased() : l
-                Button { model.typeSearch(shown); shifted = false } label: {
-                    systemKey { Text(shown).font(.system(size: System.font)) }
-                }
-                .buttonStyle(.plain).frame(width: width)
-            }
-        }
-    }
-
-    /// One white key with Apple's height, corner and bottom shadow.
-    private func systemKey<Label: View>(@ViewBuilder _ label: () -> Label) -> some View {
-        label()
-            .foregroundStyle(Palette.ink)
-            .frame(maxWidth: .infinity).frame(height: System.keyHeight)
-            .background(Palette.surface)
-            .clipShape(RoundedRectangle(cornerRadius: System.radius, style: .continuous))
-            .shadow(color: .black.opacity(0.12), radius: 0, y: 1)
-            .contentShape(Rectangle())
-    }
-
-    /// Up to four matches above the bar, Telegram style. The top row is tinted: Open loads it.
+    /// Up to four matches above the bar, Telegram style. The top row is tinted: Open loads it. Matched
+    /// letters show in full colour and the rest dimmed, as in Spotlight.
     private var matchCard: some View {
-        let results = Array(model.searchResults.prefix(Self.maxMatches))
+        let results = Array(model.searchMatches.prefix(Self.maxMatches))
         return VStack(spacing: 0) {
             if results.isEmpty {
                 Text("No match").font(.system(size: 15)).foregroundStyle(Palette.ink2)
                     .frame(maxWidth: .infinity).frame(height: Self.matchRowHeight)
             }
-            ForEach(Array(results.enumerated()), id: \.element.id) { i, e in
+            ForEach(Array(results.enumerated()), id: \.element.entry.id) { i, m in
+                let e = m.entry
                 Button { model.select(e) } label: {
                     HStack(spacing: 8) {
                         if case .shared = e.kind {
                             Image(systemName: "person.fill").font(.system(size: 14)).foregroundStyle(Palette.ink)
                         }
-                        Text(Self.shortTitle(e.title)).font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.ink)
+                        Self.highlighted(Self.shortTitle(e.title), m.titleHighlight, on: Palette.ink, off: Palette.ink2)
                         Spacer(minLength: 4)
-                        Text(e.personName).font(.system(size: 16, weight: .semibold)).foregroundStyle(Palette.navy)
+                        Self.highlighted(e.personName, m.personHighlight, on: Palette.navy, off: Palette.navy.opacity(0.6))
                     }
+                    .font(.system(size: 16, weight: .semibold))
                     .lineLimit(1).minimumScaleFactor(0.8)
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity).frame(height: Self.matchRowHeight)
-                    .background(i == 0 ? Palette.accent.opacity(0.08) : Color.clear)
+                    .background(i == 0 ? Palette.accent.opacity(0.10) : Color.clear)
                     .overlay(alignment: .top) {
                         if i > 0 { Rectangle().fill(Palette.hairline).frame(height: 0.5).padding(.leading, 14) }
                     }
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .transition(.opacity)
             }
         }
         .background(Palette.surface)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
         .frame(height: CGFloat(Self.matchCount(model)) * Self.matchRowHeight)
+        .animation(.snappy(duration: 0.18), value: results.map(\.entry.id))
+    }
+
+    /// A title or name with the matched characters in `on` and the rest in `off`. With no match in this
+    /// string, the whole string is `on`, so a row matched by the person keeps a readable title.
+    static func highlighted(_ s: String, _ ranges: [Range<Int>], on: Color, off: Color) -> Text {
+        guard !ranges.isEmpty else { return Text(s).foregroundStyle(on) }
+        var out = Text("")
+        for (i, ch) in s.enumerated() {
+            let hit = ranges.contains { $0.contains(i) }
+            out = out + Text(String(ch)).foregroundStyle(hit ? on : off)
+        }
+        return out
     }
 
     // MARK: Menu
@@ -763,28 +719,42 @@ struct KeyboardRootView: View {
 }
 
 /// The app's design tokens, mirrored for the keyboard target (it cannot import the app's Theme).
-/// Keep in step with `DocuVault/Design/Theme.swift`.
+/// Keep in step with `DocuVault/Design/Theme.swift`. Every colour has a light and a dark value and the
+/// keyboard follows the phone's setting (checkpoint 19); the key greys match Apple's own keyboard.
 enum Palette {
-    static let accent = Color(red: 0x3A/255, green: 0x42/255, blue: 0x4C/255)   // gunmetal, checkpoint 17b
+    static let accent = Color(light: 0x3A424C, dark: 0xA9B4C2)   // gunmetal, checkpoint 17b; steel in dark
     static let sheen = LinearGradient(
         colors: [Color(red: 0x22/255, green: 0x28/255, blue: 0x2F/255),
                  Color(red: 0x5C/255, green: 0x66/255, blue: 0x72/255),
                  Color(red: 0x22/255, green: 0x28/255, blue: 0x2F/255)],
         startPoint: .topLeading, endPoint: .bottomTrailing)
-    static let graphite = Color(red: 0x1C/255, green: 0x1C/255, blue: 0x1E/255)
-    static let navy = Color(red: 0x1B/255, green: 0x0F/255, blue: 0x55/255)
-    static let verified = Color(red: 0x1B/255, green: 0x7F/255, blue: 0x4C/255)
-    static let ink = Color(red: 0x0A/255, green: 0x0A/255, blue: 0x0C/255)
-    static let ink2 = Color(red: 0x8A/255, green: 0x8A/255, blue: 0x8E/255)
-    static let ink3 = Color(red: 0xB0/255, green: 0xB3/255, blue: 0xBA/255)
-    static let hairline = Color(red: 0xE5/255, green: 0xE5/255, blue: 0xEA/255)
-    static let surface = Color.white
-    static let surfaceOff = Color(red: 0xEC/255, green: 0xED/255, blue: 0xF0/255)
-    static let canvas = Color(red: 0xE8/255, green: 0xEA/255, blue: 0xEF/255)
-    static let canvasDeep = Color(red: 0xEE/255, green: 0xF0/255, blue: 0xF3/255)
-    static let glass = Color.white.opacity(0.62)
-    static let glassEdge = Color.white.opacity(0.95)
-    static let menu = Color(red: 0xF6/255, green: 0xF7/255, blue: 0xFA/255)
+    /// The menu circle while the menu is open: black with a white glyph, inverted in dark.
+    static let matte = Color(light: 0x1C1C1E, dark: 0xFFFFFF)
+    static let matteInk = Color(light: 0xFFFFFF, dark: 0x1C1C1E)
+    static let navy = Color(light: 0x1B0F55, dark: 0x9AA9F0)
+    static let verified = Color(light: 0x1B7F4C, dark: 0x4CC38A)
+    static let ink = Color(light: 0x0A0A0C, dark: 0xFFFFFF)
+    static let ink2 = Color(light: 0x8A8A8E, dark: 0x98989F)
+    static let ink3 = Color(light: 0xB0B3BA, dark: 0x5A5A5F)
+    static let hairline = Color(light: 0xE5E5EA, dark: 0x48484A)
+    /// Rows, cards and letter keys.
+    static let surface = Color(light: 0xFFFFFF, dark: 0x6B6B6B)
+    static let surfaceOff = Color(light: 0xECEDF0, dark: 0x464646)
+    static let key = surface
+    static let keyModifier = Color(light: 0xACB1B9, dark: 0x464646)
+    static let keyShadow = Color(light: 0x000000, dark: 0x000000, lightAlpha: 0.30, darkAlpha: 0.55)
+    static let canvas = Color(light: 0xE8EAEF, dark: 0x2B2B2B)
+    static let canvasDeep = Color(light: 0xEEF0F3, dark: 0x3A3A3A)
+    static let glass = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightAlpha: 0.62, darkAlpha: 0.14)
+    static let glassEdge = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightAlpha: 0.95, darkAlpha: 0.10)
+    static let menu = Color(light: 0xF6F7FA, dark: 0x3A3A3C)
+}
+
+extension Color {
+    /// A colour with a light and a dark value, resolved by the phone's setting. Mirrors the app's Theme.
+    init(light: UInt32, dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) {
+        self.init(uiColor: UIColor { $0.userInterfaceStyle == .dark ? UIColor(hex: dark, alpha: darkAlpha) : UIColor(hex: light, alpha: lightAlpha) })
+    }
 }
 
 /// Backspace that behaves like Apple's: one delete on tap, then after a short hold it repeats,
