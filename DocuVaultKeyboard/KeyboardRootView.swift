@@ -40,6 +40,9 @@ struct KeyboardRootView: View {
         }
         .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, 6)
         .background(Palette.canvas)
+        // The app is light-only (design-system.md). In dark mode the system label colours turned
+        // white on the white keys (Evan's screenshot, 13 Oct), so the keyboard pins itself to light.
+        .environment(\.colorScheme, .light)
     }
 
     @ViewBuilder private var content: some View {
@@ -136,15 +139,17 @@ struct KeyboardRootView: View {
             .padding(.horizontal, 4)
     }
 
+    /// "Passport" on the left and the person's name on the right in navy, same size (Evan, 15). The
+    /// document's own suffix ("· CHAI") shows only on the Filling from line.
     private func entryRow(_ e: FillEntry, height: CGFloat, trailing: String? = nil) -> some View {
         Button { model.select(e) } label: {
             HStack(spacing: 6) {
                 if case .shared = e.kind {
-                    Image(systemName: "person.fill").font(.system(size: 12)).foregroundStyle(Palette.accent)
+                    Image(systemName: "person.fill").font(.system(size: 13)).foregroundStyle(Palette.ink)
                 }
-                Text(e.title).font(.system(size: 15, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
+                Text(Self.shortTitle(e.title)).font(.system(size: 15, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
                 Spacer(minLength: 4)
-                Text(trailing ?? e.personName).font(.system(size: 12)).foregroundStyle(Palette.ink2).lineLimit(1).minimumScaleFactor(0.8)
+                Text(trailing ?? e.personName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.navy).lineLimit(1).minimumScaleFactor(0.8)
             }
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity).frame(height: height)
@@ -154,6 +159,11 @@ struct KeyboardRootView: View {
             .shadow(color: .black.opacity(0.08), radius: 1, y: 1)
         }
         .buttonStyle(.plain)
+    }
+
+    /// "Passport · CHAI" → "Passport". Titles without a separator pass through.
+    static func shortTitle(_ title: String) -> String {
+        title.components(separatedBy: " · ").first ?? title
     }
 
     // MARK: Keys
@@ -515,11 +525,12 @@ struct KeyboardRootView: View {
 enum Palette {
     static let accent = Color(red: 0x2F/255, green: 0x6B/255, blue: 0xFF/255)
     static let graphite = Color(red: 0x1C/255, green: 0x1C/255, blue: 0x1E/255)
+    static let navy = Color(red: 0x1B/255, green: 0x0F/255, blue: 0x55/255)
     static let verified = Color(red: 0x1B/255, green: 0x7F/255, blue: 0x4C/255)
-    static let ink = Color.primary
-    static let ink2 = Color(.secondaryLabel)
+    static let ink = Color(red: 0x0A/255, green: 0x0A/255, blue: 0x0C/255)
+    static let ink2 = Color(red: 0x8A/255, green: 0x8A/255, blue: 0x8E/255)
     static let ink3 = Color(red: 0xB0/255, green: 0xB3/255, blue: 0xBA/255)
-    static let hairline = Color(.separator)
+    static let hairline = Color(red: 0xE5/255, green: 0xE5/255, blue: 0xEA/255)
     static let surface = Color.white
     static let surfaceOff = Color(red: 0xEC/255, green: 0xED/255, blue: 0xF0/255)
     static let canvas = Color(red: 0xE8/255, green: 0xEA/255, blue: 0xEF/255)

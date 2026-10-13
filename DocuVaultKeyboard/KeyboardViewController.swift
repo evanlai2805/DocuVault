@@ -22,6 +22,7 @@ final class KeyboardViewController: UIInputViewController {
         addChild(host)
         host.view.translatesAutoresizingMaskIntoConstraints = false
         host.view.backgroundColor = .clear
+        host.overrideUserInterfaceStyle = .light   // light-only design; dark mode made the keys illegible
         view.addSubview(host.view)
         NSLayoutConstraint.activate([
             host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),

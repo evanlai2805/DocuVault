@@ -40,11 +40,11 @@ final class FieldEditTests: XCTestCase {
 
     func testRecheckRunsChecksums() {
         XCTAssertEqual(FieldEdit.recheck(key: "nric", value: "S9912345A", type: .nric), .nric)
-        XCTAssertEqual(FieldEdit.recheck(key: "nric", value: "S9912345B", type: .nric), .ocr)
+        XCTAssertEqual(FieldEdit.recheck(key: "nric", value: "S9912345B", type: .nric), .failed)
         XCTAssertEqual(FieldEdit.recheck(key: "pan", value: "4111111111111111", type: .bankCard), .luhn)
-        XCTAssertEqual(FieldEdit.recheck(key: "pan", value: "4111111111111112", type: .bankCard), .ocr)
+        XCTAssertEqual(FieldEdit.recheck(key: "pan", value: "4111111111111112", type: .bankCard), .failed)
         XCTAssertEqual(FieldEdit.recheck(key: "idNumber", value: "11010519491231002X", type: .chinaID), .cnid)
-        XCTAssertEqual(FieldEdit.recheck(key: "idNumber", value: "110105194912310021", type: .chinaID), .ocr)
+        XCTAssertEqual(FieldEdit.recheck(key: "idNumber", value: "110105194912310021", type: .chinaID), .failed)
     }
 
     func testRecheckOtherFields() {
@@ -103,5 +103,42 @@ final class DisplayTextTests: XCTestCase {
     func testDatesInsideALine() {
         XCTAssertEqual(DisplayText.displayDates(in: "Deleted 2026-10-11 after 30 d"), "Deleted 11/OCT/2026 after 30 d")
         XCTAssertEqual(DisplayText.displayDates(in: "no date here"), "no date here")
+    }
+
+    // MARK: Verification (checkpoint 15)
+
+    func testFailedChecksumNeedsVerificationUntilVerified() {
+        XCTAssertTrue(FieldEdit.needsVerification(check: .failed, key: "nric", type: .nric, documentAllPass: false))
+        XCTAssertFalse(FieldEdit.needsVerification(check: .userVerified, key: "nric", type: .nric, documentAllPass: false))
+        XCTAssertFalse(FieldEdit.needsVerification(check: .nric, key: "nric", type: .nric, documentAllPass: true))
+    }
+
+    func testOldDocumentsFlagCheckedOCRKeysOnlyWhenAChecksFailed() {
+        XCTAssertTrue(FieldEdit.needsVerification(check: .ocr, key: "pan", type: .bankCard, documentAllPass: false))
+        XCTAssertFalse(FieldEdit.needsVerification(check: .ocr, key: "pan", type: .bankCard, documentAllPass: true))
+        XCTAssertFalse(FieldEdit.needsVerification(check: .ocr, key: "nameOnCard", type: .bankCard, documentAllPass: false))
+    }
+
+    func testVerifyingAFailedFieldRaisesThePassCount() {
+        XCTAssertEqual(FieldEdit.adjustedPassed(passed: 0, total: 1, key: "nric", type: .nric, old: .failed, new: .userVerified), 1)
+        XCTAssertEqual(FieldEdit.adjustedPassed(passed: 0, total: 1, key: "nric", type: .nric, old: .ocr, new: .userVerified), 1)
+    }
+
+    func testVerifiedValueEditedToAFailingOneIsFlaggedAgain() {
+        let new = FieldEdit.recheck(key: "nric", value: "S9912345B", type: .nric)
+        XCTAssertEqual(new, .failed)
+        XCTAssertEqual(FieldEdit.adjustedPassed(passed: 1, total: 1, key: "nric", type: .nric, old: .userVerified, new: new), 0)
+    }
+
+    func testVerificationLineNamesTheFields() {
+        XCTAssertEqual(FieldEdit.verificationLine(labels: ["NRIC"]), "NRIC needs your verification")
+        XCTAssertEqual(FieldEdit.verificationLine(labels: ["Passport no.", "Date of birth"]), "Passport no. and Date of birth need your verification")
+        XCTAssertEqual(FieldEdit.verificationLine(labels: ["A", "B", "C"]), "A, B and C need your verification")
+        XCTAssertEqual(FieldEdit.verificationLine(labels: []), "")
+    }
+
+    func testFailedAndUserVerifiedTiers() {
+        XCTAssertEqual(FieldCheck.failed.confidenceTier, .missing)
+        XCTAssertEqual(FieldCheck.userVerified.confidenceTier, .verified)
     }
 }

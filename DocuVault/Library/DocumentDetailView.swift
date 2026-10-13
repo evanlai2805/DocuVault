@@ -60,6 +60,10 @@ struct DocumentDetailView: View {
                     }
                 }
 
+                if !unverified.isEmpty {
+                    verificationBanner
+                }
+
                 if SummarySpec.supportsSummary(doc.type), let full = vault.revealText(doc), !full.isEmpty {
                     SummaryCard(doc: doc, text: full)
                 }
@@ -169,7 +173,7 @@ struct DocumentDetailView: View {
             }
             .padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 4)
             ForEach(fields) { f in
-                Button { beginEdit(f) } label: { FieldRow(field: shown(f)) }
+                Button { beginEdit(f) } label: { FieldRow(field: shown(f), needsVerification: needsVerification(f)) }
                     .buttonStyle(.plain)
                     .contextMenu {
                         Button { Clipboard.copy(vault.reveal(f) ?? "", sensitive: doc.sensitive) } label: { Label("Copy", systemImage: "doc.on.doc") }
@@ -180,6 +184,61 @@ struct DocumentDetailView: View {
         }
         .background(Theme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    // MARK: Verification (checkpoint 15)
+
+    private func needsVerification(_ f: StoredField) -> Bool {
+        FieldEdit.needsVerification(check: f.check, key: f.key, type: doc.type, documentAllPass: doc.allChecksPassed)
+    }
+
+    private var unverified: [StoredField] { doc.orderedFields.filter(needsVerification) }
+
+    /// One line naming the fields, then Edit and Verified. Nothing about how the scan may have misread.
+    private var verificationBanner: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 14, weight: .bold))
+                Text(FieldEdit.verificationLine(labels: unverified.map(\.labelEN))).font(.system(size: 17, weight: .semibold))
+            }
+            .foregroundStyle(Theme.Colors.danger)
+            HStack(spacing: 8) {
+                Button { if let f = unverified.first { beginEdit(f) } } label: {
+                    Text("Edit").font(.system(size: 16, weight: .semibold)).foregroundStyle(Theme.Colors.ink)
+                        .frame(maxWidth: .infinity).frame(height: 44)
+                        .background(Theme.Colors.surface)
+                        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.Colors.danger.opacity(0.3)))
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.pressScale)
+                Button { Task { await verifyAll() } } label: {
+                    Text("Verified").font(.system(size: 16, weight: .semibold)).foregroundStyle(.white)
+                        .frame(maxWidth: .infinity).frame(height: 44)
+                        .background(Theme.Colors.verified)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.pressScale)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.Colors.danger.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Theme.Colors.danger.opacity(0.25)))
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    /// "Verified": the user compared every flagged value with the document. Stored per field and never
+    /// raised again; only a later edit that fails its checksum flags it once more.
+    private func verifyAll() async {
+        if doc.sensitive && !vault.isUnlocked { await vault.unlock(reason: "Verify this document") }
+        guard !doc.sensitive || vault.isUnlocked else { return }
+        for f in unverified {
+            let old = f.check
+            f.checkRaw = FieldCheck.userVerified.rawValue
+            doc.checksPassed = FieldEdit.adjustedPassed(passed: doc.checksPassed, total: doc.checksTotal,
+                                                        key: f.key, type: doc.type, old: old, new: .userVerified)
+        }
+        do { try context.save() } catch { context.rollback(); editError = "Could not save. Nothing was changed." }
     }
 
     private func shown(_ f: StoredField) -> ExtractedField {

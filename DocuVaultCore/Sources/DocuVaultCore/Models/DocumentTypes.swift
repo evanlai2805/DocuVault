@@ -45,12 +45,14 @@ public enum FieldCheck: String, Codable, Sendable {
     case ocr        // read by OCR only, no independent check
     case user       // typed or edited by the user
     case missing    // not found
+    case failed         // carries a checksum and it failed: the value needs the user's verification
+    case userVerified   // the user compared it with the document and pressed Verified (checkpoint 15)
 
     public var confidenceTier: ConfidenceTier {
         switch self {
-        case .mrz, .luhn, .nric, .cnid, .user: return .verified
+        case .mrz, .luhn, .nric, .cnid, .user, .userVerified: return .verified
         case .regex, .ocr: return .unverified
-        case .missing: return .missing
+        case .missing, .failed: return .missing
         }
     }
 }

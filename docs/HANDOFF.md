@@ -128,7 +128,7 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
   17 Flighty cohesion + swipe-back + settings cut-down + tab-bar overrun · 18 Qwen download fix + onboarding.
 - Qwen: progress bar appears and stays at zero.
 
-13 Oct · checkpoint 15 answers (keyboard built and pushed; review changes next)
+13 Oct · checkpoint 15 answers (built and pushed, two commits; unverified on device)
 - Q1: loaded document named on a "Filling from" line above the keys; keys 40pt, four rows, no scroll. Search bar always reads Search.
 - Q2: long key labels shrink (minimumScaleFactor 0.8, one line), 12pt inset. Date hints 9.5pt.
 - Q3: segments and chips follow the app chip rule (selected white pill + hairline, unselected ink2 text). Menu circle matte black
@@ -139,6 +139,12 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
 - Review: flags red; no OCR/Regex tags; pill reads "User verified"; banner is one line naming the fields ("NRIC needs your
   verification"), buttons Edit · Verified. Q7: field values in SF Pro, monospace only for MRZ lines.
 - Q4: the "Screenshot taken" banner is removed everywhere. Q5: keyboard first, then the review changes, two pushes.
+- Evan's notes on the build: start-page rows read "Passport" (suffix only on the Filling from line), person name on
+  the right in navy at the same size, person icon black. Dark mode made the old keyboard illegible: the keyboard is
+  pinned to light with fixed ink colours.
+- Model: `FieldCheck.failed` (checksum wrong) and `.userVerified` (Verified pressed). Extractors and `FieldEdit.recheck`
+  tag failed checksums `.failed`; documents saved before that are flagged by `FieldEdit.needsVerification` (checked
+  key tagged `.ocr` on a document whose checks do not all pass). Markdown export labels: FAILED / verified.
 
 ## 3. Open device validations (do these next, in order)
 - 13 Oct build: passport keyboard shows all ten keys with no scroll and no blur; switching apps and back

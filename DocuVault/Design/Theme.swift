@@ -230,6 +230,21 @@ extension ButtonStyle where Self == PressScaleButtonStyle {
     static var pressScale: PressScaleButtonStyle { PressScaleButtonStyle() }
 }
 
+/// Red flag for a value that needs the user's verification (checkpoint 15). Same tint everywhere:
+/// list rows, the person page, the fields card.
+struct ReviewFlag: View {
+    var text = "Review"
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 10, weight: .bold))
+            Text(text).font(.system(size: 12, weight: .semibold))
+        }
+        .padding(.horizontal, 8).padding(.vertical, 3)
+        .background(Theme.Colors.danger.opacity(0.12)).foregroundStyle(Theme.Colors.danger)
+        .clipShape(Capsule())
+    }
+}
+
 /// Green / amber / red / blue pill for check states.
 struct StatusPill: View {
     enum Tone { case verified, unverified, missing, info, neutral }

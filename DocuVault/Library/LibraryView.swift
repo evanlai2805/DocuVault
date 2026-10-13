@@ -94,6 +94,7 @@ struct DocumentRow: View {
                 Text(subtitle).font(.rowSubtitle).foregroundStyle(Theme.Colors.ink2).lineLimit(1)
             }
             Spacer()
+            if !doc.allChecksPassed { ReviewFlag() }
             if doc.sensitive { Image(systemName: "lock.fill").foregroundStyle(Theme.Colors.ink2) }
             Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.Colors.ink2)
         }

@@ -12,7 +12,6 @@ struct RootView: View {
     @State private var vault = VaultSession()
     @State private var showScan = false
     @State private var showSearch = false
-    @State private var screenshotToast = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -30,14 +29,6 @@ struct RootView: View {
 
             FloatingTabBar(tab: $tab, onScan: { showScan = true }, onSearch: { showSearch = true })
 
-            if screenshotToast {
-                Text("Screenshot taken — it is not protected by the vault")
-                    .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-                    .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(Theme.Colors.danger).clipShape(Capsule())
-                    .padding(.bottom, 100)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
         }
         .overlay {
             // Privacy shield in the app switcher while the vault is open.
@@ -49,11 +40,6 @@ struct RootView: View {
         .onChange(of: scenePhase) { _, phase in
             vault.sceneDidChange(phase)
             if phase == .active { RetentionManager.sweep(context: context); CloudService.shared.prune(context: context) }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.userDidTakeScreenshotNotification)) { _ in
-            guard vault.isUnlocked || tab == .vault else { return }
-            withAnimation { screenshotToast = true }
-            Task { try? await Task.sleep(for: .seconds(3)); withAnimation { screenshotToast = false } }
         }
         .fullScreenCover(isPresented: $showScan) {
             NavigationStack { ScanHomeView(onDone: { showScan = false }) }

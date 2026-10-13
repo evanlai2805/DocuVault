@@ -99,7 +99,9 @@ struct PersonView: View {
         }()
         return HStack(spacing: 12) {
             IconRow(title: d.title, subtitle: sub, systemImage: icon, light: true)
-            StatusPill(text: d.checksTotal == 0 ? "—" : "\(d.checksPassed)/\(d.checksTotal)", tone: d.checksTotal == 0 ? .neutral : (d.allChecksPassed ? .verified : .missing))
+            if d.checksTotal == 0 { StatusPill(text: "—", tone: .neutral) }
+            else if d.allChecksPassed { StatusPill(text: "\(d.checksPassed)/\(d.checksTotal)", tone: .verified) }
+            else { ReviewFlag() }
             Image(systemName: "chevron.right").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.Colors.ink2)
         }
         .padding(.horizontal, 16).padding(.vertical, 4).contentShape(Rectangle())
@@ -108,7 +110,7 @@ struct PersonView: View {
     private func shared(_ label: String, _ value: String) -> some View {
         HStack {
             Text(label).font(.system(size: 15)).foregroundStyle(Theme.Colors.ink2).frame(width: 100, alignment: .leading)
-            Text(value.isEmpty ? "—" : value).font(.system(size: 16, design: .monospaced)).foregroundStyle(value.isEmpty ? Theme.Colors.danger : Theme.Colors.ink)
+            Text(value.isEmpty ? "—" : value).font(.system(size: 16, weight: .medium)).foregroundStyle(value.isEmpty ? Theme.Colors.danger : Theme.Colors.ink)
                 .lineLimit(2).minimumScaleFactor(0.8)
             Spacer()
             StatusPill(text: value.isEmpty ? "Add" : "Set", tone: value.isEmpty ? .missing : .info)

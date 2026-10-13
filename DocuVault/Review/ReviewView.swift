@@ -175,6 +175,8 @@ struct ReviewView: View {
 
 struct FieldRow: View {
     let field: ExtractedField
+    /// True on a saved document whose checks do not all pass (old documents tagged `.ocr` on a checked key).
+    var needsVerification = false
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
@@ -183,26 +185,30 @@ struct FieldRow: View {
             }
             .frame(width: 110, alignment: .leading)
             Text(field.value.isEmpty ? "—" : (FieldEdit.dateKeys.contains(field.key) ? FillFormats.display(field.value) : field.value))
-                .font(.system(size: 16, design: .monospaced))
+                .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(field.check == .missing ? Theme.Colors.danger : Theme.Colors.ink)
                 .lineLimit(2).minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            StatusPill(text: pillText, tone: tone)
+            tag
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
         .contentShape(Rectangle())
     }
-    private var pillText: String {
-        switch field.check {
-        case .mrz: "MRZ ✓"; case .luhn: "Luhn ✓"; case .nric: "NRIC ✓"; case .cnid: "ID ✓"
-        case .regex: "Regex"; case .ocr: "OCR"; case .user: "Edited"; case .missing: "Missing"
-        }
-    }
-    private var tone: StatusPill.Tone {
-        switch field.check.confidenceTier {
-        case .verified: field.check == .user ? .info : .verified
-        case .unverified: .unverified
-        case .missing: .missing
+
+    /// Checkpoint 15: the user sees whether a value passed, failed, or was verified by them. Never how
+    /// it was read, so OCR and Regex carry no tag at all.
+    @ViewBuilder private var tag: some View {
+        if needsVerification || field.check == .failed {
+            ReviewFlag(text: "Check")
+        } else {
+            switch field.check {
+            case .mrz, .luhn, .nric, .cnid:
+                Image(systemName: "checkmark").font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.Colors.verified)
+            case .userVerified: StatusPill(text: "User verified", tone: .verified)
+            case .user: StatusPill(text: "Edited", tone: .info)
+            case .missing: StatusPill(text: "Missing", tone: .missing)
+            case .regex, .ocr, .failed: EmptyView()
+            }
         }
     }
 }
@@ -230,7 +236,7 @@ struct FieldEditSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
                 TextField(field.labelEN, text: $value, axis: .vertical)
-                    .font(.system(size: 18, design: .monospaced))
+                    .font(.system(size: 18, weight: .medium))
                     .padding(14)
                     .background(Theme.Colors.canvas)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))

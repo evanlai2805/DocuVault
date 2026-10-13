@@ -92,6 +92,7 @@ public enum MarkdownExporter {
         switch c {
         case .mrz: "MRZ ✓"; case .luhn: "Luhn ✓"; case .nric: "NRIC ✓"; case .cnid: "ID ✓"
         case .regex: "regex"; case .ocr: "OCR"; case .user: "edited"; case .missing: "missing"
+        case .failed: "FAILED"; case .userVerified: "verified"
         }
     }
 

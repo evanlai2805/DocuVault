@@ -24,12 +24,12 @@ public enum PassportExtractor {
 
             fields.append(LabelReader.field("surname", "Surname", "姓", td3.surname, .mrz))
             fields.append(LabelReader.field("givenNames", "Given names", "名", td3.givenNames, .mrz))
-            fields.append(LabelReader.field("passportNumber", "Passport no.", "护照号码", td3.documentNumber, td3.documentNumberCheckOK ? .mrz : .ocr))
+            fields.append(LabelReader.field("passportNumber", "Passport no.", "护照号码", td3.documentNumber, td3.documentNumberCheckOK ? .mrz : .failed))
             fields.append(LabelReader.field("nationality", "Nationality", "国籍", td3.nationality, .mrz))
             fields.append(LabelReader.field("issuingCountry", "Issuing country", "签发国", td3.issuingCountry, .mrz))
-            fields.append(LabelReader.field("dateOfBirth", "Date of birth", "出生日期", td3.isoDateOfBirth(now: now), td3.dateOfBirthCheckOK ? .mrz : .ocr))
+            fields.append(LabelReader.field("dateOfBirth", "Date of birth", "出生日期", td3.isoDateOfBirth(now: now), td3.dateOfBirthCheckOK ? .mrz : .failed))
             fields.append(LabelReader.field("sex", "Sex", "性别", td3.sex == "<" ? nil : td3.sex, .mrz))
-            fields.append(LabelReader.field("expiry", "Expiry", "有效期至", td3.isoExpiryDate(now: now), td3.expiryCheckOK ? .mrz : .ocr))
+            fields.append(LabelReader.field("expiry", "Expiry", "有效期至", td3.isoExpiryDate(now: now), td3.expiryCheckOK ? .mrz : .failed))
 
             // Cross-check visual zone against MRZ; disagreement is a warning, MRZ wins.
             if let v = visualNumber?.uppercased().filter({ $0.isLetter || $0.isNumber }), v != td3.documentNumber, td3.documentNumberCheckOK {
@@ -72,7 +72,7 @@ public enum NRICExtractor {
             total += 1; if n.checksumOK { passed += 1 } else { warnings.append("NRIC checksum fails — expected letter \(n.expectedLetter).") }
             if n.series == .fin2022 && !n.checksumOK { warnings.append("M-series FIN check table is unverified; treat as unverified, not wrong.") }
         }
-        fields.append(LabelReader.field("nric", "NRIC / FIN", "身份证号", n?.value, (n?.checksumOK ?? false) ? .nric : .ocr))
+        fields.append(LabelReader.field("nric", "NRIC / FIN", "身份证号", n?.value, n == nil ? .ocr : (n!.checksumOK ? .nric : .failed)))
         let name = LabelReader.value(after: ["Name", "姓名"], in: lines)
         fields.append(LabelReader.field("name", "Name", "姓名", name, .ocr))
         let dob = LabelReader.value(after: ["Date of birth", "Date of Birth", "DOB", "出生日期"], in: lines).flatMap(TextRules.firstISODate)
@@ -114,7 +114,7 @@ public enum ChinaIDExtractor {
         fields.append(LabelReader.field("namePinyin", "Pinyin", "拼音", split?.formatted, .ocr))
         fields.append(LabelReader.field("surnamePinyin", "Surname (pinyin)", "姓", split?.surname, .ocr))
         fields.append(LabelReader.field("givenNamePinyin", "Given name (pinyin)", "名", split?.givenName, .ocr))
-        fields.append(LabelReader.field("idNumber", "ID number", "公民身份号码", id?.value, (id?.checksumOK ?? false) ? .cnid : .ocr))
+        fields.append(LabelReader.field("idNumber", "ID number", "公民身份号码", id?.value, id == nil ? .ocr : (id!.checksumOK ? .cnid : .failed)))
 
         let printedDOB = LabelReader.value(after: ["出生", "Date of birth"], in: lines).flatMap(TextRules.firstISODate)
         if let id {
@@ -157,7 +157,7 @@ public enum BankCardExtractor {
         if let card {
             total += 1; if card.luhnOK { passed += 1 } else { warnings.append("Card number fails Luhn — likely a misread digit.") }
         }
-        fields.append(LabelReader.field("pan", "Card number", "卡号", card?.digits, (card?.luhnOK ?? false) ? .luhn : .ocr))
+        fields.append(LabelReader.field("pan", "Card number", "卡号", card?.digits, card == nil ? .ocr : (card!.luhnOK ? .luhn : .failed)))
         fields.append(LabelReader.field("brand", "Brand", "卡组织", card?.brand.rawValue, .luhn))
         fields.append(LabelReader.field("last4", "Last 4", "末四位", card?.last4, .luhn))
 
