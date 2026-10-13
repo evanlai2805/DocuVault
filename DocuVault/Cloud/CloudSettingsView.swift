@@ -9,8 +9,6 @@ struct CloudSettingsView: View {
     @State private var cloud = CloudService.shared
     @State private var keyDraft = ""
     @State private var editingKey = false
-    @State private var confirmDeleteKey = false
-    @State private var confirmClearLog = false
 
     private var sent: [StoredCloudSend] { log.filter { $0.status == .ok } }
     private var last30: [StoredCloudSend] {
@@ -43,7 +41,8 @@ struct CloudSettingsView: View {
                     .padding(.horizontal, 16).padding(.vertical, 12)
                 } else {
                     Button { editingKey = true } label: { CardRow(title: "Key", value: cloud.maskedKey, chevron: true) }.buttonStyle(.plain)
-                    Button { confirmDeleteKey = true } label: { CardRow(title: "Remove key", subtitle: "Turns every Claude option off", destructive: true) }.buttonStyle(.plain)
+                    ConfirmRow(title: "Remove key", subtitle: "Turns every Claude option off",
+                               question: "Claude options disappear until you add a key again.", action: "Remove key") { cloud.deleteKey() }
                 }
             }
 
@@ -82,18 +81,14 @@ struct CloudSettingsView: View {
                                 Button(role: .destructive) { context.delete(row); try? context.save() } label: { Label("Delete", systemImage: "trash") }
                             }
                     }
-                    Button { confirmClearLog = true } label: { CardRow(title: "Clear log", destructive: true) }.buttonStyle(.plain)
+                    ConfirmRow(title: "Clear log", question: "Every row of the send log is deleted.", action: "Clear log") {
+                        log.forEach(context.delete); try? context.save()
+                    }
                 }
             }
         }
         .navigationTitle("Claude")
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("Remove the API key? Claude options disappear until you add one again.", isPresented: $confirmDeleteKey, titleVisibility: .visible) {
-            Button("Remove key", role: .destructive) { cloud.deleteKey() }
-        }
-        .confirmationDialog("Clear the whole send log?", isPresented: $confirmClearLog, titleVisibility: .visible) {
-            Button("Clear log", role: .destructive) { log.forEach(context.delete); try? context.save() }
-        }
     }
 
     private func logRow(_ r: StoredCloudSend) -> some View {

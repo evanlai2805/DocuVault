@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
 # Run the DocuVaultCore test suite on macOS (no device, no signing). Prints a one-line summary last.
-set -euo pipefail
+# PASS needs both: `swift test` exits 0, and the final "Executed N tests" line (the whole run) reports
+# 0 failures. Every suite prints its own "Executed" line, so matching any one of them is not enough:
+# that let a failing run print PASS (13 Oct).
+set -uo pipefail
 cd "$(dirname "$0")/../DocuVaultCore"
-swift test 2>&1 | tee /tmp/docuvault-core-tests.log | grep -E "error:|failed|Executed .* tests" || true
-grep -E "Executed .* tests, with 0 failures" /tmp/docuvault-core-tests.log >/dev/null \
-  && echo "CORE TESTS: PASS" || { echo "CORE TESTS: FAIL (see /tmp/docuvault-core-tests.log)"; exit 1; }
+LOG=/tmp/docuvault-core-tests.log
+swift test >"$LOG" 2>&1
+status=$?
+grep -E "error:|failed" "$LOG" | tail -n 20 || true
+last=$(grep -E "Executed [0-9]+ tests?, with" "$LOG" | tail -n 1)
+echo "$last"
+if [ "$status" -eq 0 ] && echo "$last" | grep -q "with 0 failures"; then
+  echo "CORE TESTS: PASS"
+else
+  echo "CORE TESTS: FAIL (see $LOG)"
+  exit 1
+fi

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 18 · Chinese model</title>
+<style>
+:root{--ink:#000;--ink2:#8A8A8E;--hair:#E5E5EA;--canvas:#F2F2F7;--accent:#2F6BFF;--g:#1B7F4C;--a:#B5731B;--r:#8E1F1F;--graph:#1C1C1E}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px;max-width:900px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:22px}
+.phone{width:100%;max-width:360px;margin:0 auto;height:720px;border-radius:44px;background:#F2F2F7;position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;flex-direction:column}
+.hlabel{position:absolute;right:8px;top:8px;background:#0B2A4A;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;z-index:9}
+.cap{font-size:13px;color:#374151;margin:8px 2px 0;line-height:1.45;max-width:360px;margin-left:auto;margin-right:auto}.cap b{color:#0B2A4A}
+.note{background:#fff;border-left:4px solid var(--accent);padding:10px 12px;margin:14px 0;font-size:14px;border-radius:0 10px 10px 0;line-height:1.5;max-width:1100px}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px;max-width:1100px;line-height:1.45}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+table{width:100%;max-width:1100px;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 4px;font-size:13px}
+.flow .box{background:#fff;border:1px solid #C9D3E0;border-radius:10px;padding:7px 10px;font-weight:600;color:#0B2A4A}
+.flow .arr{color:#6B7A90;font-weight:700}
+svg{display:block}
+
+.app{flex:1;padding:0 14px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.status{height:46px;flex:none}
+.nav{display:flex;justify-content:space-between;align-items:center;height:34px;font-weight:600;font-size:16px;flex:none}
+.navbtn{color:var(--accent);font-size:16px;font-weight:500;display:flex;align-items:center;gap:6px}
+.navbtn svg{width:20px;height:20px}
+.big{font-size:32px;font-weight:800;letter-spacing:-.5px;margin:2px 2px 10px;flex:none}
+.segc{display:flex;background:#E4E4E9;border-radius:9px;padding:2px;flex:none}
+.segc span{flex:1;text-align:center;font-size:13px;padding:6px 0;border-radius:7px;color:#333}
+.segc span.on{background:#fff;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.tools{display:flex;justify-content:space-between;align-items:center;margin:10px 4px 0;font-size:13px;color:var(--ink2);flex:none}
+.tools .r{display:flex;gap:14px;color:var(--accent);align-items:center}.tools svg{width:18px;height:18px}
+.secl{font-size:12px;color:var(--ink2);letter-spacing:.5px;text-transform:uppercase;margin:14px 4px 6px;display:flex;justify-content:space-between;flex:none}
+.card{background:#fff;border-radius:20px;overflow:hidden;flex:none}
+.row{display:flex;align-items:center;gap:12px;padding:9px 14px;border-top:1px solid var(--hair);font-size:15px}
+.card .row:first-child{border-top:none}
+.row .t{flex:1;min-width:0}.row .t b{display:block;font-size:15.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .t small{display:block;color:var(--ink2);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .n{color:var(--ink2);font-size:15px}
+.chev{color:#C7C7CC;font-weight:700;font-size:15px}
+.thumb{width:34px;height:44px;border-radius:6px;flex:none;background:linear-gradient(#FFF,#ECEEF2);border:1px solid #E1E3E8;position:relative;overflow:hidden}
+.thumb:before{content:"";position:absolute;left:5px;right:5px;top:7px;height:24px;background:repeating-linear-gradient(#C9CDD4 0 2px,transparent 2px 5px)}
+.thumb.rc{background:linear-gradient(#FFFDF6,#F3EFE4)}
+.ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none;background:#EEF0F4;color:#3A3A3C}
+.ic svg{width:18px;height:18px}
+.ic.fold{background:transparent;color:var(--accent)}.ic.fold svg{width:28px;height:28px}
+.flag{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:700;color:#fff;background:var(--r);padding:3px 7px;border-radius:999px;white-space:nowrap}
+.flag svg{width:10px;height:10px}
+.pill{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.pill.v{background:rgba(27,127,76,.14);color:var(--g)}.pill.n{background:#EEF0F4;color:#555}
+.star{color:#C7C7CC}.star svg{width:16px;height:16px}.star.on{color:var(--accent)}
+
+/* gradient cards */
+.gcard{border-radius:24px;padding:14px 16px;color:#fff;flex:none}
+.gcard.navy{background:linear-gradient(135deg,#1B0F55,#163C8C)}
+.gcard.red{background:linear-gradient(135deg,#5B0E0E,#8E1F1F)}
+.gcard.green{background:linear-gradient(135deg,#0C4A2E,#1B7F4C)}
+.gcard.graph{background:linear-gradient(135deg,#1C1C1E,#3A3A3C)}
+.gcard .h{font-size:19px;font-weight:700}.gcard .s{font-size:12px;opacity:.8}
+.stats{display:flex;gap:10px;margin-top:10px}.stats div{flex:1}.stats b{display:block;font-size:26px;font-weight:800}.stats span{font-size:11px;opacity:.8}
+.arow{display:flex;align-items:center;gap:10px;padding:9px 0 0;margin-top:9px;border-top:1px solid rgba(255,255,255,.18);font-size:14px}
+.arow .t{flex:1}.arow .t small{display:block;opacity:.78;font-size:12px}
+.arow .chev{color:rgba(255,255,255,.6)}
+
+/* floating tab bar, same shape as the app today */
+.tabbar{position:absolute;left:12px;right:12px;bottom:18px;display:flex;gap:8px;align-items:center;z-index:6}
+.tb{flex:1;height:58px;border-radius:29px;display:flex;align-items:center;justify-content:space-around;padding:0 6px}
+.tb div{display:flex;flex-direction:column;align-items:center;font-size:10px;font-weight:600;color:#555;gap:2px;padding:5px 10px;border-radius:22px}
+.tb div.on{color:var(--accent);background:rgba(47,107,255,.10)}.tb svg{width:21px;height:21px}
+.tr{height:58px;border-radius:29px;display:flex;align-items:center;gap:4px;padding:0 6px}
+.tr span{width:46px;height:46px;border-radius:23px;display:flex;align-items:center;justify-content:center;color:#fff}
+.tr svg{width:20px;height:20px}
+.glass{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.95);box-shadow:0 4px 18px rgba(0,0,0,.12),inset 0 1px 0 #fff;backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6)}
+.fade{position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(to top,#F2F2F7 40%,rgba(242,242,247,0));z-index:5}
+
+/* grid view */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 10px;margin-top:12px;flex:none}
+.tile{text-align:center;font-size:11.5px;position:relative}
+.tile .pg{height:96px;border-radius:8px;background:linear-gradient(#FFFDF6,#F3EFE4);border:1px solid #E1E3E8;position:relative;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tile .pg:before{content:"";position:absolute;left:10px;right:10px;top:12px;height:58px;background:repeating-linear-gradient(#CFC9BA 0 2px,transparent 2px 6px)}
+.tile b{display:block;margin-top:5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tile small{color:var(--ink2)}
+.tile .ck{position:absolute;right:6px;bottom:44px;width:22px;height:22px;border-radius:11px;border:1.5px solid #fff;background:rgba(0,0,0,.18);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.tile .ck.on{background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff}.tile .ck svg{width:12px;height:12px}
+.tile.sel .pg{outline:2px solid var(--accent)}
+.actbar{position:absolute;left:12px;right:12px;bottom:18px;height:58px;border-radius:29px;display:flex;justify-content:space-around;align-items:center;z-index:6;font-size:11px;font-weight:600;color:var(--accent)}
+.actbar div{display:flex;flex-direction:column;align-items:center;gap:2px}.actbar svg{width:21px;height:21px}.actbar .del{color:var(--r)}
+
+/* long press */
+.dim{position:absolute;inset:0;background:rgba(242,242,247,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);z-index:7}
+.lp{position:absolute;left:28px;right:28px;top:96px;z-index:8}
+.lp .prev{background:#fff;border-radius:16px;height:230px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:16px;position:relative;overflow:hidden}
+.lp .prev .tt{font-weight:700;font-size:13px}.lp .prev .ln{height:118px;margin-top:10px;background:repeating-linear-gradient(#D2D5DB 0 2px,transparent 2px 7px)}
+.lp .prev small{position:absolute;left:16px;bottom:12px;color:var(--ink2);font-size:11px}
+.menu{background:rgba(250,250,252,.96);border-radius:14px;margin-top:10px;width:230px;box-shadow:0 10px 30px rgba(0,0,0,.18);overflow:hidden}
+.menu div{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:1px solid var(--hair);font-size:15px}
+.menu div:first-child{border-top:none}.menu svg{width:17px;height:17px}.menu .del{color:#D70015}
+.menu .gap{height:7px;padding:0;background:#E9E9EE}
+
+/* vault item */
+.ihead{display:flex;align-items:center;gap:12px;margin:6px 2px 14px;flex:none}
+.ihead .tile2{width:58px;height:58px;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,#0C4A2E,#1B7F4C);flex:none}
+.ihead .tile2 svg{width:28px;height:28px}
+.ihead .tt{flex:1}.ihead .tt b{display:block;font-size:21px;font-weight:700}.ihead .tt small{color:var(--ink2);font-size:13.5px}
+.fld{padding:8px 14px;border-top:1px solid var(--hair);display:flex;align-items:center;gap:8px}
+.card .fld:first-child{border-top:none}
+.fld .t{flex:1}.fld .t small{display:block;color:var(--accent);font-size:12px;font-weight:500}.fld .t b{display:block;font-size:16.5px;font-weight:500;margin-top:1px}
+.fld .t b.warn{color:var(--r)}.fld .t em{font-style:normal;font-size:12px;color:var(--r);font-weight:600}
+.fld.hot{background:rgba(47,107,255,.07)}
+.toast{position:absolute;left:50%;transform:translateX(-50%);top:58px;z-index:8;background:#1C1C1E;color:#fff;font-size:13.5px;font-weight:600;padding:9px 16px;border-radius:20px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.25);display:flex;gap:7px;align-items:center}
+.toast svg{width:14px;height:14px}.toast small{opacity:.7;font-weight:500}
+.hold{position:absolute;right:20px;top:300px;z-index:8;width:236px}
+.ltype{flex:1;background:linear-gradient(160deg,#1C1C1E,#2C2C2E);color:#fff;display:flex;flex-direction:column;padding:0 16px}
+.ltype .close{align-self:flex-end;margin-top:54px;width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center}
+.ltype .close svg{width:14px;height:14px}
+.ltype .lab{margin-top:70px;text-align:center;opacity:.7;font-size:14px}
+.chars{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:20px}
+.chars div{background:rgba(255,255,255,.08);border-radius:12px;text-align:center;padding:12px 0 6px;font-size:44px;font-weight:700;font-family:-apple-system,"SF Pro Display",sans-serif}
+.chars div small{display:block;font-size:11px;opacity:.55;font-weight:600;margin-top:2px}
+.chars div.l{color:#8FB3FF}
+.ltype .foot{margin-top:auto;margin-bottom:40px;text-align:center;font-size:12.5px;opacity:.6;line-height:1.5}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute">
+ <symbol id="folder" viewBox="0 0 24 24"><path fill="currentColor" d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2H19.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/></symbol>
+ <symbol id="doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></g></symbol>
+ <symbol id="lib" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2.5h8.5L19 7v14.5H6zM14 3v4.5h4.5"/></symbol>
+ <symbol id="shield" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z"/></symbol>
+ <symbol id="gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v3M12 18.2v3M2.8 12h3M18.2 12h3M5.5 5.5l2.1 2.1M16.4 16.4l2.1 2.1M5.5 18.5l2.1-2.1M16.4 7.6l2.1-2.1"/></g></symbol>
+ <symbol id="scan" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V5.5A1.5 1.5 0 0 1 5.5 4H9M15 4h3.5A1.5 1.5 0 0 1 20 5.5V9M20 15v3.5a1.5 1.5 0 0 1-1.5 1.5H15M9 20H5.5A1.5 1.5 0 0 1 4 18.5V15"/></g></symbol>
+ <symbol id="search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></g></symbol>
+ <symbol id="list" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r=".8"/><circle cx="4.5" cy="12" r=".8"/><circle cx="4.5" cy="18" r=".8"/></g></symbol>
+ <symbol id="gridi" viewBox="0 0 24 24"><g fill="currentColor"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></g></symbol>
+ <symbol id="sort" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 4v16M3.5 16.5L7 20l3.5-3.5M17 20V4M13.5 7.5L17 4l3.5 3.5"/></g></symbol>
+ <symbol id="person" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5z"/></g></symbol>
+ <symbol id="bldg" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 21V5l8-2v18M12 8h8v13M7 8h2M7 12h2M7 16h2M15 12h2M15 16h2M2.5 21h19"/></g></symbol>
+ <symbol id="plane" viewBox="0 0 24 24"><path fill="currentColor" d="M21 15.5v-1.8l-7.5-4.5V4.5a1.5 1.5 0 0 0-3 0v4.7L3 13.7v1.8l7.5-2.3v4.7l-2 1.5V21l3.5-1 3.5 1v-1.6l-2-1.5v-4.7z"/></symbol>
+ <symbol id="idc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M5.8 16c.6-1.6 1.8-2.4 3.2-2.4s2.6.8 3.2 2.4M14.5 10h4M14.5 13.5h3"/></g></symbol>
+ <symbol id="ccard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M6.5 15h4"/></g></symbol>
+ <symbol id="starf" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1-4.5-4.2 6.1-.8z"/></symbol>
+ <symbol id="trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5M14 11v5"/></g></symbol>
+ <symbol id="share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M8 7l4-4 4 4M6 11H5v10h14V11h-1"/></g></symbol>
+ <symbol id="move" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2h8.4A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/><path d="M9 13h6M12.5 10.5L15 13l-2.5 2.5" stroke-linecap="round"/></g></symbol>
+ <symbol id="copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></g></symbol>
+ <symbol id="pencil" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 20l1-4L16 5l3 3L8 19z"/></symbol>
+ <symbol id="lock" viewBox="0 0 24 24"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zm2 0h6V7a3 3 0 0 0-6 0z"/></symbol>
+ <symbol id="tri" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3l10 18H2zm-1 6v6h2V9zm0 8v2h2v-2z"/></symbol>
+ <symbol id="tick" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+ <symbol id="xmark" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.6" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></symbol>
+ <symbol id="large" viewBox="0 0 24 24"><text x="2" y="18" font-size="15" font-weight="700" font-family="-apple-system,sans-serif" fill="currentColor">Aa</text></symbol>
+ <symbol id="text" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 10h16M4 14h11M4 18h8"/></g></symbol>
+ <symbol id="ell" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="6" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18" cy="12" r="1.7"/></g></symbol>
+ <symbol id="trayclock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2" stroke-linecap="round"/></g></symbol>
+</svg>
+
+<style>
+:root{--acc:#3A424C}
+.metal{background:linear-gradient(160deg,#22282F 0%,#5C6672 48%,#22282F 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 3px 10px rgba(0,0,0,.18);color:#fff}
+.sheet2{position:absolute;left:0;right:0;bottom:0;top:58px;background:#F2F2F7;border-radius:22px 22px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);padding:0 18px;display:flex;flex-direction:column}
+.grab{width:38px;height:5px;border-radius:3px;background:#C7C7CC;margin:8px auto 10px;flex:none}
+.hero{width:72px;height:72px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;margin:6px auto 0;flex:none}
+.ttl{font-size:22px;font-weight:700;text-align:center;margin:12px 0 4px;flex:none}
+.sub2{font-size:14px;color:var(--ink2);text-align:center;margin:0 10px 14px;flex:none;line-height:1.4}
+.pts{background:#fff;border-radius:18px;padding:4px 0;flex:none}
+.pt{display:flex;gap:12px;padding:10px 14px;font-size:14px;line-height:1.35;align-items:flex-start}
+.pt i{width:28px;height:28px;border-radius:8px;background:#EEF0F4;flex:none;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:13px;font-weight:700;color:#3A424C}
+.pt b{display:block;font-size:15px}.pt span{color:var(--ink2)}
+.chk{background:#fff;border-radius:18px;margin-top:12px;flex:none}
+.chk div{display:flex;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--hair);font-size:14px}
+.chk div:first-child{border-top:none}.chk .ok{color:var(--g);font-weight:600}.chk .warn{color:var(--a);font-weight:600}
+.cta{margin-top:auto;flex:none;padding-bottom:30px}
+.btn{border-radius:16px;text-align:center;padding:14px;font-size:17px;font-weight:600}
+.btn2{text-align:center;padding:12px;font-size:16px;color:var(--acc);font-weight:600}
+.ring{width:150px;height:150px;border-radius:50%;margin:20px auto 0;background:conic-gradient(#3A424C 0 62%,#E4E4E9 62% 100%);display:flex;align-items:center;justify-content:center;flex:none}
+.ring div{width:124px;height:124px;border-radius:50%;background:#F2F2F7;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring b{font-size:34px}.ring small{font-size:12px;color:var(--ink2)}
+.sumcard{background:#fff;border-radius:20px;padding:14px;flex:none;margin-top:12px}
+.sumcard .h{font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px}
+.sumcard p{font-size:14px;margin:6px 0 0;line-height:1.45}
+.offer{border-radius:16px;background:#F4F5F7;border:1px solid #E1E3E8;padding:12px;margin-top:10px;display:flex;gap:10px;align-items:center;font-size:13.5px;line-height:1.35}
+.offer b{display:block;font-size:14.5px}.offer .go{margin-left:auto;font-weight:600;color:#fff;padding:7px 12px;border-radius:12px;white-space:nowrap}
+.redline{color:var(--r)}
+</style>
+
+<h1>Checkpoint 18 · Chinese model: fix and first install</h1>
+<p class="sub">Two parts. First the bug: the download was never stuck. It ran, but the progress bar was cut off from it, so it sat at 0. The fix is in and checked in the Simulator: the bar now climbs to 100%. Whether the model then <i>loads</i> on your iPhone is still to be checked; MLX cannot run in the Simulator. Second, the install itself, designed the way Apple Intelligence and on-device AI apps introduce a big download: say what it is, how big, where it runs, check the phone is ready, then show honest progress.</p>
+
+<div class="flow"><span class="box">First Chinese document, or Settings</span><span class="arr">→</span><span class="box">What it is · 2.5 GB · stays on the phone</span><span class="arr">→</span><span class="box">Space, Wi-Fi, battery checked</span><span class="arr">→</span><span class="box">Downloads in the background</span><span class="arr">→</span><span class="box">Try it on one paragraph</span></div>
+
+<h3>1 · What was wrong (found, fixed, half verified)</h3>
+<table>
+<tr><th>Finding</th><th>Evidence</th><th>State</th></tr>
+<tr><td>The progress bar was never connected. The library’s download macro looks for an argument named <code>progressHandler:</code>; DocuVault passed the closure without the name, so the macro dropped it and used an empty one.</td><td>Macro source in mlx-swift-lm; Simulator run: 2.1 GB arrived in 45 s while the state stayed at 0.0</td><td>Fixed; Simulator shows 4% → 100%</td></tr>
+<tr><td>The download only runs while DocuVault is open. Leave the app and iOS suspends it.</td><td>It uses an ordinary foreground download</td><td>Section 3 proposes a background download</td></tr>
+<tr><td>The files sit in Caches, which iOS may clear when storage runs low; then it would ask you to download again.</td><td>The library’s default folder</td><td>Q5</td></tr>
+<tr><td>Loading after the download is unchecked on the iPhone.</td><td>MLX cannot run in the Simulator (its own guide says so)</td><td>Needs one run on your phone on Wi-Fi</td></tr>
+</table>
+
+<h3>2 · Where you meet it</h3>
+<div class="grid">
+
+<div><div class="phone"><span class="hlabel">1 · first chinese document</span><div class="app"><div class="status"></div>
+<div class="nav"><span class="navbtn">‹ Library</span><span>租赁合同</span><span></span></div>
+<div class="sumcard"><div class="h">Summary · Apple model</div>
+<p>本合同为上海办公室租赁，租期两年，月租金人民币三万元。押金三个月。</p>
+<div class="offer"><div><b>Better Chinese summaries</b>A Chinese model can run on this iPhone. 2.5 GB, once.</div><span class="go metal">Get</span></div>
+</div>
+</div></div>
+<p class="cap"><b>Offered where it helps.</b> The first time a Chinese document is summarised, the summary card offers the model once. “Not now” hides it for good; Settings keeps the row.</p></div>
+
+<div><div class="phone"><span class="hlabel">2 · what it is</span><div class="app"><div class="status"></div><div class="big">Library</div>
+<div class="sheet2"><div class="grab"></div>
+<div class="hero metal">中</div>
+<div class="ttl">Chinese summaries on this iPhone</div>
+<div class="sub2">A language model that reads Chinese documents and writes the summary. It runs on the phone itself.</div>
+<div class="pts">
+<div class="pt"><i>1</i><div><b>Nothing leaves your iPhone</b><span>Your documents are never sent anywhere. It works in flight mode.</span></div></div>
+<div class="pt"><i>2</i><div><b>2.5 GB, downloaded once</b><span>From Hugging Face, the public library for open AI models. Delete it any time in Settings.</span></div></div>
+<div class="pt"><i>3</i><div><b>Apple’s model stays as a backup</b><span>If this one is off or missing, summaries still work, in plainer Chinese.</span></div></div>
+</div>
+<div class="cta"><div class="btn metal">Continue</div><div class="btn2">Not now</div></div>
+</div></div></div>
+<p class="cap"><b>Plain answers first.</b> The three things a careful person asks before a big download: is my data safe, how big is it, what if I say no. No model names, no “MLX”, no “4-bit”.</p></div>
+
+<div><div class="phone"><span class="hlabel">3 · ready check</span><div class="app"><div class="status"></div><div class="big">Library</div>
+<div class="sheet2"><div class="grab"></div>
+<div class="ttl" style="margin-top:6px">Before you download</div>
+<div class="sub2">Checked on your iPhone now.</div>
+<div class="chk">
+<div><span>Free space</span><span class="ok">48 GB ✓</span></div>
+<div><span>Connection</span><span class="warn">5G · Uses 2.5 GB of data</span></div>
+<div><span>Battery</span><span class="ok">80% ✓</span></div>
+</div>
+<div class="sub2" style="margin-top:12px">You can leave DocuVault while it downloads. It finishes in the background and tells you when it is ready.</div>
+<div class="cta"><div class="btn metal">Download on 5G</div><div class="btn2">Wait for Wi-Fi</div></div>
+</div></div></div>
+<p class="cap"><b>The phone is checked, not the person.</b> Space below 5 GB stops the download with the number to free. On mobile data it says so in amber and offers to wait for Wi-Fi; on Wi-Fi this row is green and the button reads “Download 2.5 GB”.</p></div>
+
+<div><div class="phone"><span class="hlabel">4 · downloading</span><div class="app"><div class="status"></div>
+<div class="nav"><span class="navbtn">‹ Settings</span><span>Summaries</span><span></span></div>
+<div class="ring"><div><b>62%</b><small>1.6 of 2.5 GB</small></div></div>
+<div class="ttl" style="font-size:18px">Downloading the Chinese model</div>
+<div class="sub2">About 3 min left on Wi-Fi. You can leave the app.</div>
+<div class="card"><div class="row" style="justify-content:center"><b style="color:var(--acc)">Pause</b></div></div>
+</div></div>
+<p class="cap"><b>Honest progress.</b> Percent, gigabytes and time left from the real transfer rate. The same ring sits on the Summaries row in Settings. If the connection drops, it pauses and resumes by itself rather than failing.</p></div>
+
+<div><div class="phone"><span class="hlabel">5 · try it</span><div class="app"><div class="status"></div>
+<div class="nav"><span class="navbtn">‹ Settings</span><span>Summaries</span><span></span></div>
+<div class="card" style="margin-top:12px"><div class="row"><div class="ic" style="background:rgba(27,127,76,.14);color:var(--g)"><svg><use href="#tick"/></svg></div><div class="t"><b>Chinese model ready</b><small>2.5 GB · Works offline</small></div></div></div>
+<div class="sumcard"><div class="h">Try it · sample paragraph</div>
+<p>甲方同意将位于上海市静安区的办公室出租给乙方，租期自二〇二六年十一月一日起两年……</p>
+<p style="color:var(--g);font-weight:600;margin-top:10px">摘要：上海静安区办公室租赁两年，自2026年11月起。</p>
+</div>
+<p class="cap" style="margin:12px 4px 0">The first summary also loads the model into memory, which takes a few seconds. Doing it here means your first real document is fast.</p>
+</div></div>
+<p class="cap"><b>Proof it works.</b> A built-in sample paragraph, not one of your documents, summarised on the spot. You see it working before you rely on it.</p></div>
+
+<div><div class="phone"><span class="hlabel">6 · stopped</span><div class="app"><div class="status"></div>
+<div class="nav"><span class="navbtn">‹ Settings</span><span>Summaries</span><span></span></div>
+<div class="card" style="margin-top:12px"><div class="row"><div class="ic" style="background:rgba(142,31,31,.12);color:var(--r)"><svg><use href="#tri"/></svg></div><div class="t"><b class="redline">Download paused at 62%</b><small>No connection · Resumes on Wi-Fi</small></div></div>
+<div class="row" style="justify-content:center"><b style="color:var(--acc)">Resume now</b></div></div>
+<p class="cap" style="margin:12px 4px 0">Errors say what happened and what happens next in one line, never “Download failed: The operation couldn’t be completed”.</p>
+</div></div>
+<p class="cap"><b>Failure without a dead end.</b> What stopped it, how far it got, and that it continues by itself.</p></div>
+
+</div>
+
+<h3>Rules that are code, not prompt</h3>
+<table>
+<tr><th>Rule</th><th>Where it lives</th></tr>
+<tr><td>Your documents never leave the phone for this model; the only network use is downloading the model files</td><td>Download code fetches the model’s repository only; summaries run through MLX locally</td></tr>
+<tr><td>Progress shown is the real transfer, bytes received of bytes expected</td><td>The download task’s own counters</td></tr>
+<tr><td>On mobile data the download never starts without your tap on “Download on 5G”</td><td>Connection checked with <code>NWPathMonitor</code> before starting</td></tr>
+<tr><td>Under 5 GB free, the download does not start</td><td>Free space read from the volume before starting</td></tr>
+<tr><td>Apple’s model stays the fallback whenever this one is off, missing or fails</td><td>Unchanged <code>SummaryService</code> rule</td></tr>
+</table>
+
+<h3>Questions</h3>
+<div class="q">Q1 · Offer it in the summary card the first time a Chinese document is summarised, once, plus the row in Settings. Recommended: <b>yes</b>.</div>
+<div class="q">Q2 · On mobile data: warn in amber and ask, with “Wait for Wi-Fi” as the other choice. Recommended: <b>yes, ask</b> (not block).</div>
+<div class="q">Q3 · Download in the background so you can leave the app, and get a notification when ready. This replaces the library’s downloader for the big file with Apple’s background download. Recommended: <b>yes</b>.</div>
+<div class="q">Q4 · After install, a “Try it” summary of a built-in sample paragraph. Recommended: <b>yes</b>.</div>
+<div class="q">Q5 · Keep the model where iOS will not clear it when storage runs low (Application Support, left out of iCloud backup), instead of Caches. Recommended: <b>yes</b>; you delete it yourself in Settings.</div>
+</body></html>

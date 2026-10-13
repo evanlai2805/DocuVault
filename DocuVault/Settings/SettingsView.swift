@@ -7,8 +7,6 @@ import DocuVaultCore
 struct SettingsView: View {
     @Query private var docs: [StoredDocument]
     @Environment(\.modelContext) private var context
-    @State private var confirmWipe = false
-    @State private var confirmResetKey = false
     @State private var summaries = SummaryService.shared
     @State private var models = LocalModelManager.shared
     @State private var cloud = CloudService.shared
@@ -60,14 +58,15 @@ struct SettingsView: View {
             }
 
             CardSection(title: "Erase") {
-                Button { confirmWipe = true } label: {
-                    CardRow(title: "Delete all documents", subtitle: "\(docs.count) document\(docs.count == 1 ? "" : "s") and their pages", destructive: true)
+                ConfirmRow(title: "Delete all documents", subtitle: "\(docs.count) document\(docs.count == 1 ? "" : "s") and their pages",
+                           question: "Every document and page image is deleted.", action: "Delete all") {
+                    for d in docs { for p in d.pages { PageStore.delete(p.imageFileName) }; context.delete(d) }
+                    try? context.save()
                 }
-                .buttonStyle(.plain)
-                Button { confirmResetKey = true } label: {
-                    CardRow(title: "Reset vault key", subtitle: "Sealed documents become unreadable", destructive: true)
+                ConfirmRow(title: "Reset vault key", subtitle: "Sealed documents become unreadable",
+                           question: "Every sealed document becomes unreadable. Delete them first.", action: "Reset key") {
+                    VaultKeychain.deleteKey()
                 }
-                .buttonStyle(.plain)
             }
 
             Text("DocuVault \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
@@ -75,23 +74,17 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity)
         }
         .navigationTitle("Settings")
-        .confirmationDialog("Reset the vault key? Every sealed document becomes unreadable. Delete them first.", isPresented: $confirmResetKey, titleVisibility: .visible) {
-            Button("Reset key", role: .destructive) { VaultKeychain.deleteKey() }
-        }
-        .confirmationDialog("Delete every document and page image?", isPresented: $confirmWipe, titleVisibility: .visible) {
-            Button("Delete all", role: .destructive) {
-                for d in docs { for p in d.pages { PageStore.delete(p.imageFileName) }; context.delete(d) }
-                try? context.save()
-            }
-        }
     }
 
     private var summariesLine: String {
         let on = summaries.autoSummarise ? "On" : "Off"
         switch models.state {
         case .installed, .ready, .loading: return "\(on) · Chinese model installed"
-        case .downloading: return "\(on) · Chinese model downloading"
-        default: return "\(on) · Chinese model not installed"
+        case .downloading(let r, let t): return "\(on) · Chinese model \(t > 0 ? Int(Double(r) / Double(t) * 100) : 0)%"
+        case .paused, .failed: return "\(on) · Chinese model paused"
+        case .verifying: return "\(on) · Chinese model checking"
+        case .unavailable(let why): return "\(on) · \(why)"
+        case .notInstalled: return "\(on) · Chinese model not installed"
         }
     }
 
@@ -101,12 +94,10 @@ struct SettingsView: View {
     }
 }
 
-/// Summaries: the one switch and which model runs on this phone for each language. The install flow for
-/// the Chinese model is checkpoint 18; here it only moved out of Settings.
+/// Summaries: the one switch, Apple's model for English, and the Chinese model with its install,
+/// download and Try it states (checkpoint 18).
 struct SummariesSettingsView: View {
     @State private var summaries = SummaryService.shared
-    @State private var models = LocalModelManager.shared
-    @State private var confirmDelete = false
 
     var body: some View {
         CardPage {
@@ -114,50 +105,14 @@ struct SummariesSettingsView: View {
                 CardToggle(title: "Summarise contracts and letters", subtitle: "When you save one",
                            isOn: Binding(get: { summaries.autoSummarise }, set: { summaries.autoSummarise = $0 }))
             }
-            CardSection(title: "Models on this phone") {
-                CardRow(title: "English", subtitle: "Apple Intelligence · \(AppleSummarizer.availability.message)",
+            CardSection(title: "English") {
+                CardRow(title: "Apple Intelligence", subtitle: AppleSummarizer.availability.message,
                         icon: (AppleSummarizer.availability == .available) ? "checkmark" : "xmark",
                         tint: (AppleSummarizer.availability == .available) ? Theme.Colors.verified : Theme.Colors.ink)
-                chineseRow
             }
-            if models.isInstalled {
-                CardSection {
-                    CardToggle(title: "Use it for Chinese", subtitle: "Apple's model is used when this is off",
-                               isOn: Binding(get: { models.useForChinese }, set: { models.useForChinese = $0 }))
-                    Button { confirmDelete = true } label: { CardRow(title: "Delete Chinese model", subtitle: String(format: "Frees %.1f GB", models.installedSizeGB), destructive: true) }
-                        .buttonStyle(.plain)
-                }
-            }
+            ChineseModelSection()
         }
         .navigationTitle("Summaries")
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("Delete the Chinese model? You can download it again later.", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("Delete model", role: .destructive) { models.delete() }
-        }
-    }
-
-    @ViewBuilder private var chineseRow: some View {
-        switch models.state {
-        case .unavailable(let why):
-            CardRow(title: "中文", subtitle: why, icon: "character.textbox")
-        case .notInstalled:
-            Button { Task { await models.download() } } label: {
-                CardRow(title: "中文", subtitle: String(format: "Not installed · %.1f GB download", LocalModelManager.approxSizeGB), icon: "character.textbox", value: "Get")
-            }
-            .buttonStyle(.plain)
-        case .downloading(let p):
-            VStack(alignment: .leading, spacing: 8) {
-                CardRow(title: "中文", subtitle: p < 0 ? "Downloading" : "Downloading · \(Int(p * 100))%", icon: "character.textbox")
-                Group { if p < 0 { ProgressView() } else { ProgressView(value: p) } }
-                    .padding(.horizontal, 16).padding(.bottom, 12)
-            }
-        case .installed, .ready, .loading:
-            CardRow(title: "中文", subtitle: String(format: "Installed · %.1f GB", models.installedSizeGB), icon: "checkmark", tint: Theme.Colors.verified)
-        case .failed(let e):
-            Button { Task { await models.download() } } label: {
-                CardRow(title: "中文", subtitle: e, icon: "exclamationmark.triangle", tint: Theme.Colors.danger, value: "Retry")
-            }
-            .buttonStyle(.plain)
-        }
     }
 }

@@ -17,6 +17,8 @@ changes or a phase lands, edit the matching section in the same commit.
 | 7 | Claude opt-in: Redactor, CloudGate, approval sheet, send log, API key | Done; first live send **unverified** |
 | 7a | Batch import: one document per image, queued review/save, merge/split | Done 12 Oct |
 | 16 | Library (Files model) and Vault (1Password model) | Built 13 Oct, **unverified on device** |
+| 17 | One card design, swipe, Settings cut, gunmetal accent | Built 13 Oct, partly seen on device |
+| 18 | Chinese model: background download, hash check, install flow | Built 13 Oct, model load **unverified on device** |
 
 CI: `core-tests.yml` (145 tests) and `app-build.yml` (Simulator build incl. MLX) both green at `d72ba81`,
 the keyboard selector rebuild: 145 tests, 0 failures, 0 compiler warnings.
@@ -212,7 +214,28 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
 - Face ID: the privacy shield no longer covers the vault while iOS shows its Face ID badge (the app is inactive then);
   seen in Evan's screen recording, fixed in b62dc6e.
 
+13 Oct · checkpoint 18 answers (Chinese model; Evan: "go with recommended"; built, model load unverified on device)
+- Root cause of "never downloads": the progress closure was passed to `#huggingFaceLoadModelContainer` as a trailing
+  closure; the macro looks it up by its `progressHandler:` label and silently used `{ _ in }`. The download ran with the
+  bar at 0 (Simulator: 2.1 GB in 45 s at 0.0). MLX cannot run in the Simulator (its troubleshooting guide); loading there
+  crashes, so the Simulator now reports the model as "Runs on iPhone only".
+- Q3: the library's downloader is replaced by `ModelDownloader`, a background URLSession: continues when the app is
+  closed, waits through dropped connections, relaunches the app to finish, notifies when ready. "Wait for Wi-Fi" is a
+  Wi-Fi-only download that starts by itself.
+- Integrity: `ModelManifest.qwen3_4B` pins mlx-community/Qwen3-4B-4bit at 4dcb3d10 with the 8 files MLX loads; each is
+  checked against Hugging Face's published hash (SHA-256 for LFS files, git blob SHA-1 for the rest) before the staging
+  folder is renamed into place. All 8 hashes were checked against real downloaded bytes on 13 Oct.
+- Q5: files live in Application Support/Models (not cleared by iOS, excluded from backup). A complete copy left in Caches
+  by the old downloader is verified and reused instead of downloading again.
+- Q1: offered once under the first Chinese summary Apple's model writes, plus Settings · Summaries. Q2: mobile data warns
+  in amber and asks. Q4: "Try it" summarises a built-in sample paragraph.
+- `scripts/test-core.sh` printed PASS while tests failed: it matched any suite's "with 0 failures" line. It now needs
+  `swift test` to exit 0 and the final total to report 0 failures. Earlier runs today were checked: their totals were clean.
+- Settings, Claude and Summaries: destructive confirmations are drop-down menus anchored to the row (`ConfirmRow`),
+  not dialogs pinned to the top of the page (Evan's screenshots).
+
 ## 3. Open device validations (do these next, in order)
+- Checkpoint 18 on the iPhone: download on Wi-Fi, hash check, install, load, and the Try it summary.
 - 13 Oct, checkpoint 16 build: existing documents survive the update (two new stored properties); Recents, Browse,
   grid and select mode; Move to Vault on a test document; vault item tap-copy, hold menu, Large type; favourites on
   the keyboard start page. Keyboard search: keys stay full size, matches grow the keyboard upward, Open loads.

@@ -139,3 +139,25 @@ struct ChoiceChips<T: Hashable>: View {
         }
     }
 }
+
+/// A destructive row that asks in a drop-down opened from the row itself: the same Liquid Glass menu
+/// and spring as "Opens on" (Evan, 13 Oct). A confirmation dialog was pinned to the page and appeared
+/// at the top of the screen, far from the row that was tapped.
+struct ConfirmRow: View {
+    let title: String
+    var subtitle: String? = nil
+    let question: String
+    let action: String
+    let perform: () -> Void
+
+    var body: some View {
+        Menu {
+            Section(question) {
+                Button(action, role: .destructive, action: perform)
+            }
+        } label: {
+            CardRow(title: title, subtitle: subtitle, destructive: true)
+        }
+        .buttonStyle(.plain)
+    }
+}

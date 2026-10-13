@@ -13,6 +13,8 @@ struct SummaryCard: View {
     @State private var askFormat = false
     @State private var cloudDraft: CloudService.Draft?
     @State private var showAsk = false
+    @State private var models = LocalModelManager.shared
+    @State private var showInstall = false
 
     private var summary: DocumentSummary? { service.summary(for: doc) }
     private var state: SummaryService.State { service.state(for: doc) }
@@ -23,10 +25,40 @@ struct SummaryCard: View {
             if state == .askLanguage { languageAsk }
             if let s = summary, state == .idle {
                 if s.format == .unsure || askFormat { formatAsk } else { contentBox(s) }
+                if offersModel(s) { modelOffer }
             }
         }
+        .sheet(isPresented: $showInstall) { ModelInstallSheet() }
         .sheet(item: $cloudDraft) { d in CloudApprovalSheet(draft: d) }
         .sheet(isPresented: $showAsk) { AskClaudeSheet(doc: doc, text: text) }
+    }
+
+    /// The Chinese model is offered once, under the first Chinese summary Apple's model wrote (checkpoint 18 Q1).
+    private func offersModel(_ s: DocumentSummary) -> Bool {
+        s.language == "zh-Hans" && s.model == "apple" && models.state == .notInstalled && !models.offerAnswered
+    }
+
+    private var modelOffer: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Better Chinese summaries").font(.system(size: 16, weight: .semibold))
+                Text("A Chinese model can run on this iPhone. \(InstallCheck.gigabytes(models.totalBytes, digits: 1)), once.")
+                    .font(.system(size: 14)).foregroundStyle(Theme.Colors.ink2)
+            }
+            Spacer(minLength: 8)
+            VStack(spacing: 6) {
+                Button { showInstall = true } label: {
+                    Text("Get").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
+                        .padding(.horizontal, 16).padding(.vertical, 8)
+                        .accentSheen(in: Capsule())
+                }
+                .buttonStyle(.plain)
+                Button("Not now") { models.offerAnswered = true }.font(.system(size: 13)).foregroundStyle(Theme.Colors.ink2)
+            }
+        }
+        .padding(16)
+        .background(Theme.Colors.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     /// Cloud is offered only when a key exists and the gate allows this document (never vault, never ID types).
