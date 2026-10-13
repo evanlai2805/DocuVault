@@ -115,7 +115,8 @@ struct KeyboardRootView: View {
 
     private var bar: some View {
         HStack(spacing: 6) {
-            circle("line.3.horizontal", style: model.panel == .menu ? .matteOpen : .matte) { model.toggleMenu() }
+            // Glass like the scan circle until the menu is open; then filled black, no ring (Evan, 13 Oct).
+            circle("line.3.horizontal", style: model.panel == .menu ? .matte : .ink) { model.toggleMenu() }
                 .accessibilityLabel("Menu")
             Button { model.openSearch() } label: {
                 HStack(spacing: 6) {
@@ -148,12 +149,12 @@ struct KeyboardRootView: View {
         .frame(height: 34)
     }
 
-    private enum CircleStyle { case matte, matteOpen, ink, dim, accent, green }
+    private enum CircleStyle { case matte, ink, dim, accent, green }
 
     private func circle(_ symbol: String, style: CircleStyle, action: @escaping () -> Void) -> some View {
         let fill: Color, fg: Color
         switch style {
-        case .matte, .matteOpen: fill = Palette.graphite; fg = .white
+        case .matte: fill = Palette.graphite; fg = .white
         case .accent: fill = Palette.accent; fg = .white
         case .ink: fill = Palette.glass; fg = Palette.ink
         case .dim: fill = Palette.glass; fg = Palette.ink3
@@ -164,7 +165,7 @@ struct KeyboardRootView: View {
                 .frame(width: 32, height: 32)
                 .background(fill)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(style == .matteOpen ? Palette.accent : Palette.glassEdge, lineWidth: style == .matteOpen ? 2 : 1))
+                .overlay(Circle().stroke(Palette.glassEdge, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

@@ -133,7 +133,8 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
 - Q1: loaded document named on a "Filling from" line above the keys; keys 40pt, four rows, no scroll. Search bar always reads Search.
 - Q2: long key labels shrink (minimumScaleFactor 0.8, one line), 12pt inset. Date hints 9.5pt.
 - Q3: segments and chips follow the app chip rule (selected white pill + hairline, unselected ink2 text). Menu circle matte black
-  (graphite) with an accent ring while open; scan circle accent while open. Done and Back stay accent.
+  (graphite) with an accent ring while open; scan circle accent while open. Changed 13 Oct: the menu circle is glass like
+  the scan circle until the menu opens, then solid black with no ring. Done and Back stay accent.
 - Hold on any key opens a menu drawn inside the keyboard: top card = the value (tap inserts), then options only where they
   make sense (dates: four formats, re-renders every date hint for the session; card number: with/without spaces; Chinese
   name: characters/pinyin). Plain keys show the preview card alone. Hold never inserts. Q6: keys dim behind the menu.

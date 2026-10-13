@@ -59,7 +59,6 @@ struct VaultView: View {
                     .background(Theme.Colors.accent).foregroundStyle(.white).clipShape(Capsule())
             }
             .disabled(unlocking)
-            Text("Locks again \(Int(VaultSession.autoLockSeconds)) s after you leave").font(.system(size: 13)).foregroundStyle(Theme.Colors.ink2)
             Spacer()
         }
         .frame(maxWidth: .infinity)
