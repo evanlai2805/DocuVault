@@ -12,6 +12,7 @@ struct LargeTypeView: View {
     let item: Item
     @Environment(\.dismiss) private var dismiss
     @Environment(VaultSession.self) private var vault
+    @State private var drag: CGFloat = 0
 
     private var chars: [Character] { Array(item.value) }
 
@@ -50,6 +51,16 @@ struct LargeTypeView: View {
         }
         .background(LinearGradient(colors: [Theme.Colors.graphite, Color(red: 0x2C/255, green: 0x2C/255, blue: 0x2E/255)],
                                    startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea())
+        .offset(y: drag)
+        // Swipe down closes it, like a sheet (checkpoint 17).
+        .gesture(
+            DragGesture(minimumDistance: 20)
+                .onChanged { v in drag = max(0, v.translation.height) }
+                .onEnded { v in
+                    if v.translation.height > 120 { dismiss() }
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { drag = 0 }
+                }
+        )
         .onChange(of: vault.isUnlocked) { _, unlocked in if !unlocked { dismiss() } }
     }
 }

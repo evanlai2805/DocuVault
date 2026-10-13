@@ -2,60 +2,55 @@ import SwiftUI
 import SwiftData
 import DocuVaultCore
 
-/// Export settings and "Export now". In-app mirror always; folder sync optional.
+/// Export (checkpoint 17): a navy card says what the plain-text copy holds, then the two switches and
+/// Export now. The in-app copy is always written; folder sync is optional.
 struct ExportView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Environment(VaultSession.self) private var vault
+    @Query(filter: #Predicate<StoredDocument> { $0.deletedAt == nil }) private var docs: [StoredDocument]
     @State private var showPicker = false
     @State private var exporting = false
-    private var export: ExportManager { ExportManager.shared }
 
     var body: some View {
         @Bindable var ex = ExportManager.shared
-        List {
-            Section {
-                HStack {
-                    Label("In app", systemImage: "iphone")
-                    Spacer()
-                    Text("Always · Encrypted at rest").foregroundStyle(Theme.Colors.ink2)
+        CardPage {
+            GradientCard(style: .navy) {
+                CardHeader(title: "Plain-text copy", subtitle: "Markdown files · expenses.csv")
+                HStack(alignment: .top, spacing: 10) {
+                    StatBlock(label: "Documents", value: "\(docs.count)", small: true)
+                    StatBlock(label: "Receipts", value: "\(docs.filter { $0.type == .receipt }.count)", small: true)
+                    StatBlock(label: "Last written", value: ex.lastExport.map { $0.formatted(date: .omitted, time: .shortened) } ?? "Never", small: true)
                 }
-                Toggle(isOn: $ex.syncFolder) { Label("Also write to a folder", systemImage: "folder") }
+            }
+
+            CardSection(note: ex.syncFolder ? "A DocuVault folder inside it is rewritten on every save. Other files there are never touched." : nil) {
+                CardToggle(title: "Also write to a folder", subtitle: ex.syncFolder ? (ex.folderName ?? "Choose a folder") : "Files, iCloud Drive or a drive", isOn: $ex.syncFolder)
                 if ex.syncFolder {
-                    Button { showPicker = true } label: {
-                        HStack { Text("Folder"); Spacer(); Text(ex.folderName ?? "Choose…").foregroundStyle(Theme.Colors.ink2) }
-                    }
-                    Toggle(isOn: $ex.includeImages) { Text("Include page images") }
+                    Button { showPicker = true } label: { CardRow(title: "Folder", value: ex.folderName ?? "Choose", chevron: true) }
+                        .buttonStyle(.plain)
+                    CardToggle(title: "Include page images", isOn: $ex.includeImages)
                 }
-            } header: { Text("Destination") } footer: {
-                Text("Plain text. A DocuVault/ folder is created inside the folder you pick and rewritten on every save. Other files there are never touched.")
             }
-            Section("What is written") {
-                row("vault/<person>/<type>-<title>.md", "One file per document")
-                row("vault/index.md", "Everyone · Type · Expiry · Checks · Deletions")
-                row("expenses.csv", "One row per receipt")
-                row("images/", ex.includeImages ? "On" : "Off")
-            }
-            Section {
+
+            CardSection(note: vault.isUnlocked ? nil : "The vault is locked, so sealed documents will be skipped.") {
                 Button { Task { await run() } } label: {
-                    HStack { Text(exporting ? "Exporting…" : "Export now"); Spacer(); if let d = ex.lastExport { Text(d.formatted(date: .omitted, time: .shortened)).foregroundStyle(Theme.Colors.ink2) } }
+                    Text(exporting ? "Exporting" : "Export now")
+                        .font(.system(size: 17, weight: .semibold)).foregroundStyle(Theme.Colors.accent)
+                        .frame(maxWidth: .infinity).padding(.vertical, 14).contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
                 .disabled(exporting)
-                if let e = ex.lastError { Text(e).foregroundStyle(Theme.Colors.danger).font(.footnote) }
-                if !vault.isUnlocked { Text("Vault is locked: sealed documents will be skipped.").font(.footnote).foregroundStyle(Theme.Colors.warning) }
+            }
+            if let e = ex.lastError {
+                Text(e).font(.system(size: 14)).foregroundStyle(Theme.Colors.danger).padding(.horizontal, 4)
             }
         }
-        .scrollContentBackground(.hidden).background(Theme.Colors.canvas)
         .navigationTitle("Export")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         .fileImporter(isPresented: $showPicker, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result { ExportManager.shared.setFolder(url) }
         }
-    }
-
-    private func row(_ k: String, _ v: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) { Text(k).font(.system(size: 15, design: .monospaced)); Text(v).font(.footnote).foregroundStyle(Theme.Colors.ink2) }
     }
 
     private func run() async {

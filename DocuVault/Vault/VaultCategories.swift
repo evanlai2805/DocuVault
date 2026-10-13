@@ -98,11 +98,16 @@ struct TombstoneList: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        List {
-            if tombstones.isEmpty { Text("Nothing deleted by retention yet").foregroundStyle(Theme.Colors.ink2) }
-            ForEach(tombstones) { t in
-                Text(DisplayText.displayDates(in: DisplayText.capitalisedSegments(String(t.line.replacingOccurrences(of: "~~", with: "").dropFirst(2)))))
-                    .font(.system(size: 15))
+        CardPage {
+            Text("When a client's retention period ends, the document is deleted and one line stays here and in index.md.")
+                .font(.system(size: 14)).foregroundStyle(Theme.Colors.ink2).padding(.horizontal, 4)
+            CardSection {
+                if tombstones.isEmpty { CardRow(title: "Nothing deleted by retention yet") }
+                ForEach(tombstones) { t in
+                    Text(DisplayText.displayDates(in: DisplayText.capitalisedSegments(String(t.line.replacingOccurrences(of: "~~", with: "").dropFirst(2)))))
+                        .font(.system(size: 15)).padding(.horizontal, 16).padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
         .navigationTitle("Deleted by retention")

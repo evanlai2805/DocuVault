@@ -15,31 +15,27 @@ struct MoveSheet: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    Button { Task { await moveToVault() } } label: {
-                        Label("Move to Vault", systemImage: "lock.fill")
-                    }
-                } footer: {
-                    Text("Sealed behind Face ID. Vault documents never leave the phone and are not sent to Claude.")
+            CardPage {
+                CardSection(note: "Sealed behind Face ID. Vault documents never leave the phone and are never sent to Claude.") {
+                    Button { Task { await moveToVault() } } label: { CardRow(title: "Move to Vault", icon: "lock.fill", tint: Theme.Colors.graphite) }
+                        .buttonStyle(.plain)
                 }
-                Section("Owner") {
+                CardSection(title: "Owner") {
                     ForEach(people) { p in
                         Button { assign(p) } label: {
                             HStack {
-                                Text(p.name).foregroundStyle(Theme.Colors.ink)
-                                Spacer()
-                                Text(p.kind.displayName).foregroundStyle(Theme.Colors.ink2)
+                                CardRow(title: p.name, subtitle: p.kind.displayName)
                                 if docs.allSatisfy({ $0.person?.id == p.id }) {
-                                    Image(systemName: "checkmark").foregroundStyle(Theme.Colors.accent)
+                                    Image(systemName: "checkmark").font(.system(size: 15, weight: .bold)).foregroundStyle(Theme.Colors.accent).padding(.trailing, 16)
                                 }
                             }
                         }
+                        .buttonStyle(.plain)
                     }
-                    Button { assign(nil) } label: { Text("No owner").foregroundStyle(Theme.Colors.ink) }
+                    Button { assign(nil) } label: { CardRow(title: "No owner") }.buttonStyle(.plain)
                 }
                 if let error {
-                    Text(error).foregroundStyle(Theme.Colors.danger)
+                    Text(error).font(.system(size: 14)).foregroundStyle(Theme.Colors.danger).padding(.horizontal, 4)
                 }
             }
             .navigationTitle(docs.count == 1 ? "Move" : "Move \(docs.count) documents")

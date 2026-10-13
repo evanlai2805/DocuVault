@@ -32,13 +32,11 @@ struct SelectionBar: View {
         .buttonStyle(.plain)
         .opacity(model.count == 0 ? 0.5 : 1)
         .padding(4)
-        .frame(height: 68)
-        .background(.ultraThinMaterial)
-        .overlay(Capsule().stroke(Theme.Colors.hairline.opacity(0.6)))
-        .clipShape(Capsule())
-        .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
+        .frame(height: FloatingTabBar.height)
+        .glassEffect(.regular, in: Capsule())
         .padding(.horizontal, 14)
-        .padding(.bottom, 10)
+        .padding(.bottom, FloatingTabBar.bottomGap)
+        .ignoresSafeArea(.container, edges: .bottom)
     }
 
     private func item(_ title: String, _ icon: String, tint: Color = Theme.Colors.accent) -> some View {
@@ -47,7 +45,7 @@ struct SelectionBar: View {
             Text(title).font(.system(size: 11, weight: .semibold))
         }
         .foregroundStyle(tint)
-        .frame(maxWidth: .infinity).frame(height: 60)
+        .frame(maxWidth: .infinity).frame(height: FloatingTabBar.height - 8)
         .contentShape(Rectangle())
     }
 }

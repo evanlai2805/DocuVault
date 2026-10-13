@@ -71,13 +71,6 @@ struct DocumentCollection: View {
                 }
             }
         }
-        .toolbar {
-            if selecting {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { endSelecting() }.fontWeight(.semibold)
-                }
-            }
-        }
         .onChange(of: selected) { publishBar() }
         .onChange(of: selecting) { publishBar() }
         .onDisappear { endSelecting() }
@@ -127,6 +120,9 @@ struct DocumentCollection: View {
                 Button(selected.count == docs.count ? "Deselect all" : "Select all") {
                     selected = selected.count == docs.count ? [] : Set(docs.map(\.id))
                 }
+                // Done sits here, not in the navigation bar: toolbar items inside a paged TabView
+                // are not guaranteed to reach the bar.
+                Button("Done") { endSelecting() }.fontWeight(.semibold)
             }
         }
         .font(.system(size: 18))
@@ -204,11 +200,14 @@ struct DocumentCollection: View {
 
     // MARK: Action bar
 
+    /// Only the page that was selecting clears the bar: the pagers keep neighbouring pages alive, and
+    /// one disappearing must not hide another page's action bar.
     private func endSelecting() {
+        let was = selecting
         selecting = false
         selected = []
         moving = []
-        chrome.selection = nil
+        if was { chrome.selection = nil }
     }
 
     private func publishBar() {

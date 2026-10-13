@@ -150,20 +150,18 @@ struct SharedFieldsSheet: View {
     @Environment(\.modelContext) private var context
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Contact details") {
-                    TextField("Full name", text: $person.fullName)
-                    TextField("Address", text: $person.address, axis: .vertical)
-                    TextField("Phone", text: $person.phone).keyboardType(.phonePad)
-                    TextField("Email", text: $person.email).keyboardType(.emailAddress).textInputAutocapitalization(.never)
+            CardPage {
+                CardSection(title: "Contact details") {
+                    CardField(label: "Full name", placeholder: "As on the passport", text: $person.fullName)
+                    CardField(label: "Address", placeholder: "Street, unit, postcode", text: $person.address, axis: .vertical)
+                    CardField(label: "Phone", placeholder: "+65", text: $person.phone, keyboard: .phonePad)
+                    CardField(label: "Email", placeholder: "name@example.com", text: $person.email, keyboard: .emailAddress)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
                 }
-                Section("Person") {
-                    TextField("Short name", text: $person.name)
-                    Picker("Kind", selection: $person.kind) { ForEach(PersonKind.allCases, id: \.self) { Text($0.displayName).tag($0) } }
-                    Picker("Auto-delete after", selection: $person.retentionDays) {
-                        Text("Never").tag(Optional<Int>.none); Text("30 days").tag(Optional(30)); Text("60 days").tag(Optional(60)); Text("90 days").tag(Optional(90))
-                    }
+                CardSection(title: "Person") {
+                    CardField(label: "Short name", placeholder: "Shown in lists", text: $person.name)
                 }
+                PersonChoices(kind: $person.kind, retention: $person.retentionDays)
             }
             .navigationTitle("Edit \(person.name)")
             .navigationBarTitleDisplayMode(.inline)

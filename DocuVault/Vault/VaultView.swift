@@ -32,7 +32,7 @@ struct VaultView: View {
             }
         }
         .sheet(isPresented: $showAddPerson) { AddPersonSheet() }
-        .sheet(isPresented: $showExport) { NavigationStack { ExportView() } }
+        .sheet(isPresented: $showExport) { NavigationStack { ExportView().toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showExport = false } } } } }
         .sheet(isPresented: $showTombstones) { NavigationStack { TombstoneList(tombstones: tombstones) } }
         .task { if !vault.isUnlocked && !unlocking { await tryUnlock() } }
     }
@@ -223,23 +223,13 @@ struct AddPersonSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("Name (person or entity)", text: $name)
-                    Picker("Kind", selection: $kind) { ForEach(PersonKind.allCases, id: \.self) { Text($0.displayName).tag($0) } }
-                        .onChange(of: kind) { _, k in retention = k.defaultAutoExpireDays }
-                }
-                Section("Retention") {
-                    Picker("Auto-delete after", selection: $retention) {
-                        Text("Never").tag(Optional<Int>.none)
-                        Text("30 days").tag(Optional(30)); Text("60 days").tag(Optional(60)); Text("90 days").tag(Optional(90))
-                    }
-                    Text("Clients default to \(RetentionPolicy.clientDefaultDays) days with a warning \(RetentionPolicy.warnDaysBefore) days before. A one-line record stays in index.md after deletion.")
-                        .font(.footnote).foregroundStyle(Theme.Colors.ink2)
-                }
+            CardPage {
+                CardSection { CardField(label: "Name", placeholder: "Person or company", text: $name) }
+                PersonChoices(kind: $kind, retention: $retention)
             }
             .navigationTitle("Add person")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: kind) { _, k in retention = k.defaultAutoExpireDays }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
@@ -251,5 +241,28 @@ struct AddPersonSheet: View {
                 }
             }
         }
+    }
+}
+
+/// Kind and retention as chips (checkpoint 17), shared by Add person and Edit contact details.
+struct PersonChoices: View {
+    @Binding var kind: PersonKind
+    @Binding var retention: Int?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            label("Kind")
+            ChoiceChips(options: PersonKind.allCases.map { ($0, $0.displayName) }, selection: $kind)
+            label("Delete documents after").padding(.top, 8)
+            ChoiceChips(options: [(nil, "Never"), (30, "30 days"), (60, "60 days"), (90, "90 days")], selection: $retention)
+            if retention != nil {
+                Text("You get a warning \(RetentionPolicy.warnDaysBefore) days before.")
+                    .font(.system(size: 13)).foregroundStyle(Theme.Colors.ink2).padding(.horizontal, 4)
+            }
+        }
+    }
+
+    private func label(_ t: String) -> some View {
+        Text(t.uppercased()).font(.system(size: 14)).tracking(0.5).foregroundStyle(Theme.Colors.ink2).padding(.horizontal, 4)
     }
 }

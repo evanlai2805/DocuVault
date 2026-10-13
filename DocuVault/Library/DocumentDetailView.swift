@@ -20,6 +20,8 @@ struct DocumentDetailView: View {
     @State private var largeType: LargeTypeView.Item?
     @State private var panRevealed = false
     @State private var showScan = false
+    @State private var scanZoomed = false
+    @State private var scanDrag: CGFloat = 0
 
     private var pages: [StoredPage] { doc.orderedPages }
     private var page: StoredPage? { pages.indices.contains(pageIndex) ? pages[pageIndex] : nil }
@@ -36,34 +38,15 @@ struct DocumentDetailView: View {
                 }
                 if doc.sensitive && vault.isUnlocked { vaultHeader }
                 if retentionDaysLeft != nil { retentionBanner }
-                if !doc.sensitive, let page, let cg = PageStore.load(page.imageFileName, vaultKey: vault.key) {
-                    ZStack(alignment: .topLeading) {
-                        Image(decorative: cg, scale: 1).resizable().scaledToFit()
-                        if let ocr {
-                            OCRBoxesOverlay(ocr: ocr, imageSize: CGSize(width: cg.width, height: cg.height))
-                        }
+                // Pages swipe with dots, like Photos (checkpoint 17). The text card follows the page.
+                if !doc.sensitive && !pages.isEmpty {
+                    TabView(selection: $pageIndex) {
+                        ForEach(Array(pages.enumerated()), id: \.element.id) { i, p in pageImage(p).tag(i) }
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .frame(maxHeight: showImage ? 420 : 0)
+                    .tabViewStyle(.page(indexDisplayMode: pages.count > 1 ? .always : .never))
+                    .indexViewStyle(.page(backgroundDisplayMode: .always))
+                    .frame(height: showImage ? 440 : 0)
                     .clipped()
-                }
-
-                if !doc.sensitive && pages.count > 1 {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(Array(pages.enumerated()), id: \.element.id) { i, p in
-                                Button { pageIndex = i } label: {
-                                    Text("\(i + 1)").font(.chip)
-                                        .frame(width: 44, height: 44)
-                                        .foregroundStyle(i == pageIndex ? Theme.Colors.ink : Theme.Colors.ink2)
-                                        .background(i == pageIndex ? Theme.Colors.surface : .clear)
-                                        .overlay(Circle().stroke(i == pageIndex ? Theme.Colors.hairline : .clear))
-                                        .clipShape(Circle())
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
                 }
 
                 if !unverified.isEmpty {
@@ -151,6 +134,22 @@ struct DocumentDetailView: View {
             }
         } message: {
             Text(doc.sensitive ? "Vault documents are deleted for good." : "It stays in Recently deleted for \(RetentionManager.recentlyDeletedDays) days.")
+        }
+    }
+
+    /// One page image with its OCR boxes, fitted to the pager.
+    @ViewBuilder private func pageImage(_ p: StoredPage) -> some View {
+        if let cg = PageStore.load(p.imageFileName, vaultKey: vault.key) {
+            let boxes = p.ocrJSON.flatMap { try? JSONDecoder().decode(OCRPage.self, from: $0) }
+            Image(decorative: cg, scale: 1).resizable().scaledToFit()
+                .overlay {
+                    if let boxes { OCRBoxesOverlay(ocr: boxes, imageSize: CGSize(width: cg.width, height: cg.height)) }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(.bottom, pages.count > 1 ? 28 : 0)
+        } else {
+            RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Theme.Colors.surface)
+                .overlay(Image(systemName: "doc").font(.system(size: 28)).foregroundStyle(Theme.Colors.ink2))
         }
     }
 
@@ -325,19 +324,32 @@ struct DocumentDetailView: View {
         .buttonStyle(.plain)
     }
 
-    /// Sealed pages are decrypted into memory only while this viewer is open.
+    /// Sealed pages are decrypted into memory only while this viewer is open. Swipe down closes it
+    /// when the page is not zoomed (checkpoint 17); zoomed, the drag pans the page instead.
     private var scanViewer: some View {
         NavigationStack {
             TabView {
                 ForEach(pages) { p in
-                    if let cg = PageStore.load(p.imageFileName, vaultKey: vault.key) { ZoomableImage(image: cg) }
+                    if let cg = PageStore.load(p.imageFileName, vaultKey: vault.key) {
+                        ZoomableImage(image: cg) { scanZoomed = $0 }
+                    }
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: pages.count > 1 ? .always : .never))
             .background(Color.black)
+            .offset(y: scanDrag)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 20)
+                    .onChanged { v in if !scanZoomed, v.translation.height > 0, abs(v.translation.height) > abs(v.translation.width) { scanDrag = v.translation.height } }
+                    .onEnded { v in
+                        if !scanZoomed && v.translation.height > 120 { showScan = false }
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { scanDrag = 0 }
+                    }
+            )
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showScan = false } } }
             .toolbarBackground(.visible, for: .navigationBar)
         }
+        .onDisappear { scanZoomed = false; scanDrag = 0 }
     }
 
     // MARK: Retention (moved here from the Vault home's card, checkpoint 16)

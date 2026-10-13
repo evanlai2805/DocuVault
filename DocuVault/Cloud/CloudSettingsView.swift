@@ -19,67 +19,73 @@ struct CloudSettingsView: View {
     }
 
     var body: some View {
-        List {
-            Section {
-                GradientCard(style: .clay) {
-                    CardHeader(title: "Cloud", subtitle: cloud.hasKey ? "Opt-in · Per send · Your API key" : "Off · No API key")
-                    HStack(alignment: .top, spacing: 10) {
-                        StatBlock(label: "Sends", value: "\(sent.count)", footnote: sent.isEmpty ? "None yet" : "All approved by you")
-                        StatBlock(label: "Spent", value: CloudCost.formatUSD(last30.reduce(0) { $0 + $1.estimatedUSD }), footnote: "Estimate · 30 d", small: true)
-                    }
+        CardPage {
+            GradientCard(style: .clay) {
+                CardHeader(title: "Claude", subtitle: cloud.hasKey ? "Opt-in · One send at a time" : "Off · No API key")
+                HStack(alignment: .top, spacing: 10) {
+                    StatBlock(label: "Sends", value: "\(sent.count)", footnote: sent.isEmpty ? "None yet" : "All approved by you")
+                    StatBlock(label: "Spent", value: CloudCost.formatUSD(last30.reduce(0) { $0 + $1.estimatedUSD }), footnote: "Estimate · 30 d", small: true)
                 }
-                .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
             }
 
-            Section {
+            CardSection(title: "API key", note: cloud.hasKey ? nil : "Kept in this phone's Keychain only. Get one at console.anthropic.com.") {
                 if editingKey || !cloud.hasKey {
-                    SecureField("sk-ant-…", text: $keyDraft).font(.system(.body, design: .monospaced)).textInputAutocapitalization(.never).autocorrectionDisabled()
+                    SecureField("API key", text: $keyDraft)
+                        .font(.system(size: 17, design: .monospaced)).textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .padding(.horizontal, 16).padding(.vertical, 14)
                     HStack {
                         Button("Save key") { cloud.setKey(keyDraft); keyDraft = ""; editingKey = false }
+                            .fontWeight(.semibold)
                             .disabled(keyDraft.trimmingCharacters(in: .whitespaces).count < 20)
-                        if cloud.hasKey { Spacer(); Button("Cancel") { keyDraft = ""; editingKey = false } }
+                        Spacer()
+                        if cloud.hasKey { Button("Cancel") { keyDraft = ""; editingKey = false } }
                     }
+                    .padding(.horizontal, 16).padding(.vertical, 12)
                 } else {
-                    HStack { Text("API key"); Spacer(); Text(cloud.maskedKey).font(.system(.body, design: .monospaced)).foregroundStyle(Theme.Colors.ink2) }
-                    Button("Change key") { editingKey = true }
-                    Button(role: .destructive) { confirmDeleteKey = true } label: { Text("Remove key · Turns Claude off") }
+                    Button { editingKey = true } label: { CardRow(title: "Key", value: cloud.maskedKey, chevron: true) }.buttonStyle(.plain)
+                    Button { confirmDeleteKey = true } label: { CardRow(title: "Remove key", subtitle: "Turns every Claude option off", destructive: true) }.buttonStyle(.plain)
                 }
-            } header: { Text("API key") } footer: {
-                Text("Stored in this phone's Keychain, this device only. Get a key at console.anthropic.com. Removing it removes every Claude option in the app.")
             }
 
-            Section("Model") {
-                Picker("Model", selection: Binding(get: { cloud.modelID }, set: { cloud.modelID = $0 })) {
-                    ForEach(CloudCost.models) { m in
-                        Text("\(m.displayName) · $\(Int(m.inputPerM))/$\(Int(m.outputPerM)) per M tokens").tag(m.id)
+            CardSection(title: "Model") {
+                ForEach(CloudCost.models) { m in
+                    Button { cloud.modelID = m.id } label: {
+                        HStack {
+                            CardRow(title: m.displayName, subtitle: "$\(Int(m.inputPerM)) in · $\(Int(m.outputPerM)) out per million tokens")
+                            if cloud.modelID == m.id {
+                                Image(systemName: "checkmark").font(.system(size: 15, weight: .bold)).foregroundStyle(Theme.Colors.accent).padding(.trailing, 16)
+                            }
+                        }
                     }
+                    .buttonStyle(.plain)
                 }
-                .pickerStyle(.inline).labelsHidden()
             }
 
-            Section {
-                Toggle("Keep sent text in log", isOn: Binding(get: { cloud.keepSentText }, set: { cloud.keepSentText = $0 }))
-                Picker("Log retention", selection: Binding(get: { cloud.logRetentionDays }, set: { cloud.logRetentionDays = $0 })) {
-                    Text("30 days").tag(30); Text("90 days").tag(90); Text("1 year").tag(365)
+            CardSection(title: "Log", note: "The log records what left the phone. With the text kept, you can read the exact redacted send.") {
+                CardToggle(title: "Keep sent text", isOn: Binding(get: { cloud.keepSentText }, set: { cloud.keepSentText = $0 }))
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Keep the log for").font(.system(size: 17, weight: .semibold))
+                    ChoiceChips(options: [(30, "30 days"), (90, "90 days"), (365, "1 year")],
+                                selection: Binding(get: { cloud.logRetentionDays }, set: { cloud.logRetentionDays = $0 }))
                 }
-            } header: { Text("Log") } footer: {
-                Text("The log keeps what left the phone: when, which document, how many characters, what was redacted, tokens and estimated cost. With \u{201C}Keep sent text\u{201D} on, the exact redacted text is kept too, so you can audit a send.")
+                .padding(.horizontal, 16).padding(.vertical, 12)
             }
 
-            Section {
+            CardSection(title: "Sends · \(log.count)") {
                 if log.isEmpty {
-                    Text("No sends yet.").foregroundStyle(Theme.Colors.ink2)
+                    CardRow(title: "No sends yet")
                 } else {
                     ForEach(log) { row in
                         NavigationLink { CloudSendDetailView(row: row) } label: { logRow(row) }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button(role: .destructive) { context.delete(row); try? context.save() } label: { Label("Delete", systemImage: "trash") }
+                            }
                     }
-                    .onDelete { idx in idx.map { log[$0] }.forEach(context.delete); try? context.save() }
-                    Button(role: .destructive) { confirmClearLog = true } label: { Text("Clear log") }
+                    Button { confirmClearLog = true } label: { CardRow(title: "Clear log", destructive: true) }.buttonStyle(.plain)
                 }
-            } header: { HStack { Text("Send log"); Spacer(); Text("\(log.count)") } }
+            }
         }
-        .scrollContentBackground(.hidden)
-        .background(Theme.Colors.canvas)
         .navigationTitle("Claude")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog("Remove the API key? Claude options disappear until you add one again.", isPresented: $confirmDeleteKey, titleVisibility: .visible) {
@@ -99,7 +105,8 @@ struct CloudSettingsView: View {
             }
             Text(detailLine(r)).font(.system(size: 13)).foregroundStyle(Theme.Colors.ink2).lineLimit(2)
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, 16).padding(.vertical, 12)
+        .contentShape(Rectangle())
     }
 
     /// Older rows stored lower-case purposes and summaries; capitalise every segment for display.
@@ -121,8 +128,8 @@ struct CloudSettingsView: View {
 struct CloudSendDetailView: View {
     let row: StoredCloudSend
     var body: some View {
-        List {
-            Section {
+        CardPage {
+            CardSection {
                 kv("When", row.sentAt.dvDisplay(time: true))
                 kv("Document", row.documentTitle)
                 kv("Purpose", DisplayText.capitalisedSegments(row.purpose))
@@ -130,26 +137,26 @@ struct CloudSendDetailView: View {
                 kv("Status", row.status.rawValue.capitalized)
                 if let e = row.error { kv("Error", e) }
             }
-            Section("What left the phone") {
+            CardSection(title: "What left the phone") {
                 kv("Characters", "\(row.characters)")
                 kv("Redacted", row.redactionSummary)
                 kv("Tokens", "\(row.inputTokens) in · \(row.outputTokens) out")
-                kv("Est. cost", CloudCost.formatUSD(row.estimatedUSD))
+                kv("Estimated cost", CloudCost.formatUSD(row.estimatedUSD))
             }
             if let t = row.sentText {
-                Section("Exact text sent") {
+                CardSection(title: "Exact text sent") {
                     Text(t).font(.system(size: 13, design: .monospaced)).textSelection(.enabled)
+                        .padding(16).frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else if row.status == .ok {
-                Section { Text("Sent text was not kept (Settings → Claude → Keep sent text).").foregroundStyle(Theme.Colors.ink2) }
+                Text("The sent text was not kept. Turn on Keep sent text in Claude settings to keep it next time.")
+                    .font(.system(size: 14)).foregroundStyle(Theme.Colors.ink2).padding(.horizontal, 4)
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(Theme.Colors.canvas)
         .navigationTitle("Send")
         .navigationBarTitleDisplayMode(.inline)
     }
     private func kv(_ k: String, _ v: String) -> some View {
-        HStack(alignment: .top) { Text(k); Spacer(); Text(v).foregroundStyle(Theme.Colors.ink2).multilineTextAlignment(.trailing) }
+        CardRow(title: k, value: v)
     }
 }

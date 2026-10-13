@@ -13,6 +13,7 @@ struct RootView: View {
     @State private var chrome = AppChrome()
     @State private var showScan = false
     @State private var showSearch = false
+    @State private var confirmDiscard = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -24,9 +25,11 @@ struct RootView: View {
                 case .scan, .search: NavigationStack { LibraryView() }
                 }
             }
-            // Room for the floating bar. safeAreaInset rather than safeAreaPadding: Settings is a List,
-            // and a List ignored the padding, so its last rows stayed under the bar.
-            .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 92) }
+            // Room for the floating bar. Content margins travel through the environment, so pages pushed
+            // inside a tab get them too; the old safeAreaInset reached only each tab's first page, and the
+            // last row or two of every pushed page sat under the bar (Evan, 13 Oct; checked in a Simulator
+            // probe). Lists ignore these margins, so no List sits under the bar: those screens are cards.
+            .contentMargins(.bottom, FloatingTabBar.contentClearance, for: .scrollContent)
 
             if let selection = chrome.selection {
                 SelectionBar(model: selection)
@@ -46,8 +49,20 @@ struct RootView: View {
             vault.sceneDidChange(phase)
             if phase == .active { RetentionManager.sweep(context: context); CloudService.shared.prune(context: context) }
         }
-        .fullScreenCover(isPresented: $showScan) {
+        // A sheet, so it swipes down to close (checkpoint 17). With pages captured the swipe asks
+        // first, so a stray swipe never loses work.
+        .sheet(isPresented: $showScan) {
             NavigationStack { ScanHomeView(onDone: { showScan = false }) }
+                .interactiveDismissDisabled(capture.hasPages)
+                .background(DismissAttemptObserver { confirmDiscard = true })
+                .confirmationDialog(capture.pages.count == 1 ? "Discard 1 page?" : "Discard \(capture.pages.count) pages?",
+                                    isPresented: $confirmDiscard, titleVisibility: .visible) {
+                    Button("Discard", role: .destructive) { capture.reset(); showScan = false }
+                    Button("Keep scanning", role: .cancel) {}
+                } message: { Text("They have not been saved.") }
+                .environment(capture)
+                .environment(vault)
+                .environment(chrome)
         }
         .sheet(isPresented: $showSearch) {
             NavigationStack { SearchView() }
@@ -64,11 +79,19 @@ struct RootView: View {
     }
 }
 
-/// Two glass pills. Left: Library · Vault · Settings. Right: Scan (accent) · Search (graphite).
+/// Two Liquid Glass pills, sat low like the system tab bar (Photos, Telegram; Evan, 13 Oct).
+/// Left: Library · Vault · Settings. Right: Scan (accent) · Search (graphite).
 struct FloatingTabBar: View {
     @Binding var tab: AppTab
     let onScan: () -> Void
     let onSearch: () -> Void
+
+    /// Bar height and its gap above the screen's bottom edge, measured from Evan's Photos and Telegram
+    /// screenshots (3x): bars 61 to 63pt tall, bottom edge about 20pt above the screen edge.
+    static let height: CGFloat = 62
+    static let bottomGap: CGFloat = 20
+    /// Scroll content clears the bar by 12pt. The home-indicator safe area (34pt) is already counted.
+    static let contentClearance: CGFloat = bottomGap + height + 12 - 34
 
     var body: some View {
         HStack(spacing: 10) {
@@ -78,40 +101,37 @@ struct FloatingTabBar: View {
                 tabItem(.settings, "Settings", "gearshape.fill")
             }
             .padding(4)
-            .frame(height: 68)
-            .background(.ultraThinMaterial)
-            .overlay(Capsule().stroke(Theme.Colors.hairline.opacity(0.6)))
-            .clipShape(Capsule())
-            .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
+            .frame(height: Self.height)
+            .glassEffect(.regular, in: Capsule())
 
             HStack(spacing: 6) {
                 actionCircle("camera.viewfinder", fill: Theme.Colors.accent, label: "Scan", action: onScan)
                 actionCircle("magnifyingglass", fill: Theme.Colors.graphite, label: "Search", action: onSearch)
             }
             .padding(5)
-            .frame(height: 68)
-            .background(.ultraThinMaterial)
-            .overlay(Capsule().stroke(Theme.Colors.hairline.opacity(0.6)))
-            .clipShape(Capsule())
-            .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
+            .frame(height: Self.height)
+            .glassEffect(.regular, in: Capsule())
         }
         .padding(.horizontal, 14)
-        .padding(.bottom, 10)
+        .padding(.bottom, Self.bottomGap)
+        .ignoresSafeArea(.container, edges: .bottom)
     }
 
+    /// Selected: a soft grey pill with an accent icon and label, as in Photos. Others: black.
     private func tabItem(_ t: AppTab, _ title: String, _ icon: String) -> some View {
         let on = tab == t
         return Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { tab = t }
         } label: {
-            VStack(spacing: 3) {
-                Image(systemName: icon).font(.system(size: 20, weight: .semibold))
+            VStack(spacing: 2) {
+                Image(systemName: icon).font(.system(size: 19, weight: .semibold))
                 Text(title).font(.system(size: 11, weight: .semibold))
             }
             .foregroundStyle(on ? Theme.Colors.accent : Theme.Colors.ink)
-            .frame(maxWidth: .infinity).frame(height: 60)
-            .background(on ? Theme.Colors.accent.opacity(0.12) : .clear)
+            .frame(maxWidth: .infinity).frame(height: Self.height - 8)
+            .background(on ? Color.black.opacity(0.07) : .clear)
             .clipShape(Capsule())
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
@@ -120,9 +140,9 @@ struct FloatingTabBar: View {
     private func actionCircle(_ icon: String, fill: Color, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 22, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(.white)
-                .frame(width: 58, height: 58)
+                .frame(width: Self.height - 10, height: Self.height - 10)
                 .background(fill)
                 .clipShape(Circle())
         }

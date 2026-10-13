@@ -17,19 +17,22 @@ struct LibraryView: View {
             if docs.isEmpty && vaultDocs.isEmpty && deleted.isEmpty {
                 emptyState
             } else {
-                ScrollView {
-                    VStack(spacing: 14) {
-                        Picker("View", selection: $mode) {
-                            Text("Recents").tag(Mode.recents)
-                            Text("Browse").tag(Mode.browse)
-                        }
-                        .pickerStyle(.segmented)
-                        switch mode {
-                        case .recents: DocumentCollection(docs: docs, groupByRecency: true)
-                        case .browse: browse
-                        }
+                // Recents and Browse are two pages you swipe between (checkpoint 17).
+                VStack(spacing: 0) {
+                    Picker("View", selection: $mode) {
+                        Text("Recents").tag(Mode.recents)
+                        Text("Browse").tag(Mode.browse)
                     }
-                    .padding(16)
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+                    TabView(selection: $mode) {
+                        ScrollView { DocumentCollection(docs: docs, groupByRecency: true).padding(16) }
+                            .tag(Mode.recents)
+                        ScrollView { browse.padding(16) }
+                            .tag(Mode.browse)
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .animation(.spring(response: 0.3, dampingFraction: 0.9), value: mode)
                 }
             }
         }
@@ -40,7 +43,7 @@ struct LibraryView: View {
         }
         .navigationDestination(for: LibraryRoute.self) { route in
             switch route {
-            case .folder(let f): LibraryFolderView(title: f.title) { f.contains($0) }
+            case .folder(let f): LibraryFolderPager(start: f)
             case .person(let id, let name): LibraryFolderView(title: name) { $0.person?.id == id }
             case .deleted: RecentlyDeletedView()
             }
@@ -158,7 +161,57 @@ enum LibraryFolder: String, CaseIterable, Hashable {
     }
 }
 
-/// One folder or one person's library documents, in the same list or grid as Recents.
+/// The folders as pages: swipe left or right to the next folder, chips on top show where you are
+/// (Evan's example, checkpoint 17). The left-edge swipe still goes back.
+struct LibraryFolderPager: View {
+    @State private var current: LibraryFolder
+    @Query(filter: #Predicate<StoredDocument> { !$0.sensitive && $0.deletedAt == nil }, sort: \StoredDocument.capturedAt, order: .reverse) private var docs: [StoredDocument]
+
+    init(start: LibraryFolder) { _current = State(initialValue: start) }
+
+    private var folders: [LibraryFolder] {
+        LibraryFolder.allCases.filter { f in f != .other || docs.contains(where: f.contains) || current == .other }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(folders, id: \.self) { f in
+                            let on = f == current
+                            Button { withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) { current = f } } label: {
+                                Text(f.title).font(.system(size: 15, weight: on ? .semibold : .regular))
+                                    .padding(.horizontal, 14).frame(height: 36)
+                                    .foregroundStyle(on ? Theme.Colors.ink : Theme.Colors.ink2)
+                                    .background(on ? Theme.Colors.surface : .clear)
+                                    .overlay(Capsule().stroke(on ? Theme.Colors.hairline : .clear))
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .id(f)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                .padding(.vertical, 8)
+                .onChange(of: current) { _, f in withAnimation { proxy.scrollTo(f, anchor: .center) } }
+                .onAppear { proxy.scrollTo(current, anchor: .center) }
+            }
+            TabView(selection: $current) {
+                ForEach(folders, id: \.self) { f in
+                    ScrollView { DocumentCollection(docs: docs.filter(f.contains)).padding(16) }.tag(f)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+        }
+        .background(Theme.Colors.canvas)
+        .navigationTitle(current.title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// One person's library documents, in the same list or grid as Recents.
 struct LibraryFolderView: View {
     let title: String
     let include: (StoredDocument) -> Bool

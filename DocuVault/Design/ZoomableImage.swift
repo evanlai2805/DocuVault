@@ -5,6 +5,8 @@ import SwiftUI
 /// No Theme dependency, so the keyboard can compile it too for its scan view (checkpoint 14 Q2).
 struct ZoomableImage: View {
     let image: CGImage
+    /// Told whether the page is zoomed in, so a parent can keep swipe-down-to-close for the unzoomed page.
+    var onZoomChange: ((Bool) -> Void)? = nil
     @State private var scale: CGFloat = 1
     @State private var lastScale: CGFloat = 1
     @State private var offset: CGSize = .zero
@@ -42,6 +44,7 @@ struct ZoomableImage: View {
                 }
             }
             .clipped()
+            .onChange(of: scale > 1) { _, zoomed in onZoomChange?(zoomed) }
             .accessibilityLabel("Scan. Pinch to zoom.")
     }
 }

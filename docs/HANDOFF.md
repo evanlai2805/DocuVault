@@ -178,6 +178,26 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
   Copy as (same formatters as the keyboard, `CopyVariants`), Large type and Edit. Card number masked until Reveal (Q6).
 - Favourites lead the keyboard start page in the Most used slot (Q8).
 
+13 Oct · checkpoint 17 (Evan: "go with what you think is best"; built, unverified on device)
+- Every recommended answer: Q1 the seven stock-form screens rebuilt as cards (Settings, Claude, Export, Add person,
+  Edit contact details, Move, Deleted by retention); Q2 Settings cut to Keyboard · Documents · Erase and the version
+  line; Q3 Recents and Browse, and folder to folder, swipe sideways; Q4 the Vault does not swipe between documents;
+  Q5 full-screen views swipe down to close, and the scan asks before discarding captured pages.
+- The rules are written in `DocuVault/Design/Cards.swift` (CardPage, CardSection, CardRow, CardToggle, CardField,
+  ChoiceChips). No List or Form remains in the app.
+- Tab bar overrun, root cause: `.safeAreaInset` outside the NavigationStack reached each tab's first page only, so the
+  last one or two rows of every pushed page sat under the bar (reproduced in a Simulator probe). Replaced by
+  `.contentMargins(.bottom, …, for: .scrollContent)`, which travels through the environment. Lists ignore it, which is
+  one more reason no List sits under the bar.
+- Tab bar: Liquid Glass (`glassEffect`), 62pt tall, bottom edge 20pt above the screen edge, measured from Evan's Photos
+  and Telegram screenshots. Selected tab: soft grey pill, accent icon.
+- Skill repo ui-ux-pro-max-skill: not adopted. It picks a style for new, mostly web products; DocuVault's style is fixed.
+- Face ID delay (Evan: about 1 s), timed on his phone twice: tap to unlock start 21 to 31 ms, Face ID (Keychain read)
+  about 535 ms, key to Vault on screen about 40 to 55 ms. Nearly all of it is iOS's Face ID and its badge fading; the
+  app adds about 60 ms. No change made; the timing code was removed again.
+- AutoFill text insertion (iOS 18+, `ProvidesTextToInsert`, checked in the SDK) is on the roadmap as a second way to
+  fill, keeping Apple's keyboard. The custom keyboard stays the main tool.
+
 ## 3. Open device validations (do these next, in order)
 - 13 Oct, checkpoint 16 build: existing documents survive the update (two new stored properties); Recents, Browse,
   grid and select mode; Move to Vault on a test document; vault item tap-copy, hold menu, Large type; favourites on
@@ -216,6 +236,8 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
 - Chat over the library/vault: on-device embeddings + local model; vault answers only while unlocked.
 - Extras: business card → Contacts, zh↔en translate, table → CSV, batch → searchable PDF.
 - Share-sheet extension so PDFs and images can be sent to DocuVault from other apps.
+- AutoFill text insertion: a credential provider extension with `ProvidesTextToInsert` (iOS 18+) so a single value can
+  be filled from AutoFill while Apple's keyboard stays up. Evan agreed 13 Oct; mock it after checkpoint 17.
 
 ## 6. How to report a bug to Claude Code
 
