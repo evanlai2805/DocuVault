@@ -18,7 +18,7 @@ struct ExportView: View {
                 HStack {
                     Label("In app", systemImage: "iphone")
                     Spacer()
-                    Text("Always · encrypted at rest").foregroundStyle(Theme.Colors.ink2)
+                    Text("Always · Encrypted at rest").foregroundStyle(Theme.Colors.ink2)
                 }
                 Toggle(isOn: $ex.syncFolder) { Label("Also write to a folder", systemImage: "folder") }
                 if ex.syncFolder {
@@ -31,10 +31,10 @@ struct ExportView: View {
                 Text("Plain text. A DocuVault/ folder is created inside the folder you pick and rewritten on every save. Other files there are never touched.")
             }
             Section("What is written") {
-                row("vault/<person>/<type>-<title>.md", "one file per document")
-                row("vault/index.md", "everyone · type · expiry · checks · deletions")
-                row("expenses.csv", "one row per receipt")
-                row("images/", ex.includeImages ? "on" : "off")
+                row("vault/<person>/<type>-<title>.md", "One file per document")
+                row("vault/index.md", "Everyone · Type · Expiry · Checks · Deletions")
+                row("expenses.csv", "One row per receipt")
+                row("images/", ex.includeImages ? "On" : "Off")
             }
             Section {
                 Button { Task { await run() } } label: {

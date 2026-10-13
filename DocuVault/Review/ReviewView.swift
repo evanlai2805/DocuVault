@@ -45,10 +45,10 @@ struct ReviewView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
                 if let ex, !ex.fields.isEmpty {
-                    sectionHeader("Main", trailing: "tap to edit")
+                    sectionHeader("Main", trailing: "Tap to edit")
                     fieldList(ex.mainFields)
                     if !ex.secondaryFields.isEmpty {
-                        sectionHeader("Secondary", trailing: "stored separately")
+                        sectionHeader("Secondary", trailing: "Stored separately")
                         fieldList(ex.secondaryFields)
                     }
                 } else {
@@ -76,7 +76,9 @@ struct ReviewView: View {
             SaveDocumentView(onDone: onDone, onNext: { goToSave = false })
         }
         .sheet(item: $editing) { f in
-            FieldEditSheet(field: f, hints: hints(for: f)) { newValue in capture.editField(key: f.key, value: newValue) }
+            FieldEditSheet(field: f, hints: hints(for: f), type: capture.chosenType) { newValue in
+                capture.editField(key: f.key, value: FieldEdit.normalize(key: f.key, value: newValue, type: capture.chosenType))
+            }
                 .presentationDetents([.medium])
         }
         .sheet(isPresented: $editingPinyin) {
@@ -180,7 +182,7 @@ struct FieldRow: View {
                 if let zh = field.labelZH { Text(zh).font(.system(size: 12)).foregroundStyle(Theme.Colors.ink2) }
             }
             .frame(width: 110, alignment: .leading)
-            Text(field.value.isEmpty ? "—" : field.value)
+            Text(field.value.isEmpty ? "—" : (FieldEdit.dateKeys.contains(field.key) ? FillFormats.display(field.value) : field.value))
                 .font(.system(size: 16, design: .monospaced))
                 .foregroundStyle(field.check == .missing ? Theme.Colors.danger : Theme.Colors.ink)
                 .lineLimit(2).minimumScaleFactor(0.8)
@@ -193,7 +195,7 @@ struct FieldRow: View {
     private var pillText: String {
         switch field.check {
         case .mrz: "MRZ ✓"; case .luhn: "Luhn ✓"; case .nric: "NRIC ✓"; case .cnid: "ID ✓"
-        case .regex: "regex"; case .ocr: "OCR"; case .user: "edited"; case .missing: "Missing"
+        case .regex: "Regex"; case .ocr: "OCR"; case .user: "Edited"; case .missing: "Missing"
         }
     }
     private var tone: StatusPill.Tone {
@@ -205,9 +207,14 @@ struct FieldRow: View {
     }
 }
 
+/// Edit one field. With a scan, the page sits above the text field so the value can be checked
+/// against the image (checkpoint 14 Q1). Dates open in the display form, 12/MAR/1990; the caller
+/// normalises back to ISO with `FieldEdit.normalize`.
 struct FieldEditSheet: View {
     let field: ExtractedField
     let hints: [String]
+    var type: DocumentType? = nil
+    var scan: CGImage? = nil
     let onSave: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var value = ""
@@ -216,6 +223,12 @@ struct FieldEditSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 14) {
+                if let scan {
+                    ZoomableImage(image: scan)
+                        .frame(height: 230)
+                        .background(Theme.Colors.canvas)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
                 TextField(field.labelEN, text: $value, axis: .vertical)
                     .font(.system(size: 18, design: .monospaced))
                     .padding(14)
@@ -235,12 +248,27 @@ struct FieldEditSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("Save") { onSave(value.trimmingCharacters(in: .whitespaces)); dismiss() }.fontWeight(.semibold) }
             }
-            .onAppear { value = field.value; focused = true }
+            .onAppear {
+                value = isDateField ? FillFormats.display(field.value) : field.value
+                focused = true
+            }
         }
+    }
+
+    private var isDateField: Bool {
+        type.map { FieldEdit.isDate(key: field.key, type: $0) } ?? FieldEdit.dateKeys.contains(field.key)
     }
 
     /// Recomputes the relevant checksum as the user types.
     @ViewBuilder private var liveCheck: some View {
+        if isDateField {
+            if let d = TextRules.firstISODate(in: value) { StatusPill(text: "Date \(FillFormats.display(d))", tone: .verified) } else if !value.isEmpty { StatusPill(text: "Not a date", tone: .unverified) }
+        } else {
+            checksumPill
+        }
+    }
+
+    @ViewBuilder private var checksumPill: some View {
         switch field.key {
         case "pan":
             if let c = CardCheck.validate(value) { StatusPill(text: c.luhnOK ? "Luhn ✓ · \(c.brand.rawValue)" : "Luhn ✗", tone: c.luhnOK ? .verified : .missing) }
@@ -248,8 +276,6 @@ struct FieldEditSheet: View {
             if let n = NRIC.validate(value) { StatusPill(text: n.checksumOK ? "Checksum ✓" : "Expected \(n.expectedLetter)", tone: n.checksumOK ? .verified : .missing) }
         case "idNumber":
             if let c = ChinaID.validate(value) { StatusPill(text: c.checksumOK ? "Checksum ✓ · \(c.dateOfBirthISO)" : "Expected \(c.expectedCheck)", tone: c.checksumOK ? .verified : .missing) }
-        case "dateOfBirth", "expiry", "issueDate", "date", "effectiveDate", "expiryDate", "validFrom", "validTo":
-            if let d = TextRules.firstISODate(in: value) { StatusPill(text: "Date \(d)", tone: .verified) } else if !value.isEmpty { StatusPill(text: "Not a date", tone: .unverified) }
         default: EmptyView()
         }
     }

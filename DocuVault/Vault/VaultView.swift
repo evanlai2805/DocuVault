@@ -77,8 +77,8 @@ struct VaultView: View {
                 if let w = warnings.first {
                     GradientCard(style: .red) {
                         Text("\(warnings.count)").font(.system(size: 44, weight: .bold)).monospacedDigit()
-                        Text(warnings.count == 1 ? "document expiring soon" : "documents expiring soon").font(.system(size: 21, weight: .semibold))
-                        Text("\(w.doc.person?.name ?? "Client") · \(w.doc.title) · deletes in \(w.daysLeft) d").font(.system(size: 16)).opacity(0.85)
+                        Text(warnings.count == 1 ? "Document expiring soon" : "Documents expiring soon").font(.system(size: 21, weight: .semibold))
+                        Text("\(w.doc.person?.name ?? "Client") · \(w.doc.title) · Deletes in \(w.daysLeft) d").font(.system(size: 16)).opacity(0.85)
                         HStack(spacing: 8) {
                             ForEach(Retention.Action.allCases, id: \.self) { a in
                                 Button(a.rawValue) { RetentionManager.apply(a, to: w.doc, context: context) }
@@ -110,7 +110,7 @@ struct VaultView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                     if !unassigned.isEmpty {
-                        sectionHeader("Unassigned", trailing: "assign an owner")
+                        sectionHeader("Unassigned", trailing: "Assign an owner")
                         VStack(spacing: 0) {
                             ForEach(unassigned) { d in
                                 NavigationLink { DocumentDetailView(doc: d) } label: { DocumentRow(doc: d) }.buttonStyle(.plain)
@@ -126,7 +126,7 @@ struct VaultView: View {
                     sectionHeader("Deleted by retention", trailing: "\(tombstones.count)")
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(tombstones.prefix(10)) { t in
-                            Text(t.line.replacingOccurrences(of: "~~", with: "").dropFirst(2)).font(.system(size: 14)).foregroundStyle(Theme.Colors.ink2)
+                            Text(DisplayText.displayDates(in: DisplayText.capitalisedSegments(String(t.line.replacingOccurrences(of: "~~", with: "").dropFirst(2))))).font(.system(size: 14)).foregroundStyle(Theme.Colors.ink2)
                         }
                     }
                     .padding(16).frame(maxWidth: .infinity, alignment: .leading)

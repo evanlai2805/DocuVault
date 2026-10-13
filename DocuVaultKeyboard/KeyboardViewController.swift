@@ -34,11 +34,22 @@ final class KeyboardViewController: UIInputViewController {
         h.isActive = true
         host.didMove(toParent: self)
         model.load()
+        // Phone locked: drop the key at once, whatever the lock window says. Checked on the device
+        // that iOS delivers this to a keyboard extension; the lock window still applies if it does not.
+        NotificationCenter.default.addObserver(forName: UIApplication.protectedDataWillBecomeUnavailableNotification,
+                                               object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.model.lock() }
+        }
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        model.willAppear()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        model.lock()   // key never outlives the keyboard
+        model.didDisappear()   // starts the lock window; the key lives in memory only
     }
 
     override func textDidChange(_ textInput: UITextInput?) {

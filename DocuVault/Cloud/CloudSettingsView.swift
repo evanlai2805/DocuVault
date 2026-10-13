@@ -22,10 +22,10 @@ struct CloudSettingsView: View {
         List {
             Section {
                 GradientCard(style: .clay) {
-                    CardHeader(title: "Cloud", subtitle: cloud.hasKey ? "opt-in · per send · your API key" : "off · no API key")
+                    CardHeader(title: "Cloud", subtitle: cloud.hasKey ? "Opt-in · Per send · Your API key" : "Off · No API key")
                     HStack(alignment: .top, spacing: 10) {
-                        StatBlock(label: "Sends", value: "\(sent.count)", footnote: sent.isEmpty ? "none yet" : "all approved by you")
-                        StatBlock(label: "Spent", value: CloudCost.formatUSD(last30.reduce(0) { $0 + $1.estimatedUSD }), footnote: "estimate · 30 d", small: true)
+                        StatBlock(label: "Sends", value: "\(sent.count)", footnote: sent.isEmpty ? "None yet" : "All approved by you")
+                        StatBlock(label: "Spent", value: CloudCost.formatUSD(last30.reduce(0) { $0 + $1.estimatedUSD }), footnote: "Estimate · 30 d", small: true)
                     }
                 }
                 .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
@@ -42,7 +42,7 @@ struct CloudSettingsView: View {
                 } else {
                     HStack { Text("API key"); Spacer(); Text(cloud.maskedKey).font(.system(.body, design: .monospaced)).foregroundStyle(Theme.Colors.ink2) }
                     Button("Change key") { editingKey = true }
-                    Button(role: .destructive) { confirmDeleteKey = true } label: { Text("Remove key · turns Claude off") }
+                    Button(role: .destructive) { confirmDeleteKey = true } label: { Text("Remove key · Turns Claude off") }
                 }
             } header: { Text("API key") } footer: {
                 Text("Stored in this phone's Keychain, this device only. Get a key at console.anthropic.com. Removing it removes every Claude option in the app.")
@@ -95,14 +95,19 @@ struct CloudSettingsView: View {
             HStack {
                 Text(r.documentTitle).font(.system(size: 16, weight: .semibold)).lineLimit(1)
                 Spacer()
-                StatusPill(text: r.status.rawValue, tone: r.status == .ok ? .verified : r.status == .failed ? .missing : .neutral)
+                StatusPill(text: r.status.rawValue.capitalized, tone: r.status == .ok ? .verified : r.status == .failed ? .missing : .neutral)
             }
             Text(detailLine(r)).font(.system(size: 13)).foregroundStyle(Theme.Colors.ink2).lineLimit(2)
         }
         .padding(.vertical, 2)
     }
 
+    /// Older rows stored lower-case purposes and summaries; capitalise every segment for display.
     private func detailLine(_ r: StoredCloudSend) -> String {
+        DisplayText.capitalisedSegments(rawDetailLine(r))
+    }
+
+    private func rawDetailLine(_ r: StoredCloudSend) -> String {
         let when = r.sentAt.formatted(.relative(presentation: .named))
         switch r.status {
         case .ok: return "\(when) · \(r.purpose) · \(r.characters) chars · \(r.redactionSummary) · \(r.inputTokens + r.outputTokens) tok · \(CloudCost.formatUSD(r.estimatedUSD))"
@@ -118,11 +123,11 @@ struct CloudSendDetailView: View {
     var body: some View {
         List {
             Section {
-                kv("When", row.sentAt.formatted(date: .abbreviated, time: .shortened))
+                kv("When", row.sentAt.dvDisplay(time: true))
                 kv("Document", row.documentTitle)
-                kv("Purpose", row.purpose)
+                kv("Purpose", DisplayText.capitalisedSegments(row.purpose))
                 kv("Model", row.model)
-                kv("Status", row.status.rawValue)
+                kv("Status", row.status.rawValue.capitalized)
                 if let e = row.error { kv("Error", e) }
             }
             Section("What left the phone") {

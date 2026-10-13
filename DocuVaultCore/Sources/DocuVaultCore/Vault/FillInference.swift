@@ -35,21 +35,21 @@ public enum FillInference {
 
     public static func date(_ c: Context) -> Choice<DatePlan> {
         if let ct = c.contentType?.lowercased() {
-            if ct.contains("birthdateday") { return .init(value: .component(.day), reason: "day field") }
-            if ct.contains("birthdatemonth") { return .init(value: .component(.month), reason: "month field") }
-            if ct.contains("birthdateyear") { return .init(value: .component(.year), reason: "year field") }
+            if ct.contains("birthdateday") { return .init(value: .component(.day), reason: "Day field") }
+            if ct.contains("birthdatemonth") { return .init(value: .component(.month), reason: "Month field") }
+            if ct.contains("birthdateyear") { return .init(value: .component(.year), reason: "Year field") }
         }
         let nearby = String(c.before.suffix(16)) + String(c.after.prefix(16))
         // A literal hint such as "DD/MM/YYYY" near the cursor is the strongest signal after content type.
-        if let hint = formatHint(in: nearby) { return .init(value: .full(hint), reason: "format hint") }
+        if let hint = formatHint(in: nearby) { return .init(value: .full(hint), reason: "Format hint") }
         if c.keyboard == .numeric {
             // Digits-only field. A region that writes year first gets YYYYMMDD; everyone else DDMMYYYY.
-            return yearFirst(c.region) ? .init(value: .full(.digitsYMD), reason: "number pad") : .init(value: .full(.digitsDMY), reason: "number pad")
+            return yearFirst(c.region) ? .init(value: .full(.digitsYMD), reason: "Number pad") : .init(value: .full(.digitsDMY), reason: "Number pad")
         }
-        if nearby.contains("-") && !nearby.contains("/") { return .init(value: .full(.iso), reason: "dashes in field") }
+        if nearby.contains("-") && !nearby.contains("/") { return .init(value: .full(.iso), reason: "Dashes in field") }
         if nearby.contains("/") {
-            return yearFirst(c.region) || c.region == "US" ? .init(value: .full(c.region == "US" ? .mdySlash : .iso), reason: "slashes in field")
-                                                           : .init(value: .full(.dmySlash), reason: "slashes in field")
+            return yearFirst(c.region) || c.region == "US" ? .init(value: .full(c.region == "US" ? .mdySlash : .iso), reason: "Slashes in field")
+                                                           : .init(value: .full(.dmySlash), reason: "Slashes in field")
         }
         // Nothing to go on: region default. SG/MY/UK/HK → DD/MM/YYYY, CN/JP/KR → ISO, US → MM/DD/YYYY.
         switch c.region {
@@ -82,10 +82,10 @@ public enum FillInference {
     // MARK: Card expiry
 
     public static func expiry(_ c: Context) -> Choice<FillFormats.ExpiryStyle> {
-        if c.keyboard == .numeric { return .init(value: .mmyy, reason: "number pad") }
+        if c.keyboard == .numeric { return .init(value: .mmyy, reason: "Number pad") }
         let nearby = (String(c.before.suffix(12)) + String(c.after.prefix(12))).uppercased()
         if nearby.contains("YYYY") { return .init(value: .mmSlashYYYY, reason: "4-digit year hint") }
-        return .init(value: .mmSlashYY, reason: "default")
+        return .init(value: .mmSlashYY, reason: "Default")
     }
 
     // MARK: Card number

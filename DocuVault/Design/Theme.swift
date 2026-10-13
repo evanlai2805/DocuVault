@@ -1,4 +1,5 @@
 import SwiftUI
+import DocuVaultCore
 
 /// Design tokens from docs/design-system.md. Light theme only.
 enum Theme {
@@ -248,5 +249,15 @@ struct StatusPill: View {
             .padding(.horizontal, 8).padding(.vertical, 3)
             .background(color.opacity(0.14)).foregroundStyle(color)
             .clipShape(Capsule())
+    }
+}
+
+extension Date {
+    /// Every date in the app reads 12/MAR/1990 (Evan, checkpoint 14). With `time`, "12/MAR/1990 · 14:05".
+    func dvDisplay(time: Bool = false) -> String {
+        let c = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: self)
+        let iso = String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+        let day = FillFormats.display(iso)
+        return time ? day + String(format: " · %02d:%02d", c.hour ?? 0, c.minute ?? 0) : day
     }
 }

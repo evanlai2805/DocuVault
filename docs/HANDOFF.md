@@ -96,7 +96,33 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
   narrow the list without typing. `FillPicker.filter(_:query:)` stays, tested and unused, in case the
   keyboard ever grows its own letter keys.
 
+13 Oct · checkpoints 13, 13b and 14
+- Keyboard look: A, system glass (checkpoint 13). Keys clear the soft-edge blur by not scrolling at all:
+  44pt keys, four rows, ten keys max, inside the same 300pt. The scroll view, fade and "n more" cue are gone.
+- 13b answers (left circle = menu, search pill, image and lock circles top right, start page with the
+  two most-used and two most-recent documents, configurable in Settings) are being mocked as 13c.
+  Not built yet.
+- Checkpoint 14 Q1: fields of a saved document are editable. Tap a field, long-press (Copy · Edit), or the
+  toolbar pencil. The scan sits above the text field, pinch to zoom. Checksums with their own digit
+  (NRIC, Luhn, 身份证) re-run on save; passport MRZ fields cannot (the MRZ lines are not stored) and
+  become "Edited". The document's pass count moves only for checked keys (`FieldEdit`).
+- Q2: a scan view inside the keyboard. Placement waits for 13c.
+- Q3: every date in the app reads 12/MAR/1990 (capitals). Storage and Markdown export stay ISO. The keyboard
+  still picks the format from the form; holding a date key adds DD/MMM/YYYY and DD-MMM-YYYY.
+- Q3 also: every label, pill, hint and each · segment starts with a capital, across the app. Stored strings
+  from before the rule are capitalised at display (`DisplayText`), never rewritten.
+- Q4 default kept: with no signal from the form, the keyboard falls back to DD/MM/YYYY, not month names.
+- Keyboard lock window: Immediately · 1 min · 5 min · 15 min, default 1 min, set in Settings. Counted from the
+  last key or from when the keyboard hid, whichever is later. The mock's "Never" became "Immediately" (Claude's call): "Never" read as "never stays
+  unlocked", and an unbounded window is weaker than Evan asked for. The key lives in the keyboard
+  process's memory only.
+
 ## 3. Open device validations (do these next, in order)
+- 13 Oct build: passport keyboard shows all ten keys with no scroll and no blur; switching apps and back
+  inside a minute stays unlocked, after a minute asks for Face ID; locking the phone locks the keyboard
+  (unproven: iOS may not deliver `protectedDataWillBecomeUnavailable` to an extension); editing a vault
+  field, then filling it from the keyboard, gives the new value; dates read 12/MAR/1990; the last
+  Settings row clears the tab bar.
 
 1. Scan a real passport: MRZ pill green? Title "Passport · SURNAME"? Owner picker readable?
 2. Scan NRIC, a receipt, an English letter, a Chinese contract. Report misreads with screenshots.

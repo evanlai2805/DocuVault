@@ -44,7 +44,7 @@ public enum Retention {
 
     /// Tombstone line kept in index.md after an auto-delete (Evan: keep a one-line trace).
     public static func tombstoneLine(title: String, type: DocumentType, owner: String, deletedAt: Date, retentionDays: Int) -> String {
-        "- ~~\(title)~~ · \(type.displayName) · \(owner) · deleted \(isoDay(deletedAt)) after \(retentionDays) d"
+        "- ~~\(title)~~ · \(type.displayName) · \(owner) · Deleted \(isoDay(deletedAt)) after \(retentionDays) d"
     }
 
     static func daysBetween(_ a: Date, _ b: Date) -> Int {

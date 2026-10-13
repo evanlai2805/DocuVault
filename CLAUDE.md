@@ -96,6 +96,12 @@ scripts/                 gen, test-core, build-sim, run-device, ci-status (use t
   the checkpoints) were deliberately left alone; new docs follow the rule.
 - Renaming a user-visible label that is also a stored value needs an alias for the old spelling. See
   `ExpenseCategories.canonical` — receipts saved before a rename still resolve.
+- **Capitals.** Every label, pill, hint and each `·` segment starts with a capital letter
+  (`Auto: SG region`, `DOB · Format`, `Unlocked · Will seal`). Exceptions: the keyboard's `space` key,
+  units (`60 s`), file paths and identifiers. Stored strings written before the rule are capitalised at
+  display with `DisplayText.capitalisedSegments`, never rewritten.
+- **Dates read 12/MAR/1990** everywhere in the app (`FillFormats.display`, `Date.dvDisplay`). Storage and
+  Markdown export stay ISO; the keyboard formats for the form it is filling.
 - **Placeholders stay bare.** `Search`, never `Search documents…` and never with a glyph in front.
 - Prose inside sentences is unaffected; a dash used as punctuation mid-sentence is fine.
 

@@ -135,7 +135,7 @@ final class CloudService {
     /// You cancelled on the sheet: nothing left the phone, but the log says so.
     func logCancelled(_ d: Draft, context: ModelContext) {
         let row = StoredCloudSend(documentID: d.doc.id, documentTitle: d.doc.title, purpose: d.purpose.logLabel, model: modelID,
-                                  status: .cancelled, characters: 0, redactedCount: 0, redactionSummary: "nothing sent")
+                                  status: .cancelled, characters: 0, redactedCount: 0, redactionSummary: "Nothing sent")
         context.insert(row)
         try? context.save()
     }
@@ -181,6 +181,6 @@ final class CloudService {
             case .date: return "\(n) date\(n == 1 ? "" : "s")"
             }
         }
-        return parts.isEmpty ? "nothing redacted" : parts.joined(separator: " · ")
+        return parts.isEmpty ? "Nothing redacted" : parts.joined(separator: " · ")
     }
 }

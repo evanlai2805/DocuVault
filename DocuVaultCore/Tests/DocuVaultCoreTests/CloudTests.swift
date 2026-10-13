@@ -146,8 +146,8 @@ final class CloudGateTests: XCTestCase {
     }
 
     func testPurposeLabels() {
-        XCTAssertEqual(CloudPurpose.summarise(format: .bullets, length: .short, language: "en").logLabel, "summarise")
-        XCTAssertEqual(CloudPurpose.ask(question: "违约金条款？", language: "zh-Hans").logLabel, "ask: \u{201C}违约金条款？\u{201D}")
+        XCTAssertEqual(CloudPurpose.summarise(format: .bullets, length: .short, language: "en").logLabel, "Summarise")
+        XCTAssertEqual(CloudPurpose.ask(question: "违约金条款？", language: "zh-Hans").logLabel, "Ask: \u{201C}违约金条款？\u{201D}")
         let long = String(repeating: "x", count: 60)
         XCTAssertTrue(CloudPurpose.ask(question: long, language: "en").logLabel.contains("…"))
     }

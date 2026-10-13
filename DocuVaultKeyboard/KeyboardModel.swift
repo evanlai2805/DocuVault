@@ -3,6 +3,29 @@ import SwiftData
 import CryptoKit
 import DocuVaultCore
 
+/// The unlocked key, held for the keyboard's whole process rather than by one controller. iOS builds a
+/// new controller each time the keyboard appears, so an instance property locked on every app switch.
+/// The key now survives that inside the lock window (Evan, checkpoint 14: 1 min by default). Memory only:
+/// a restart or iOS closing the keyboard drops it.
+@MainActor enum KeyboardVault {
+    static var key: SymmetricKey?
+    static var lastActivity = Date()
+
+    /// Seconds the keyboard stays unlocked after the last key. 0 = lock as soon as it hides.
+    /// Written by the app's Settings into the App Group.
+    static var window: TimeInterval {
+        guard let d = UserDefaults(suiteName: AppFiles.appGroupID), d.object(forKey: AppFiles.keyboardLockWindowKey) != nil
+        else { return AppFiles.keyboardLockWindowDefault }
+        return max(0, d.double(forKey: AppFiles.keyboardLockWindowKey))
+    }
+
+    static func touch() { lastActivity = Date() }
+    static func wipe() { key = nil }
+    static func expireIfStale(now: Date = Date()) {
+        if key != nil, now.timeIntervalSince(lastActivity) > window { key = nil }
+    }
+}
+
 /// Keyboard state: people, their vault documents, the unlocked key, and the insert bridge.
 @MainActor @Observable
 final class KeyboardModel {
@@ -50,11 +73,11 @@ final class KeyboardModel {
     var expiryOverride: FillFormats.ExpiryStyle?
 
     var datePlan: FillInference.Choice<FillInference.DatePlan> {
-        if let o = dateOverride { return .init(value: .full(o), reason: "your choice") }
+        if let o = dateOverride { return .init(value: .full(o), reason: "Your choice") }
         return FillInference.date(fieldContext)
     }
     var expiryChoice: FillInference.Choice<FillFormats.ExpiryStyle> {
-        if let o = expiryOverride { return .init(value: o, reason: "your choice") }
+        if let o = expiryOverride { return .init(value: o, reason: "Your choice") }
         return FillInference.expiry(fieldContext)
     }
 
@@ -65,6 +88,8 @@ final class KeyboardModel {
         self.deleteBack = deleteBackward
         self.nextKeyboard = nextKeyboard
         self.dismissKeyboard = dismiss
+        KeyboardVault.expireIfStale()
+        self.key = KeyboardVault.key
     }
 
     var isUnlocked: Bool { key != nil }
@@ -165,7 +190,7 @@ final class KeyboardModel {
         status = nil
         do {
             let k = try await Task.detached(priority: .userInitiated) { try VaultKeychain.load(reason: "Fill from your DocuVault") }.value
-            if let k { key = k } else { status = "No vault key yet — open DocuVault and unlock the Vault once" }
+            if let k { key = k; KeyboardVault.key = k; KeyboardVault.touch() } else { status = "No vault key yet — open DocuVault and unlock the Vault once" }
         } catch let e as VaultError {
             status = VaultSession.describe(e)
         } catch {
@@ -173,7 +198,20 @@ final class KeyboardModel {
         }
     }
 
-    func lock() { key = nil }
+    func lock() { key = nil; KeyboardVault.wipe() }
+
+    /// The keyboard is about to show: drop the key if the lock window has passed while it was hidden.
+    func willAppear() {
+        KeyboardVault.expireIfStale()
+        if KeyboardVault.key == nil { key = nil }
+    }
+
+    /// The keyboard hid, usually because you switched apps. The lock window starts now; with
+    /// "Immediately" chosen in Settings it locks on the spot, as it always did before.
+    func didDisappear() {
+        KeyboardVault.touch()
+        if KeyboardVault.window == 0 { lock() }
+    }
 
     // MARK: Values
 
@@ -210,10 +248,10 @@ final class KeyboardModel {
         case .date:
             switch datePlan.value {
             case .full(let st): return st.rawValue
-            case .component(let c): return "\(c) only"
+            case .component(let c): return "\(String(describing: c).capitalized) only"
             }
         case .expiry: return expiryChoice.value.rawValue
-        case .holdOnly: return "hold"
+        case .holdOnly: return "Hold"
         case .text:
             if ["nationality", "issuingCountry", "sex"].contains(spec.fieldKey) { return value(for: spec) }
             return nil
@@ -238,6 +276,7 @@ final class KeyboardModel {
         }
         insertText(text)
         markCurrentUsed()
+        KeyboardVault.touch()
     }
 
     func insertDate(_ spec: FillFormats.KeySpec, style: FillFormats.DateStyle) {
@@ -245,6 +284,7 @@ final class KeyboardModel {
         dateOverride = style
         insertText(FillFormats.date(raw, style: style))
         markCurrentUsed()
+        KeyboardVault.touch()
     }
 
     func insertExpiry(_ spec: FillFormats.KeySpec, style: FillFormats.ExpiryStyle) {
@@ -252,10 +292,11 @@ final class KeyboardModel {
         expiryOverride = style
         insertText(FillFormats.expiry(raw, style: style))
         markCurrentUsed()
+        KeyboardVault.touch()
     }
 
-    func backspace() { deleteBack() }
-    func space() { insertText(" ") }
+    func backspace() { deleteBack(); KeyboardVault.touch() }
+    func space() { insertText(" "); KeyboardVault.touch() }
     func globe() { nextKeyboard() }
     func done() { dismissKeyboard() }
 }

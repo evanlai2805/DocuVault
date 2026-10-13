@@ -72,7 +72,7 @@ final class RetentionTests: XCTestCase {
 
     func testTombstone() {
         let line = Retention.tombstoneLine(title: "Director passport", type: .passport, owner: "Lee & Co", deletedAt: now, retentionDays: 30)
-        XCTAssertEqual(line, "- ~~Director passport~~ · Passport · Lee & Co · deleted 2026-10-11 after 30 d")
+        XCTAssertEqual(line, "- ~~Director passport~~ · Passport · Lee & Co · Deleted 2026-10-11 after 30 d")
     }
 }
 

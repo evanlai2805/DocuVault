@@ -56,3 +56,8 @@ Reference: Flighty 4.11 (iOS 26). Follow it tightly. Light theme only.
 - All category and label text in English.
 - Numbers in stat cards use `.monospacedDigit()`.
 - No dark theme. No heavy grey body text: body is ink; only secondary lines use ink2.
+
+## Text (Evan, 13 Oct)
+- Every label, pill, hint and each `·` segment starts with a capital: `Auto: SG region`, `DOB · Format`.
+  Exceptions: the keyboard's `space` key, units (`60 s`), file paths, identifiers.
+- Dates display as `12/MAR/1990` (`FillFormats.display`, `Date.dvDisplay`). Storage stays ISO.

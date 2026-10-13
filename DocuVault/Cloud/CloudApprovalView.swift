@@ -64,12 +64,12 @@ struct CloudApprovalSheet: View {
         return GradientCard(style: .clay) {
             CardHeader(title: "One send", subtitle: "\(draft.doc.title) · \(draft.purpose.logLabel) · \(CloudCost.model(service.modelID).displayName)")
             HStack(alignment: .top, spacing: 10) {
-                StatBlock(label: "Leaves phone", value: compact(r.text.count), footnote: "characters")
+                StatBlock(label: "Leaves phone", value: compact(r.text.count), footnote: "Characters")
                 StatBlock(label: "Redacted", value: "\(r.count)", footnote: CloudService.describe(r.counts))
             }
             HStack(alignment: .top, spacing: 10) {
                 StatBlock(label: "Est. cost", value: CloudCost.formatUSD(est.usd), footnote: "≈ \(compact(est.tokens)) tokens", small: true)
-                StatBlock(label: "Stays here", value: "Images", footnote: "fields · notes · vault", small: true)
+                StatBlock(label: "Stays here", value: "Images", footnote: "Fields · Notes · Vault", small: true)
             }
             .padding(.top, 14)
         }
@@ -77,7 +77,7 @@ struct CloudApprovalSheet: View {
 
     private var toggles: some View {
         VStack(spacing: 0) {
-            sectionLabel("Redact before sending", trailing: "restored on reply")
+            sectionLabel("Redact before sending", trailing: "Restored on reply")
             VStack(spacing: 0) {
                 lockedRow(.identifier)
                 Divider().padding(.leading, 16)
@@ -119,7 +119,7 @@ struct CloudApprovalSheet: View {
 
     private func countPill(_ c: Redactor.Category) -> some View {
         let n = count(c)
-        return Text(n == 0 ? "none" : "\(n) found").font(.system(size: 12, weight: .semibold))
+        return Text(n == 0 ? "None" : "\(n) found").font(.system(size: 12, weight: .semibold))
             .padding(.horizontal, 7).padding(.vertical, 2)
             .background(Color(.systemGray5)).clipShape(Capsule())
             .foregroundStyle(Theme.Colors.ink2)
@@ -128,7 +128,7 @@ struct CloudApprovalSheet: View {
     /// Distinct items found, grouped; tap one in an unlocked category to keep it in clear.
     private var foundItems: some View {
         VStack(spacing: 0) {
-            sectionLabel("Found", trailing: "tap to keep in clear")
+            sectionLabel("Found", trailing: "Tap to keep in clear")
             VStack(alignment: .leading, spacing: 10) {
                 ForEach([Redactor.Category.name, .amount, .date, .identifier, .contact], id: \.self) { c in
                     let items = distinct(c)
@@ -190,7 +190,7 @@ struct CloudApprovalSheet: View {
 
     private var preview: some View {
         VStack(spacing: 0) {
-            sectionLabel("Preview · exactly this text", trailing: "")
+            sectionLabel("Preview · Exactly this text", trailing: "")
             ScrollView {
                 Text(highlighted(result.text))
                     .font(.system(size: 13, design: .monospaced))
@@ -346,7 +346,7 @@ struct AskClaudeSheet: View {
         NavigationStack {
             VStack(spacing: 16) {
                 GradientCard(style: .clay) {
-                    CardHeader(title: "Ask Claude", subtitle: "\(doc.title) · one question · you approve the send")
+                    CardHeader(title: "Ask Claude", subtitle: "\(doc.title) · One question · You approve the send")
                     Text("The whole document goes with your question, redacted the same way as a summary. Answers stay on this phone.")
                         .font(.system(size: 15)).opacity(0.9)
                 }

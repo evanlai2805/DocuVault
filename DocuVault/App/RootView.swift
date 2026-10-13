@@ -24,7 +24,9 @@ struct RootView: View {
                 case .scan, .search: NavigationStack { LibraryView() }
                 }
             }
-            .safeAreaPadding(.bottom, 92)   // room for the floating bar
+            // Room for the floating bar. safeAreaInset rather than safeAreaPadding: Settings is a List,
+            // and a List ignored the padding, so its last rows stayed under the bar.
+            .safeAreaInset(edge: .bottom, spacing: 0) { Color.clear.frame(height: 92) }
 
             FloatingTabBar(tab: $tab, onScan: { showScan = true }, onSearch: { showSearch = true })
 

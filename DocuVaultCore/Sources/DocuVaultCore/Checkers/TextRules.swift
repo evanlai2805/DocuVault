@@ -36,7 +36,7 @@ public enum TextRules {
     ]
 
     /// Parse the first date in `text` to ISO yyyy-MM-dd. Handles:
-    ///   12 APR 1999 · 12-04-1999 · 12/04/1999 · 1999-04-12 · 2026年10月10日 · 2026.10.10 · October 10, 2026
+    ///   12 APR 1999 · 12/MAR/1999 · 12-MAR-1999 · 12-04-1999 · 12/04/1999 · 1999-04-12 · 2026年10月10日 · 2026.10.10 · October 10, 2026
     /// Day-first is assumed for numeric dd-mm-yyyy (Singapore / China convention).
     public static func firstISODate(in text: String) -> String? {
         allISODates(in: text).first
@@ -53,7 +53,7 @@ public enum TextRules {
         let patterns: [(String, Build)] = [
             (#"(\d{4})年(\d{1,2})月(\d{1,2})日"#, { m, s in (Int(s.substring(with: m.range(at: 1)))!, Int(s.substring(with: m.range(at: 2)))!, Int(s.substring(with: m.range(at: 3)))!) }),
             (#"\b(\d{4})[\-./](\d{1,2})[\-./](\d{1,2})\b"#, { m, s in (Int(s.substring(with: m.range(at: 1)))!, Int(s.substring(with: m.range(at: 2)))!, Int(s.substring(with: m.range(at: 3)))!) }),
-            (#"\b(\d{1,2})\s+([A-Za-z]{3,9})\.?\s+(\d{4})\b"#, { m, s in
+            (#"\b(\d{1,2})[\s\-/]+([A-Za-z]{3,9})\.?[\s\-/]+(\d{4})\b"#, { m, s in
                 guard let mo = monthNames[s.substring(with: m.range(at: 2)).uppercased()] else { return nil }
                 return (Int(s.substring(with: m.range(at: 3)))!, mo, Int(s.substring(with: m.range(at: 1)))!) }),
             (#"\b([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})\b"#, { m, s in

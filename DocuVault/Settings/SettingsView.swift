@@ -13,13 +13,15 @@ struct SettingsView: View {
     @State private var cloud = CloudService.shared
     @Query private var sends: [StoredCloudSend]
     @State private var confirmDeleteModel = false
+    @AppStorage(AppFiles.keyboardLockWindowKey, store: UserDefaults(suiteName: AppFiles.appGroupID))
+    private var keyboardLockWindow: Double = AppFiles.keyboardLockWindowDefault
 
     var body: some View {
         List {
             Section("OCR") {
                 row("Languages", "English · 简体 · 繁體")
                 row("Mode", "Accurate, on-device")
-                row("Low-confidence mark", "below \(Int(OCRLine.lowConfidenceThreshold * 100))%")
+                row("Low-confidence mark", "Below \(Int(OCRLine.lowConfidenceThreshold * 100))%")
             }
             Section("Summaries") {
                 Toggle("Auto-summarise contracts and letters", isOn: Binding(get: { summaries.autoSummarise }, set: { summaries.autoSummarise = $0 }))
@@ -55,19 +57,33 @@ struct SettingsView: View {
                 NavigationLink { CloudSettingsView() } label: {
                     HStack { Text("Claude"); Spacer(); Text(cloud.hasKey ? "On · \(CloudCost.model(cloud.modelID).displayName)" : "Off").foregroundStyle(Theme.Colors.ink2) }
                 }
-                row("Cloud sends", sends.filter { $0.status == .ok }.isEmpty ? (cloud.hasKey ? "0" : "0 — no key") : "\(sends.filter { $0.status == .ok }.count) · all approved by you")
-                row("Vault documents", "never sent")
+                row("Cloud sends", sends.filter { $0.status == .ok }.isEmpty ? (cloud.hasKey ? "0" : "0 · No key") : "\(sends.filter { $0.status == .ok }.count) · All approved by you")
+                row("Vault documents", "Never sent")
             } header: { Text("Cloud") } footer: {
                 Text("Claude is offered only for contracts, letters and other non-sensitive documents, one send at a time, after you review the redacted text. There is no \u{201C}always allow\u{201D}.")
             }
             Section("Privacy") {
                 row("Storage", "App Group, Data Protection: Complete")
             }
-            Section("Vault") {
+            Section {
                 row("Client retention", "\(RetentionPolicy.clientDefaultDays) days, warn \(RetentionPolicy.warnDaysBefore) before")
-                row("Auto-lock", "\(Int(VaultSession.autoLockSeconds)) s in background")
+                row("Auto-lock (app)", "\(Int(VaultSession.autoLockSeconds)) s in background")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Keyboard stays unlocked")
+                    Picker("Keyboard stays unlocked", selection: $keyboardLockWindow) {
+                        Text("Immediately").tag(0.0)
+                        Text("1 min").tag(60.0)
+                        Text("5 min").tag(300.0)
+                        Text("15 min").tag(900.0)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+                .padding(.vertical, 2)
                 NavigationLink { ExportView() } label: { Text("Export") }
                 Button(role: .destructive) { confirmResetKey = true } label: { Text("Reset vault key") }
+            } header: { Text("Vault") } footer: {
+                Text("How long the keyboard stays unlocked after you last used it, so you can switch apps without Face ID again. A restart, or iOS closing the keyboard, always locks it.")
             }
             Section {
                 Button(role: .destructive) { confirmWipe = true } label: { Text("Delete all documents (\(docs.count))") }

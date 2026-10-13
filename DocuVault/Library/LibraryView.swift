@@ -102,7 +102,7 @@ struct DocumentRow: View {
     }
     private var subtitle: String {
         let lang = doc.language == "en" ? "EN" : (doc.language == "mixed" ? "Mixed" : "中文")
-        return "\(doc.type.displayName) · \(lang) · \(doc.pages.count) page\(doc.pages.count == 1 ? "" : "s") · \(doc.capturedAt.formatted(.dateTime.day().month(.abbreviated)))"
+        return "\(doc.type.displayName) · \(lang) · \(doc.pages.count) page\(doc.pages.count == 1 ? "" : "s") · \(doc.capturedAt.dvDisplay())"
     }
     @ViewBuilder private var thumb: some View {
         if let first = doc.orderedPages.first, let cg = PageStore.load(first.imageFileName) {

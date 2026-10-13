@@ -40,8 +40,8 @@ struct SummaryCard: View {
             switch state {
             case .running(let done, let total):
                 HStack(alignment: .top, spacing: 10) {
-                    StatBlock(label: "Progress", value: total > 1 ? "\(done)/\(total)" : "…", footnote: total > 1 ? "chunks" : "one pass", small: true)
-                    StatBlock(label: "Model", value: "Apple", footnote: "on-device", small: true)
+                    StatBlock(label: "Progress", value: total > 1 ? "\(done)/\(total)" : "…", footnote: total > 1 ? "Chunks" : "One pass", small: true)
+                    StatBlock(label: "Model", value: "Apple", footnote: "On-device", small: true)
                 }
                 ProgressView(value: total > 0 ? Double(done) / Double(total) : 0).tint(.white).padding(.top, 12)
             case .askLanguage:
@@ -54,17 +54,17 @@ struct SummaryCard: View {
                     }
                 }
                 CardButton(title: "Try again", systemImage: "arrow.clockwise") { run() }
-                if cloudAllowed { CardButton(title: "Use Claude instead · you approve the send", systemImage: "cloud") { runCloud() } }
+                if cloudAllowed { CardButton(title: "Use Claude instead · You approve the send", systemImage: "cloud") { runCloud() } }
             case .idle:
                 if let s = summary {
                     HStack(alignment: .top, spacing: 10) {
-                        StatBlock(label: "Format", value: formatLabel(s), footnote: s.length == .short ? "short" : "long", small: true)
+                        StatBlock(label: "Format", value: formatLabel(s), footnote: s.length == .short ? "Short" : "Long", small: true)
                         StatBlock(label: "Model", value: s.model == "claude" ? "Claude" : s.model.hasPrefix("mlx") ? "Qwen" : "Apple",
                                   footnote: String(format: "%.1f s · %@", s.seconds, modelFootnote(s)), small: true)
                     }
                     if s.partial { Text("Partial: only the first \(SummarySpec.maxChunks) chunks were read.").font(.system(size: 13)).opacity(0.8).padding(.top, 8) }
                     if s.model == "claude" {
-                        Text("Sent \(s.sentCharacters ?? 0) characters to Claude · \(s.redacted ?? 0) placeholders restored on this phone\((s.unresolved ?? 0) > 0 ? " · \(s.unresolved!) unresolved" : "") · logged")
+                        Text("Sent \(s.sentCharacters ?? 0) characters to Claude · \(s.redacted ?? 0) placeholders restored on this phone\((s.unresolved ?? 0) > 0 ? " · \(s.unresolved!) unresolved" : "") · Logged")
                             .font(.system(size: 13)).opacity(0.8).padding(.top, 8)
                     }
                     regenerateMenu(s)
@@ -77,7 +77,7 @@ struct SummaryCard: View {
                             Button { showAsk = true } label: { Label("Ask Claude about this…", systemImage: "questionmark.bubble") }
                         } label: {
                             HStack {
-                                Text("Claude · you approve each send").font(.system(size: 18, weight: .medium))
+                                Text("Claude · You approve each send").font(.system(size: 18, weight: .medium))
                                 Spacer()
                                 Image(systemName: "chevron.down").font(.system(size: 16, weight: .semibold))
                             }
@@ -93,13 +93,13 @@ struct SummaryCard: View {
     }
 
     private func modelFootnote(_ s: DocumentSummary) -> String {
-        if s.model == "claude" { return "cloud · \(s.redacted ?? 0) restored" }
+        if s.model == "claude" { return "Cloud · \(s.redacted ?? 0) restored" }
         if s.model.contains("failed") { return "Qwen failed" }
-        return s.chunks > 1 ? "\(s.chunks) chunks" : "no upload"
+        return s.chunks > 1 ? "\(s.chunks) chunks" : "No upload"
     }
 
     private var subtitle: String {
-        if let s = summary { return "\(s.model == "claude" ? "Claude" : "on-device") · \(s.language == "zh-Hans" ? "中文" : "English\(s.language == "en" ? " · STE" : "")") · \(doc.pages.count) page\(doc.pages.count == 1 ? "" : "s")" }
+        if let s = summary { return "\(s.model == "claude" ? "Claude" : "On-device") · \(s.language == "zh-Hans" ? "中文" : "English\(s.language == "en" ? " · STE" : "")") · \(doc.pages.count) page\(doc.pages.count == 1 ? "" : "s")" }
         let lang = SummarySpec.language(for: text) == "zh-Hans" ? "中文" : "English"
         return "\(lang) · \(doc.pages.count) page\(doc.pages.count == 1 ? "" : "s")"
     }
@@ -128,7 +128,7 @@ struct SummaryCard: View {
             Button(role: .destructive) { service.clear(doc, context: context) } label: { Label("Remove summary", systemImage: "trash") }
         } label: {
             HStack {
-                Text("Regenerate · \(s.length == .short ? "longer" : "shorter") · \(s.format == .bullets ? "paragraph" : "bullets")").font(.system(size: 18, weight: .medium))
+                Text("Regenerate · \(s.length == .short ? "Longer" : "Shorter") · \(s.format == .bullets ? "Paragraph" : "Bullets")").font(.system(size: 18, weight: .medium))
                 Spacer()
                 Image(systemName: "chevron.right").font(.system(size: 16, weight: .semibold))
             }

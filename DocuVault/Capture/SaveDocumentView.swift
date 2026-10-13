@@ -38,7 +38,7 @@ struct SaveDocumentView: View {
         ScrollView {
             VStack(spacing: 16) {
                 GradientCard(style: .graphite) {
-                    CardHeader(title: "On-device OCR", subtitle: "en · zh-Hans · zh-Hant")
+                    CardHeader(title: "On-device OCR", subtitle: "English · 简体 · 繁體")
                     HStack(alignment: .top, spacing: 10) {
                         StatBlock(label: "Confidence", value: "\(Int(meanConfidence * 100))%",
                                   footnote: lowPages.isEmpty ? "All pages clear" : "Low: page \(lowPages.map(String.init).joined(separator: ", "))")
@@ -86,12 +86,12 @@ struct SaveDocumentView: View {
                         HStack {
                             Text("Vault").font(.system(size: 17))
                             Spacer()
-                            StatusPill(text: vault.isUnlocked ? "Unlocked · will seal" : "Face ID on save", tone: .info)
+                            StatusPill(text: vault.isUnlocked ? "Unlocked · Will seal" : "Face ID on save", tone: .info)
                         }
                         .padding(16)
                         if let p = people.first(where: { $0.id == ownerID }), let days = p.retentionDays {
                             Divider().padding(.leading, 16)
-                            HStack { Text("Retention").font(.system(size: 17)); Spacer(); Text("deletes after \(days) d").foregroundStyle(Theme.Colors.ink2) }.padding(16)
+                            HStack { Text("Retention").font(.system(size: 17)); Spacer(); Text("Deletes after \(days) d").foregroundStyle(Theme.Colors.ink2) }.padding(16)
                         }
                     }
                 }
@@ -102,7 +102,7 @@ struct SaveDocumentView: View {
                     HStack {
                         Text("\(ex.fields.count - ex.missingCount) of \(ex.fields.count) fields filled").font(.system(size: 16))
                         Spacer()
-                        StatusPill(text: ex.checksTotal == 0 ? "no checks" : "\(ex.checksPassed)/\(ex.checksTotal) checks",
+                        StatusPill(text: ex.checksTotal == 0 ? "No checks" : "\(ex.checksPassed)/\(ex.checksTotal) checks",
                                    tone: ex.checksTotal == 0 ? .neutral : (ex.allChecksPassed ? .verified : .missing))
                     }
                     .padding(16).background(Theme.Colors.surface)

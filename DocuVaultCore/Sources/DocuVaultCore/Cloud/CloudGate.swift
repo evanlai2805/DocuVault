@@ -27,8 +27,8 @@ public enum CloudPurpose: Equatable, Sendable, Codable {
 
     public var logLabel: String {
         switch self {
-        case .summarise: "summarise"
-        case .ask(let q, _): "ask: \u{201C}\(q.count > 40 ? String(q.prefix(40)) + "…" : q)\u{201D}"
+        case .summarise: "Summarise"
+        case .ask(let q, _): "Ask: \u{201C}\(q.count > 40 ? String(q.prefix(40)) + "…" : q)\u{201D}"
         }
     }
     public var language: String {

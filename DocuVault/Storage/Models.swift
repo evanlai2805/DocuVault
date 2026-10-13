@@ -186,7 +186,7 @@ final class StoredCloudSend {
     var sentAt: Date
     var documentID: UUID?
     var documentTitle: String
-    var purpose: String                 // "summarise" | "ask: “…”"
+    var purpose: String                 // "Summarise" | "Ask: “…”" (older rows are lower case; DisplayText capitalises them)
     var model: String
     var statusRaw: String               // CloudSendStatus.rawValue
     var characters: Int

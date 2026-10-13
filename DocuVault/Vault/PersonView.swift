@@ -20,7 +20,7 @@ struct PersonView: View {
             VStack(spacing: 16) {
                 GradientCard(style: anyWarning ? .red : (allPass ? .green : .graphite)) {
                     CardHeader(title: person.fullName.isEmpty ? person.name : person.fullName,
-                               subtitle: "\(person.kind.displayName) · \(docs.count) document\(docs.count == 1 ? "" : "s") · \(allPass ? "all checks pass" : "a check failed")")
+                               subtitle: "\(person.kind.displayName) · \(docs.count) document\(docs.count == 1 ? "" : "s") · \(allPass ? "All checks pass" : "A check failed")")
                     HStack(alignment: .top, spacing: 10) {
                         StatBlock(label: "Next expiry", value: nextExpiry ?? "—", footnote: nextExpiryNote, small: true)
                         StatBlock(label: "Retention", value: person.retentionDays.map { "\($0) d" } ?? "Never", footnote: person.kind.displayName, small: true)
@@ -44,7 +44,7 @@ struct PersonView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
 
-                sectionHeader("Shared fields", trailing: "used by the keyboard")
+                sectionHeader("Shared fields", trailing: "Used by the keyboard")
                 VStack(spacing: 0) {
                     shared("Full name", person.fullName)
                     Divider().padding(.leading, 16)
@@ -77,13 +77,15 @@ struct PersonView: View {
         }
     }
 
+    /// Earliest ISO expiry across the person's documents, shown as 12/MAR/1990. Card expiries (MM/YY)
+    /// and free text such as 长期 are skipped, since a string sort only orders ISO dates correctly.
     private var nextExpiry: String? {
         docs.compactMap { d in d.orderedFields.first { ["expiry", "validTo"].contains($0.key) }.flatMap { vault.reveal($0) } }
-            .filter { !$0.isEmpty }.sorted().first
+            .filter { TextRules.firstISODate(in: $0) == $0 }.sorted().first.map(FillFormats.display)
     }
     private var nextExpiryNote: String? {
         guard let e = nextExpiry, e.count >= 4 else { return nil }
-        return "earliest document"
+        return "Earliest document"
     }
 
     private func docRow(_ d: StoredDocument) -> some View {
@@ -109,7 +111,7 @@ struct PersonView: View {
             Text(value.isEmpty ? "—" : value).font(.system(size: 16, design: .monospaced)).foregroundStyle(value.isEmpty ? Theme.Colors.danger : Theme.Colors.ink)
                 .lineLimit(2).minimumScaleFactor(0.8)
             Spacer()
-            StatusPill(text: value.isEmpty ? "add" : "set", tone: value.isEmpty ? .missing : .info)
+            StatusPill(text: value.isEmpty ? "Add" : "Set", tone: value.isEmpty ? .missing : .info)
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
     }

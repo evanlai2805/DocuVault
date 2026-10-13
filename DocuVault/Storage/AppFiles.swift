@@ -10,6 +10,11 @@ import DocuVaultOCR
 enum AppFiles {
     static let appGroupID = "group.com.evanlai.docuvault"
 
+    /// How long the keyboard stays unlocked after the last key, in seconds; 0 = lock when it hides.
+    /// Set in the app's Settings, read by the keyboard. Default 1 min (Evan, checkpoint 14).
+    static let keyboardLockWindowKey = "keyboard.lockWindowSeconds"
+    static let keyboardLockWindowDefault: Double = 60
+
     static var containerURL: URL {
         if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) {
             return url

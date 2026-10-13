@@ -4,13 +4,16 @@ import DocuVaultCore
 /// The keyboard surface. One selector bar (lock + the loaded document), then either the field keys,
 /// the picker, or a format panel. Bottom: globe · space · ⌫ · Done.
 /// Values are never drawn on keys; hints show the last 4 or the format that will be used.
-/// Nothing scrolls horizontally: the person and document chip rows rendered blurred inside the
-/// keyboard host, so selection moved into a picker that replaces the keys.
+/// Nothing scrolls except the picker list: the chip rows and the scrolling key grid both rendered
+/// blurred at their edges inside the keyboard host (iOS 26 soft scroll edges).
 struct KeyboardRootView: View {
     static let height: CGFloat = 300
-    /// Three columns, and three rows fit at 300pt once the bar and bottom row are taken out.
+    /// Three columns, four rows of 44pt keys: 4 × 44 + 3 × 6 = 194pt, inside the 198pt left at 300pt
+    /// once the bar and bottom row are taken out. The largest key set (passport) is ten keys, so
+    /// nothing scrolls and nothing clips (Evan's screenshots: a scrolling grid blurred at its edges).
     static let columns = 3
-    static let visibleRows = 3
+    static let rows = 4
+    static let keyHeight: CGFloat = 44
 
     @Bindable var model: KeyboardModel
     let showsGlobe: Bool
@@ -185,40 +188,14 @@ struct KeyboardRootView: View {
         return model.currentDoc.map { FillFormats.keys(for: $0.type) } ?? []
     }
 
-    /// How many keys sit below the fold. Three columns, three rows visible at this height.
-    private var hiddenKeyCount: Int {
-        max(0, specs.count - Self.columns * Self.visibleRows)
-    }
-
+    /// No scroll view: every key set fits in four rows (see `rows`).
     private var keyArea: some View {
-        VStack(spacing: 2) {
-            keyGrid
-                .overlay(alignment: .bottom) {
-                    if hiddenKeyCount > 0 {
-                        LinearGradient(colors: [keyBG.opacity(0), keyBG],
-                                       startPoint: .top, endPoint: .bottom)
-                            .frame(height: 24).allowsHitTesting(false)
-                    }
-                }
-            if hiddenKeyCount > 0 {
-                HStack(spacing: 3) {
-                    Text("\(hiddenKeyCount) more").font(.system(size: 11, weight: .bold))
-                    Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold))
-                }
-                .foregroundStyle(ink2)
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: Self.columns), spacing: 6) {
+            ForEach(specs.prefix(Self.columns * Self.rows), id: \.fieldKey) { spec in
+                key(spec)
             }
         }
-    }
-
-    private var keyGrid: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: Self.columns), spacing: 6) {
-                ForEach(specs, id: \.fieldKey) { spec in
-                    key(spec)
-                }
-            }
-        }
-        .frame(maxHeight: .infinity)
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private func key(_ spec: FillFormats.KeySpec) -> some View {
@@ -232,7 +209,7 @@ struct KeyboardRootView: View {
                 Text(spec.label).font(.system(size: 15, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
                 if let hint { Text(hint).font(.system(size: 11)).foregroundStyle(ink2).lineLimit(1) }
             }
-            .frame(maxWidth: .infinity).frame(height: 46)
+            .frame(maxWidth: .infinity).frame(height: Self.keyHeight)
             .foregroundStyle(enabled ? Color.primary : ink2)
             .background(enabled ? Color.white : Color(red: 0xEC/255, green: 0xED/255, blue: 0xF0/255))
             .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -259,12 +236,14 @@ struct KeyboardRootView: View {
     private func holdPanel(_ spec: FillFormats.KeySpec) -> some View {
         VStack(spacing: 6) {
             HStack {
-                Text("\(spec.label) · format").font(.system(size: 13, weight: .semibold)).foregroundStyle(ink2)
+                Text("\(spec.label) · Format").font(.system(size: 13, weight: .semibold)).foregroundStyle(ink2)
                 Spacer()
-                Text("auto: \(model.datePlan.reason)").font(.system(size: 11)).foregroundStyle(ink2)
+                Text("Auto: \(spec.kind == .expiry ? model.expiryChoice.reason : model.datePlan.reason)")
+                    .font(.system(size: 11)).foregroundStyle(ink2)
             }
             .padding(.horizontal, 4)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 2), spacing: 6) {
+            // Three columns so all eight date styles fit in three rows without scrolling.
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3), spacing: 6) {
                 if spec.kind == .date, let raw = model.value(for: spec) {
                     ForEach(FillFormats.DateStyle.allCases, id: \.self) { st in
                         formatKey(FillFormats.date(raw, style: st), sub: st.rawValue) { model.insertDate(spec, style: st); holdSpec = nil }
@@ -282,10 +261,12 @@ struct KeyboardRootView: View {
     private func formatKey(_ title: String, sub: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 2) {
-                Text(title).font(.system(size: 15, weight: .semibold, design: .monospaced))
-                Text(sub).font(.system(size: 11)).foregroundStyle(ink2)
+                Text(title).font(.system(size: 14, weight: .semibold, design: .monospaced))
+                    .lineLimit(1).minimumScaleFactor(0.75)
+                Text(sub).font(.system(size: 10)).foregroundStyle(ink2).lineLimit(1).minimumScaleFactor(0.8)
             }
-            .frame(maxWidth: .infinity).frame(height: 46)
+            .padding(.horizontal, 2)
+            .frame(maxWidth: .infinity).frame(height: Self.keyHeight)
             .background(Color.white).foregroundStyle(Color.primary)
             .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
             .shadow(color: .black.opacity(0.25), radius: 0, y: 1)

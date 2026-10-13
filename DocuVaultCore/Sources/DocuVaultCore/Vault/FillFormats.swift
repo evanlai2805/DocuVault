@@ -3,12 +3,15 @@ import Foundation
 /// How the keyboard renders a stored value into a form. Pure functions; the keyboard remembers the last choice.
 public enum FillFormats {
 
+    /// Declaration order is the order the hold panel shows them.
     public enum DateStyle: String, CaseIterable, Codable, Sendable {
-        case iso = "YYYY-MM-DD"
         case dmySlash = "DD/MM/YYYY"
-        case mdySlash = "MM/DD/YYYY"
+        case iso = "YYYY-MM-DD"
+        case dMonYSlash = "DD/MMM/YYYY"
+        case dMonYDash = "DD-MMM-YYYY"
         case dMonY = "DD Mon YYYY"
         case digitsDMY = "DDMMYYYY"
+        case mdySlash = "MM/DD/YYYY"
         case digitsYMD = "YYYYMMDD"
 
         public static let `default`: DateStyle = .iso
@@ -26,9 +29,17 @@ public enum FillFormats {
         case .dmySlash: return "\(dd)/\(mm)/\(yy)"
         case .mdySlash: return "\(mm)/\(dd)/\(yy)"
         case .dMonY: return "\(dd) \(months[m - 1]) \(yy)"
+        case .dMonYSlash: return "\(dd)/\(months[m - 1].uppercased())/\(yy)"
+        case .dMonYDash: return "\(dd)-\(months[m - 1].uppercased())-\(yy)"
         case .digitsDMY: return "\(dd)\(mm)\(yy)"
         case .digitsYMD: return "\(yy)\(mm)\(dd)"
         }
+    }
+
+    /// How the app shows a stored date: 12/MAR/1990 (Evan, checkpoint 14). Storage and export stay ISO.
+    /// Returns the input unchanged when it is not an ISO date, so free text such as 长期 passes through.
+    public static func display(_ iso: String) -> String {
+        date(iso, style: .dMonYSlash)
     }
 
     /// Card number: digits only by default (most forms reject spaces); spaced on hold.
