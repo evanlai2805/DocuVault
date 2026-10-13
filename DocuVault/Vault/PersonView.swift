@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import DocuVaultCore
 
-/// One person or entity: summary card, their documents, shared fields (feed the keyboard in Phase 5).
+/// One person or entity: summary card, their documents, contact details (feed the keyboard in Phase 5).
 struct PersonView: View {
     @Bindable var person: StoredPerson
     @Environment(VaultSession.self) private var vault
@@ -25,7 +25,7 @@ struct PersonView: View {
                         StatBlock(label: "Next expiry", value: nextExpiry ?? "—", footnote: nextExpiryNote, small: true)
                         StatBlock(label: "Retention", value: person.retentionDays.map { "\($0) d" } ?? "Never", footnote: person.kind.displayName, small: true)
                     }
-                    CardButton(title: "Autofill shared fields from documents", systemImage: "wand.and.stars") { autofillShared() }
+                    CardButton(title: "Autofill contact details from documents", systemImage: "wand.and.stars") { autofillShared() }
                 }
 
                 sectionHeader("Documents", trailing: "")
@@ -44,7 +44,7 @@ struct PersonView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
 
-                sectionHeader("Shared fields", trailing: "Used by the keyboard")
+                sectionHeader("Contact details", trailing: "Used by the keyboard")
                 VStack(spacing: 0) {
                     shared("Full name", person.fullName)
                     Divider().padding(.leading, 16)
@@ -66,7 +66,7 @@ struct PersonView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button { editingShared = true } label: { Label("Edit shared fields", systemImage: "pencil") }
+                    Button { editingShared = true } label: { Label("Edit contact details", systemImage: "pencil") }
                     Button(role: .destructive) { confirmDelete = true } label: { Label("Delete person", systemImage: "trash") }
                 } label: { Image(systemName: "ellipsis.circle") }
             }
@@ -123,7 +123,7 @@ struct PersonView: View {
             .font(.system(size: 14)).foregroundStyle(Theme.Colors.ink2).padding(.horizontal, 4).padding(.bottom, -8)
     }
 
-    /// Fill empty shared fields from the person's documents: name from passport/NRIC/ID, address from NRIC/ID, phone/email from a business card.
+    /// Fill empty contact details from the person's documents: name from passport/NRIC/ID, address from NRIC/ID, phone/email from a business card.
     private func autofillShared() {
         func first(_ keys: [String], types: [DocumentType]) -> String? {
             for d in docs where types.contains(d.type) {
@@ -151,7 +151,7 @@ struct SharedFieldsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Shared fields") {
+                Section("Contact details") {
                     TextField("Full name", text: $person.fullName)
                     TextField("Address", text: $person.address, axis: .vertical)
                     TextField("Phone", text: $person.phone).keyboardType(.phonePad)

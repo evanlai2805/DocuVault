@@ -82,8 +82,12 @@ final class KeyboardModel {
     var personFilter: UUID?          // nil = every person
     private var lastUsed: [String: Date] = [:]
     private var useCounts: [String: Int] = [:]
+    /// The wording or format last picked in the hold menu, per person, document and field
+    /// ("<entry id>|<field key>" → option id). Survives the keyboard closing (Evan, 15 follow-up).
+    private var fieldPrefs: [String: String] = [:]
     private static let lastUsedDefaultsKey = "keyboard.lastUsed"
     private static let useCountsDefaultsKey = "keyboard.useCounts"
+    private static let fieldPrefsDefaultsKey = "keyboard.fieldPrefs"
 
     /// What the host text field tells us; refreshed on every textDidChange.
     var fieldContext = FillInference.Context(region: Locale.current.region?.identifier ?? "SG")
@@ -178,12 +182,13 @@ final class KeyboardModel {
             for d in docsByPerson[p.id] ?? [] {
                 out.append(FillEntry(title: d.title, personName: p.name, personID: p.id, kind: .document(d.id)))
             }
-            out.append(FillEntry(title: "Shared fields", personName: p.name, personID: p.id, kind: .shared))
+            out.append(FillEntry(title: "Contact details", personName: p.name, personID: p.id, kind: .shared))
         }
         return FillPicker.sorted(out, lastUsed: lastUsed)
     }
 
     var startPage: FillPicker.StartPage { FillPicker.startPage(entries, useCounts: useCounts, lastUsed: lastUsed) }
+    var hasUsage: Bool { !lastUsed.isEmpty }
 
     var searchResults: [FillEntry] { FillPicker.filter(entries, query: searchText) }
 
@@ -209,6 +214,7 @@ final class KeyboardModel {
         searchText = ""
         personFilter = nil
         panel = .keys
+        markCurrentUsed(count: true)
     }
 
     // MARK: Panels
@@ -252,15 +258,35 @@ final class KeyboardModel {
         if let raw = sharedDefaults?.dictionary(forKey: Self.useCountsDefaultsKey) as? [String: Int] {
             useCounts = raw
         }
+        if let raw = sharedDefaults?.dictionary(forKey: Self.fieldPrefsDefaultsKey) as? [String: String] {
+            fieldPrefs = raw
+        }
     }
 
-    private func markCurrentUsed() {
+    /// Loading a row counts as a use; an insert refreshes its recency.
+    private func markCurrentUsed(count: Bool = false) {
         guard let person = selectedPerson else { return }
         let id = FillPicker.key(personID: person, kind: currentEntryKind)
         lastUsed[id] = Date()
-        useCounts[id, default: 0] += 1
+        if count { useCounts[id, default: 0] += 1 }
         sharedDefaults?.set(lastUsed.mapValues(\.timeIntervalSince1970), forKey: Self.lastUsedDefaultsKey)
         sharedDefaults?.set(useCounts, forKey: Self.useCountsDefaultsKey)
+    }
+
+    private func prefKey(_ spec: FillFormats.KeySpec) -> String? {
+        guard let person = selectedPerson else { return nil }
+        return FillPicker.key(personID: person, kind: currentEntryKind) + "|" + spec.fieldKey
+    }
+
+    /// The option id picked last for this field on this row, if any.
+    func preference(for spec: FillFormats.KeySpec) -> String? {
+        prefKey(spec).flatMap { fieldPrefs[$0] }
+    }
+
+    private func remember(_ spec: FillFormats.KeySpec, option: String) {
+        guard let k = prefKey(spec) else { return }
+        fieldPrefs[k] = option
+        sharedDefaults?.set(fieldPrefs, forKey: Self.fieldPrefsDefaultsKey)
     }
 
     // MARK: Unlock
@@ -328,32 +354,60 @@ final class KeyboardModel {
         switch spec.kind {
         case .cardNumber: return value(for: .init(fieldKey: "last4", label: "", kind: .text)).map { "•" + $0 }
         case .date:
+            if let st = preferredDateStyle(spec) { return st.rawValue }
             switch datePlan.value {
             case .full(let st): return st.rawValue
             case .component(let c): return "\(String(describing: c).capitalized) only"
             }
-        case .expiry: return expiryChoice.value.rawValue
+        case .expiry: return preferredExpiryStyle(spec).rawValue
         case .holdOnly: return "Hold"
         case .text:
-            if ["nationality", "issuingCountry", "sex"].contains(spec.fieldKey) { return value(for: spec) }
+            if ["nationality", "issuingCountry", "sex"].contains(spec.fieldKey) { return rendered(spec) }
             return nil
         }
     }
 
+    private func preferredDateStyle(_ spec: FillFormats.KeySpec) -> FillFormats.DateStyle? {
+        preference(for: spec).flatMap(FillFormats.DateStyle.init(rawValue:))
+    }
+    private func preferredExpiryStyle(_ spec: FillFormats.KeySpec) -> FillFormats.ExpiryStyle {
+        preference(for: spec).flatMap(FillFormats.ExpiryStyle.init(rawValue:)) ?? expiryChoice.value
+    }
+    private func preferredSpaced(_ spec: FillFormats.KeySpec) -> Bool {
+        switch preference(for: spec) {
+        case "spaced": true
+        case "plain": false
+        default: FillInference.cardSpaced(fieldContext)
+        }
+    }
+    /// The wording a tap inserts for a field with variants: the remembered one, else the value as stored.
+    private func preferredVariant(_ spec: FillFormats.KeySpec, raw: String) -> String {
+        let vs = FillVariants.variants(fieldKey: spec.fieldKey, value: raw)
+        guard !vs.isEmpty else { return raw }
+        if let id = preference(for: spec), let v = vs.first(where: { $0.id == id }) { return v.text }
+        return raw
+    }
+
     // MARK: Insert
 
-    /// What a tap on the key inserts right now. The hold menu's preview card shows exactly this.
+    /// What a tap on the key inserts right now: the remembered pick for this row and field first, then
+    /// the session choice, then inference. The hold menu's preview card shows exactly this.
     func rendered(_ spec: FillFormats.KeySpec) -> String? {
         guard let raw = value(for: spec) else { return nil }
         switch spec.kind {
-        case .cardNumber: return FillFormats.cardNumber(raw, spaced: FillInference.cardSpaced(fieldContext))
+        case .cardNumber: return FillFormats.cardNumber(raw, spaced: preferredSpaced(spec))
         case .date:
+            if let st = preferredDateStyle(spec) { return FillFormats.date(raw, style: st) }
             switch datePlan.value {
             case .full(let st): return FillFormats.date(raw, style: st)
             case .component(let c): return FillInference.component(c, of: raw)
             }
-        case .expiry: return FillFormats.expiry(raw, style: expiryChoice.value)
-        case .holdOnly, .text: return raw
+        case .expiry: return FillFormats.expiry(raw, style: preferredExpiryStyle(spec))
+        case .holdOnly: return raw
+        case .text:
+            if spec.fieldKey == "name", preference(for: spec) == "pinyin",
+               let pinyin = value(for: .init(fieldKey: "namePinyin", label: "", kind: .text)) { return pinyin }
+            return preferredVariant(spec, raw: raw)
         }
     }
 
@@ -374,37 +428,54 @@ final class KeyboardModel {
         KeyboardVault.touch()
     }
 
-    /// The rows under the preview card (checkpoint 15): only what makes sense for the field.
+    /// The rows under the preview card (checkpoint 15): only what makes sense for the field. Picking
+    /// one inserts it and remembers it for this row and field.
     func holdOptions(for spec: FillFormats.KeySpec) -> [HoldOption] {
         guard let raw = value(for: spec) else { return [] }
+        let pref = preference(for: spec)
         switch spec.kind {
         case .date:
-            let current: FillFormats.DateStyle? = { if case .full(let s) = datePlan.value { return s }; return nil }()
+            let current: FillFormats.DateStyle? = preferredDateStyle(spec) ?? { if case .full(let s) = datePlan.value { return s }; return nil }()
             return FillFormats.DateStyle.menu.map { st in
                 HoldOption(id: st.rawValue, title: st.rawValue, detail: FillFormats.date(raw, style: st), selected: st == current) { [weak self] in
-                    self?.dateOverride = st
+                    self?.remember(spec, option: st.rawValue)
                     self?.commit(FillFormats.date(raw, style: st))
                 }
             }
         case .expiry:
+            let current = preferredExpiryStyle(spec)
             return FillFormats.ExpiryStyle.allCases.map { st in
-                HoldOption(id: st.rawValue, title: st.rawValue, detail: FillFormats.expiry(raw, style: st), selected: st == expiryChoice.value) { [weak self] in
-                    self?.expiryOverride = st
+                HoldOption(id: st.rawValue, title: st.rawValue, detail: FillFormats.expiry(raw, style: st), selected: st == current) { [weak self] in
+                    self?.remember(spec, option: st.rawValue)
                     self?.commit(FillFormats.expiry(raw, style: st))
                 }
             }
         case .cardNumber:
-            let spaced = FillInference.cardSpaced(fieldContext)
+            let spaced = preferredSpaced(spec)
             return [
-                HoldOption(id: "plain", title: "Without spaces", detail: FillFormats.cardNumber(raw, spaced: false), selected: !spaced) { [weak self] in self?.commit(FillFormats.cardNumber(raw, spaced: false)) },
-                HoldOption(id: "spaced", title: "With spaces", detail: FillFormats.cardNumber(raw, spaced: true), selected: spaced) { [weak self] in self?.commit(FillFormats.cardNumber(raw, spaced: true)) },
+                HoldOption(id: "plain", title: "Without spaces", detail: FillFormats.cardNumber(raw, spaced: false), selected: !spaced) { [weak self] in
+                    self?.remember(spec, option: "plain"); self?.commit(FillFormats.cardNumber(raw, spaced: false)) },
+                HoldOption(id: "spaced", title: "With spaces", detail: FillFormats.cardNumber(raw, spaced: true), selected: spaced) { [weak self] in
+                    self?.remember(spec, option: "spaced"); self?.commit(FillFormats.cardNumber(raw, spaced: true)) },
             ]
         case .text:
+            // Nationality, issuing country and sex offer the wordings a form may want.
+            let vs = FillVariants.variants(fieldKey: spec.fieldKey, value: raw)
+            if vs.count > 1 {
+                let current = rendered(spec)
+                return vs.map { v in
+                    HoldOption(id: v.id, title: v.text, detail: nil, selected: v.text == current) { [weak self] in
+                        self?.remember(spec, option: v.id); self?.commit(v.text)
+                    }
+                }
+            }
             // A Chinese name offers its pinyin as well, when the document has one.
             if spec.fieldKey == "name", currentDoc?.type == .chinaID, let pinyin = value(for: .init(fieldKey: "namePinyin", label: "", kind: .text)) {
                 return [
-                    HoldOption(id: "chars", title: "Characters", detail: raw, selected: true) { [weak self] in self?.commit(raw) },
-                    HoldOption(id: "pinyin", title: "Pinyin", detail: pinyin, selected: false) { [weak self] in self?.commit(pinyin) },
+                    HoldOption(id: "chars", title: "Characters", detail: raw, selected: pref != "pinyin") { [weak self] in
+                        self?.remember(spec, option: "chars"); self?.commit(raw) },
+                    HoldOption(id: "pinyin", title: "Pinyin", detail: pinyin, selected: pref == "pinyin") { [weak self] in
+                        self?.remember(spec, option: "pinyin"); self?.commit(pinyin) },
                 ]
             }
             return []

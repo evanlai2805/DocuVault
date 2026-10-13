@@ -142,6 +142,13 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
 - Evan's notes on the build: start-page rows read "Passport" (suffix only on the Filling from line), person name on
   the right in navy at the same size, person icon black. Dark mode made the old keyboard illegible: the keyboard is
   pinned to light with fixed ink colours.
+- Hold menu, round two (Evan, 13 Oct afternoon): Home Screen spring (response 0.38, damping 0.62, scaled from the
+  key, medium haptic), slide-to-select (keep the finger down, slide onto the value card or an option, lift), tap
+  still works after lifting. Nationality and Issuing country offer Singaporean · Singapore · Singapore citizen · SGP
+  (`FillVariants`, 19 countries, unknown passes through); Sex offers F · Female. Every hold pick is remembered per
+  person, document and field (`keyboard.fieldPrefs` in the App Group) and becomes the tap default and the key hint,
+  across keyboard sessions. Loading a row counts as a use (start page). Search: full-height pad until a letter is
+  typed, then two result rows above a shorter pad. "Shared fields" is "Contact details" in the app and keyboard.
 - Model: `FieldCheck.failed` (checksum wrong) and `.userVerified` (Verified pressed). Extractors and `FieldEdit.recheck`
   tag failed checksums `.failed`; documents saved before that are flagged by `FieldEdit.needsVerification` (checked
   key tagged `.ocr` on a document whose checks do not all pass). Markdown export labels: FAILED / verified.

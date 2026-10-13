@@ -1,10 +1,12 @@
 import SwiftUI
+import UIKit
 import DocuVaultCore
 
 /// The keyboard surface (checkpoints 13c and 15). One bar: menu circle · Search · scan circle · lock
 /// circle. Below it one of: the start page, the keys, the search pad, the menu, or the scan. A hold on
-/// any key raises a menu drawn inside the keyboard: the value on top, then only the options that make
-/// sense for that field. Bottom: globe · space · backspace · Done or Back.
+/// any key raises a menu drawn inside the keyboard, with the Home Screen's spring: the value on top,
+/// then only the options that make sense for that field. Keep the finger down and slide onto an option
+/// to pick it, or lift and tap. Bottom: globe · space · backspace · Done or Back.
 /// Keys show no check status; the app judges. Values are never drawn on keys.
 struct KeyboardRootView: View {
     static let height: CGFloat = 300
@@ -14,11 +16,24 @@ struct KeyboardRootView: View {
     static let rows = 4
     static let keyHeight: CGFloat = 40
     static let keyInset: CGFloat = 12
+    static let menuWidth: CGFloat = 220
+    static let holdDelay: Duration = .milliseconds(350)
 
     @Bindable var model: KeyboardModel
     let showsGlobe: Bool
+
+    // Hold menu state. Frames are in the "content" coordinate space (the area under the bar).
     @State private var holdSpec: FillFormats.KeySpec?
+    @State private var pressedKey: String?
+    @State private var holdTask: Task<Void, Never>?
+    @State private var highlighted: String?           // "preview" or an option id
+    @State private var keyFrames: [String: CGRect] = [:]
+    @State private var targetFrames: [String: CGRect] = [:]
+    @State private var menuSize: CGSize = .zero
+    @State private var contentSize: CGSize = .zero
     @State private var scanScale: CGFloat = 1
+
+    private static let spring = Animation.spring(response: 0.38, dampingFraction: 0.62)
 
     var body: some View {
         VStack(spacing: 6) {
@@ -27,11 +42,18 @@ struct KeyboardRootView: View {
                 ZStack(alignment: .topLeading) {
                     content
                         .opacity(holdSpec == nil ? 1 : 0.35)
+                        .animation(.easeOut(duration: 0.18), value: holdSpec == nil)
+                    if holdSpec != nil {
+                        Color.clear.contentShape(Rectangle()).onTapGesture { closeMenu() }
+                    }
                     if let spec = holdSpec {
-                        Color.clear.contentShape(Rectangle()).onTapGesture { holdSpec = nil }
                         holdMenu(spec)
+                            .offset(menuOffset(for: spec))
+                            .transition(.scale(scale: 0.4, anchor: menuAnchor(for: spec)).combined(with: .opacity))
                     }
                 }
+                .coordinateSpace(name: "content")
+                .onGeometryChange(for: CGSize.self) { $0.size } action: { contentSize = $0 }
                 .frame(maxHeight: .infinity)
             } else {
                 unlockPanel
@@ -125,7 +147,7 @@ struct KeyboardRootView: View {
                 ForEach(page.mostUsed) { e in entryRow(e, height: 36) }
             }
             if !page.recent.isEmpty {
-                caption(page.mostUsed.isEmpty ? "Documents" : "Recent")
+                caption(page.mostUsed.isEmpty && !model.hasUsage ? "Documents" : "Recent")
                 ForEach(page.recent) { e in entryRow(e, height: 36) }
             }
         }
@@ -204,32 +226,100 @@ struct KeyboardRootView: View {
     private func key(_ spec: FillFormats.KeySpec) -> some View {
         let enabled = model.isUnlocked && model.hasValue(spec)
         let hint = enabled ? model.hint(for: spec) : nil
-        return Button {
-            guard enabled, holdSpec == nil else { return }
-            model.insert(spec)
-        } label: {
-            VStack(spacing: 1) {
-                Text(spec.label).font(.system(size: 15, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
-                if let hint { Text(hint).font(.system(size: 9.5)).tracking(0.2).foregroundStyle(Palette.ink2).lineLimit(1).minimumScaleFactor(0.8) }
-            }
-            .padding(.horizontal, Self.keyInset)
-            .frame(maxWidth: .infinity).frame(height: Self.keyHeight)
-            .foregroundStyle(enabled ? Palette.ink : Palette.ink2)
-            .background(enabled ? Palette.surface : Palette.surfaceOff)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .shadow(color: .black.opacity(0.10), radius: 1, y: 1)
-            .overlay {
+        let held = holdSpec == spec
+        return VStack(spacing: 1) {
+            Text(spec.label).font(.system(size: 15, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
+            if let hint { Text(hint).font(.system(size: 9.5)).tracking(0.2).foregroundStyle(Palette.ink2).lineLimit(1).minimumScaleFactor(0.8) }
+        }
+        .padding(.horizontal, Self.keyInset)
+        .frame(maxWidth: .infinity).frame(height: Self.keyHeight)
+        .foregroundStyle(enabled ? Palette.ink : Palette.ink2)
+        .background(enabled ? Palette.surface : Palette.surfaceOff)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .shadow(color: .black.opacity(0.10), radius: 1, y: 1)
+        .overlay {
+            if held { RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Palette.accent, lineWidth: 2) }
+        }
+        .scaleEffect(pressedKey == spec.fieldKey && !held ? 0.96 : 1)
+        .animation(.easeOut(duration: 0.12), value: pressedKey == spec.fieldKey)
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("content")) } action: { keyFrames[spec.fieldKey] = $0 }
+        .gesture(keyGesture(spec, enabled: enabled))
+        .accessibilityLabel(spec.label)
+        .accessibilityAddTraits(.isButton)
+    }
+
+    /// Tap inserts. Hold raises the menu; keep the finger down and slide onto the value card or an
+    /// option, then lift, to pick it. Lift without sliding and the menu stays open for a tap.
+    private func keyGesture(_ spec: FillFormats.KeySpec, enabled: Bool) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named("content"))
+            .onChanged { v in
+                guard enabled else { return }
+                if holdSpec == nil, holdTask == nil, pressedKey == nil {
+                    pressedKey = spec.fieldKey
+                    holdTask = Task { @MainActor in
+                        try? await Task.sleep(for: Self.holdDelay)
+                        guard !Task.isCancelled, pressedKey == spec.fieldKey else { return }
+                        openMenu(spec)
+                    }
+                }
                 if holdSpec == spec {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Palette.accent, lineWidth: 2)
+                    highlighted = targetFrames.first { $0.value.contains(v.location) }?.key
                 }
             }
+            .onEnded { _ in
+                holdTask?.cancel(); holdTask = nil
+                let wasPressed = pressedKey == spec.fieldKey
+                pressedKey = nil
+                guard enabled else { return }
+                if holdSpec == spec {
+                    if let h = highlighted { perform(h, for: spec) }
+                    highlighted = nil
+                } else if holdSpec == nil, wasPressed {
+                    model.insert(spec)
+                }
+            }
+    }
+
+    private func openMenu(_ spec: FillFormats.KeySpec) {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(Self.spring) { holdSpec = spec }
+    }
+
+    private func closeMenu() {
+        withAnimation(.easeOut(duration: 0.16)) { holdSpec = nil }
+        highlighted = nil
+        targetFrames = [:]
+    }
+
+    private func perform(_ target: String, for spec: FillFormats.KeySpec) {
+        if target == "preview" {
+            model.insertPreview(spec)
+        } else if let o = model.holdOptions(for: spec).first(where: { $0.id == target }) {
+            o.action()
         }
-        .buttonStyle(.plain)
-        .simultaneousGesture(LongPressGesture(minimumDuration: 0.35).onEnded { _ in
-            guard enabled else { return }
-            holdSpec = spec
-        })
-        .accessibilityLabel(spec.label)
+        UISelectionFeedbackGenerator().selectionChanged()
+        closeMenu()
+    }
+
+    /// Below the key when it fits, else above it; never off the sides.
+    private func menuOffset(for spec: FillFormats.KeySpec) -> CGSize {
+        guard let f = keyFrames[spec.fieldKey], contentSize.width > 0 else { return .zero }
+        let x = min(max(f.minX, 0), max(contentSize.width - Self.menuWidth, 0))
+        let below = f.maxY + 4
+        let y: CGFloat
+        if menuSize.height == 0 || below + menuSize.height <= contentSize.height { y = below }
+        else if f.minY - 4 - menuSize.height >= 0 { y = f.minY - 4 - menuSize.height }
+        else { y = max(contentSize.height - menuSize.height, 0) }
+        return CGSize(width: x, height: y)
+    }
+
+    private func menuAnchor(for spec: FillFormats.KeySpec) -> UnitPoint {
+        guard let f = keyFrames[spec.fieldKey], contentSize.width > 0 else { return .top }
+        let below = menuSize.height == 0 || f.maxY + 4 + menuSize.height <= contentSize.height
+        let left = min(max(f.minX, 0), max(contentSize.width - Self.menuWidth, 0))
+        let x = min(max((f.midX - left) / Self.menuWidth, 0), 1)
+        return UnitPoint(x: x, y: below ? 0 : 1)
     }
 
     /// Hold menu: the value on top (tap inserts), then the field's options. Drawn by the keyboard
@@ -237,9 +327,7 @@ struct KeyboardRootView: View {
     private func holdMenu(_ spec: FillFormats.KeySpec) -> some View {
         let options = model.holdOptions(for: spec)
         return VStack(spacing: 0) {
-            Button {
-                model.insertPreview(spec); holdSpec = nil
-            } label: {
+            Button { perform("preview", for: spec) } label: {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(spec.label.uppercased()).font(.system(size: 10, weight: .bold)).tracking(0.5).foregroundStyle(Palette.ink2)
                     Text(model.rendered(spec) ?? "").font(.system(size: 17, weight: .bold)).foregroundStyle(Palette.ink)
@@ -248,12 +336,13 @@ struct KeyboardRootView: View {
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Palette.surface)
+                .background(highlighted == "preview" ? Palette.accent.opacity(0.12) : Palette.surface)
             }
             .buttonStyle(.plain)
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("content")) } action: { targetFrames["preview"] = $0 }
             ForEach(options) { o in
                 Divider().overlay(Palette.hairline)
-                Button { o.action(); holdSpec = nil } label: {
+                Button { perform(o.id, for: spec) } label: {
                     HStack {
                         Text(o.title).font(.system(size: 13.5, weight: .medium)).foregroundStyle(Palette.ink)
                         Spacer(minLength: 6)
@@ -264,60 +353,66 @@ struct KeyboardRootView: View {
                         }
                     }
                     .padding(.horizontal, 12).frame(height: 28)
+                    .background(highlighted == o.id ? Palette.accent.opacity(0.12) : Color.clear)
                 }
                 .buttonStyle(.plain)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("content")) } action: { targetFrames[o.id] = $0 }
             }
         }
-        .frame(width: 220)
+        .frame(width: Self.menuWidth)
         .background(Palette.menu)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Palette.glassEdge, lineWidth: 1))
         .shadow(color: .black.opacity(0.22), radius: 14, y: 8)
-        .padding(.leading, 8).padding(.top, 4)
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { menuSize = $0 }
     }
 
     // MARK: Search
 
-    /// The keyboard's own letter pad: letters go to the query, never to the form (13c Q3).
+    /// The keyboard's own letter pad: letters go to the query, never to the form (13c Q3). Full height
+    /// until something is typed; then the two best matches sit above a shorter pad (Evan, 15 follow-up).
     private var searchPanel: some View {
         let results = model.searchResults
+        let typing = !model.searchText.isEmpty
+        let rowH: CGFloat = typing ? 36 : 58
         return VStack(spacing: 6) {
-            VStack(spacing: 4) {
-                if results.isEmpty {
-                    Text(model.searchText.isEmpty ? "Type a name or a document" : "No match")
-                        .font(.system(size: 13)).foregroundStyle(Palette.ink2).frame(height: 32)
-                } else {
-                    ForEach(results.prefix(2)) { e in entryRow(e, height: 32) }
+            if typing {
+                VStack(spacing: 4) {
+                    if results.isEmpty {
+                        Text("No match").font(.system(size: 13)).foregroundStyle(Palette.ink2).frame(height: 32)
+                    } else {
+                        ForEach(results.prefix(2)) { e in entryRow(e, height: 32) }
+                    }
                 }
+                .frame(height: 68, alignment: .top)
             }
-            .frame(height: 68, alignment: .top)
-            VStack(spacing: 5) {
-                padRow(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"])
-                padRow(["a", "s", "d", "f", "g", "h", "j", "k", "l"])
+            VStack(spacing: typing ? 5 : 6) {
+                padRow(["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"], height: rowH)
+                padRow(["a", "s", "d", "f", "g", "h", "j", "k", "l"], height: rowH)
                 HStack(spacing: 4) {
-                    padKey("Back", wide: true) { model.back() }
-                    padRow(["z", "x", "c", "v", "b", "n", "m"])
-                    padKey("delete.left", wide: true, symbol: true) { model.backspaceSearch() }
+                    padKey("Back", height: rowH, wide: true) { model.back() }
+                    padRow(["z", "x", "c", "v", "b", "n", "m"], height: rowH)
+                    padKey("delete.left", height: rowH, wide: true, symbol: true) { model.backspaceSearch() }
                 }
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
     }
 
-    private func padRow(_ letters: [String]) -> some View {
+    private func padRow(_ letters: [String], height: CGFloat) -> some View {
         HStack(spacing: 4) {
-            ForEach(letters, id: \.self) { l in padKey(l) { model.typeSearch(l) } }
+            ForEach(letters, id: \.self) { l in padKey(l, height: height) { model.typeSearch(l) } }
         }
     }
 
-    private func padKey(_ title: String, wide: Bool = false, symbol: Bool = false, action: @escaping () -> Void) -> some View {
+    private func padKey(_ title: String, height: CGFloat, wide: Bool = false, symbol: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Group {
                 if symbol { Image(systemName: title).font(.system(size: 16)) }
-                else { Text(title).font(.system(size: wide ? 13 : 17, weight: wide ? .medium : .regular)) }
+                else { Text(title).font(.system(size: wide ? 13 : (height > 40 ? 20 : 17), weight: wide ? .medium : .regular)) }
             }
             .foregroundStyle(Palette.ink)
-            .frame(maxWidth: .infinity).frame(width: wide ? 44 : nil, height: 36)
+            .frame(maxWidth: .infinity).frame(width: wide ? 44 : nil, height: height)
             .background(wide ? Palette.surfaceOff : Palette.surface)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .shadow(color: .black.opacity(0.12), radius: 0, y: 1)
@@ -392,7 +487,8 @@ struct KeyboardRootView: View {
         .buttonStyle(.plain)
     }
 
-    /// Date format for this keyboard session. Long-term settings stay in the app.
+    /// Date format for this keyboard session. A format picked by holding a date key is remembered for
+    /// that row and field and wins over this card. Long-term settings stay in the app.
     private var settingsCard: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("DATE FORMAT").font(.system(size: 11, weight: .semibold)).tracking(0.8).foregroundStyle(Palette.ink2)
@@ -504,7 +600,7 @@ struct KeyboardRootView: View {
     private var isShowingBack: Bool { holdSpec != nil || (model.isUnlocked && model.showsBack) }
 
     private func dismissOrBack() {
-        if holdSpec != nil { holdSpec = nil }
+        if holdSpec != nil { closeMenu() }
         else if model.isUnlocked, model.showsBack { model.back() }
         else { model.done() }
     }

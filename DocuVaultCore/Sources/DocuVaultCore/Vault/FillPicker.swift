@@ -9,7 +9,7 @@ public struct FillEntry: Identifiable, Equatable, Sendable {
     }
 
     public let id: String
-    public let title: String        // "Passport · CHAI", "Shared fields"
+    public let title: String        // "Passport · CHAI", "Contact details"
     public let personName: String
     public let personID: UUID
     public let kind: Kind
