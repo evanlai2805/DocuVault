@@ -15,6 +15,8 @@ struct SettingsView: View {
     @State private var confirmDeleteModel = false
     @AppStorage(AppFiles.keyboardLockWindowKey, store: UserDefaults(suiteName: AppFiles.appGroupID))
     private var keyboardLockWindow: Double = AppFiles.keyboardLockWindowDefault
+    @AppStorage(AppFiles.keyboardStartPageKey, store: UserDefaults(suiteName: AppFiles.appGroupID))
+    private var keyboardStartPage: String = AppFiles.KeyboardStartPage.suggestions.rawValue
 
     var body: some View {
         List {
@@ -80,6 +82,9 @@ struct SettingsView: View {
                     .labelsHidden()
                 }
                 .padding(.vertical, 2)
+                Picker("Keyboard opens on", selection: $keyboardStartPage) {
+                    ForEach(AppFiles.KeyboardStartPage.allCases, id: \.rawValue) { Text($0.displayName).tag($0.rawValue) }
+                }
                 NavigationLink { ExportView() } label: { Text("Export") }
                 Button(role: .destructive) { confirmResetKey = true } label: { Text("Reset vault key") }
             } header: { Text("Vault") } footer: {

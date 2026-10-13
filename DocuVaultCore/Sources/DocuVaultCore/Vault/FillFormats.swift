@@ -15,6 +15,10 @@ public enum FillFormats {
         case digitsYMD = "YYYYMMDD"
 
         public static let `default`: DateStyle = .iso
+
+        /// The styles the keyboard's hold menu and Settings card offer (checkpoint 15). The rest stay
+        /// reachable through inference (a form that shows MM/DD/YYYY near the cursor still gets it).
+        public static let menu: [DateStyle] = [.dmySlash, .dMonYSlash, .dMonYDash, .iso, .digitsDMY]
     }
 
     static let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]

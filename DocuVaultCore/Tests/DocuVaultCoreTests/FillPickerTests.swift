@@ -130,4 +130,38 @@ final class FillPickerTests: XCTestCase {
     func testRomanisedConvertsChinese() {
         XCTAssertEqual(FillPicker.romanised("身份证"), "SHENFENZHENG")
     }
+
+    // MARK: Start page
+
+    func testStartPageSplitsMostUsedAndRecent() {
+        let e = sample()
+        let now = Date()
+        let page = FillPicker.startPage(e,
+            useCounts: [e[1].id: 9, e[3].id: 4, e[0].id: 1],
+            lastUsed: [e[0].id: now, e[4].id: now.addingTimeInterval(-60), e[1].id: now.addingTimeInterval(-5)])
+        XCTAssertEqual(page.mostUsed.map(\.title), ["DBS Altitude", "Passport · ONG"])
+        XCTAssertEqual(page.recent.map(\.title), ["Passport · CHAI", "身份证"])
+    }
+
+    func testStartPageNeverRepeatsARow() {
+        let e = sample()
+        let now = Date()
+        let page = FillPicker.startPage(e, useCounts: [e[0].id: 5, e[1].id: 3], lastUsed: [e[0].id: now, e[1].id: now.addingTimeInterval(-1), e[2].id: now.addingTimeInterval(-2)])
+        XCTAssertEqual(page.mostUsed.map(\.id), [e[0].id, e[1].id])
+        XCTAssertEqual(page.recent.map(\.id), [e[2].id, e[3].id])
+        XCTAssertEqual(Set(page.mostUsed.map(\.id)).intersection(page.recent.map(\.id)), [])
+    }
+
+    func testStartPageWithNothingUsedFallsBackToIncomingOrder() {
+        let e = sample()
+        let page = FillPicker.startPage(e, useCounts: [:], lastUsed: [:])
+        XCTAssertTrue(page.mostUsed.isEmpty)
+        XCTAssertEqual(page.recent.map(\.id), [e[0].id, e[1].id])
+    }
+
+    func testStartPageTiesOnCountKeepIncomingOrder() {
+        let e = sample()
+        let page = FillPicker.startPage(e, useCounts: [e[3].id: 2, e[1].id: 2, e[0].id: 2], lastUsed: [:])
+        XCTAssertEqual(page.mostUsed.map(\.id), [e[0].id, e[1].id])
+    }
 }

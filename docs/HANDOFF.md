@@ -12,7 +12,7 @@ changes or a phase lands, edit the matching section in the same commit.
 | 2 | Capture: camera, Photos, Files, clipboard, PDF; pages editor; Vision OCR | Done, on device |
 | 3 | Classify + extract + review screen (pills, main/secondary) | Done, on device |
 | 4 | Vault: AES-GCM sealing, Face ID key, people, retention, .md export, expenses.csv | Done, Face ID on device **unverified** |
-| 5 | Keyboard extension: fill from vault, formats, inference | Done; Face ID verified on device 12 Oct. Selector bar rebuilt, **unverified on device** |
+| 5 | Keyboard extension: fill from vault, formats, inference | Done; Face ID verified on device 12 Oct. 13c/15 rebuild (bar, start page, A to Z search, menu, scan, hold menu) **unverified on device** |
 | 6 | Summaries: Apple Foundation Models, Qwen3-4B via MLX for Chinese, Writing Tools | Done; quality **unverified** on device |
 | 7 | Claude opt-in: Redactor, CloudGate, approval sheet, send log, API key | Done; first live send **unverified** |
 | 7a | Batch import: one document per image, queued review/save, merge/split | Done 12 Oct |
@@ -116,6 +116,29 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
   last key or from when the keyboard hid, whichever is later. The mock's "Never" became "Immediately" (Claude's call): "Never" read as "never stays
   unlocked", and an unbounded window is weaker than Evan asked for. The key lives in the keyboard
   process's memory only.
+
+13 Oct · checkpoint 13c answers (not built yet; mock 15 will redraw it)
+- Sections 1 and 2 approved. Section 3: Check and Review flags are red; the OCR and Regex source tags go.
+  The user sees pass, fail or "Confirmed by you", never how a value was read.
+- Q1: the search bar always reads "Search"; the loaded document is shown elsewhere on the bar (mock 15 decides where).
+- Q2: start page only after the lock window. Q3: build the keyboard's own A to Z search pad.
+- Q4: no status of any kind on keys. Q5: a confirmed value edited to one that fails its check is flagged once more.
+- Keyboard polish: more padding inside key pills; key colours move onto the app palette (back and done stay standard).
+- App plan, four checkpoints in order: 15 keyboard polish + 13c · 16 library and vault overhaul (1Password, Files) ·
+  17 Flighty cohesion + swipe-back + settings cut-down + tab-bar overrun · 18 Qwen download fix + onboarding.
+- Qwen: progress bar appears and stays at zero.
+
+13 Oct · checkpoint 15 answers (keyboard built and pushed; review changes next)
+- Q1: loaded document named on a "Filling from" line above the keys; keys 40pt, four rows, no scroll. Search bar always reads Search.
+- Q2: long key labels shrink (minimumScaleFactor 0.8, one line), 12pt inset. Date hints 9.5pt.
+- Q3: segments and chips follow the app chip rule (selected white pill + hairline, unselected ink2 text). Menu circle matte black
+  (graphite) with an accent ring while open; scan circle accent while open. Done and Back stay accent.
+- Hold on any key opens a menu drawn inside the keyboard: top card = the value (tap inserts), then options only where they
+  make sense (dates: four formats, re-renders every date hint for the session; card number: with/without spaces; Chinese
+  name: characters/pinyin). Plain keys show the preview card alone. Hold never inserts. Q6: keys dim behind the menu.
+- Review: flags red; no OCR/Regex tags; pill reads "User verified"; banner is one line naming the fields ("NRIC needs your
+  verification"), buttons Edit · Verified. Q7: field values in SF Pro, monospace only for MRZ lines.
+- Q4: the "Screenshot taken" banner is removed everywhere. Q5: keyboard first, then the review changes, two pushes.
 
 ## 3. Open device validations (do these next, in order)
 - 13 Oct build: passport keyboard shows all ten keys with no scroll and no blur; switching apps and back

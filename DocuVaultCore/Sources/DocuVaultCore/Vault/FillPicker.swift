@@ -63,6 +63,30 @@ public enum FillPicker {
         }
     }
 
+    /// The keyboard's start page (checkpoint 13c): the two most-used rows, then the two most recent,
+    /// with no repeats. A row that is in both lists appears once, under Most used, and the next most
+    /// recent row takes its place. With nothing used yet, Recent falls back to the incoming order so
+    /// the page is never blank. Counts and dates are keyed by `key(personID:kind:)`.
+    public struct StartPage: Equatable, Sendable {
+        public let mostUsed: [FillEntry]
+        public let recent: [FillEntry]
+        public init(mostUsed: [FillEntry], recent: [FillEntry]) { self.mostUsed = mostUsed; self.recent = recent }
+    }
+
+    public static func startPage(_ entries: [FillEntry], useCounts: [String: Int], lastUsed: [String: Date], each: Int = 2) -> StartPage {
+        let used = entries.enumerated()
+            .filter { (useCounts[$0.element.id] ?? 0) > 0 }
+            .sorted { a, b in
+                let ca = useCounts[a.element.id] ?? 0, cb = useCounts[b.element.id] ?? 0
+                return ca == cb ? a.offset < b.offset : ca > cb
+            }
+            .map(\.element)
+        let mostUsed = Array(used.prefix(each))
+        let taken = Set(mostUsed.map(\.id))
+        let recent = sorted(entries, lastUsed: lastUsed).filter { !taken.contains($0.id) }
+        return StartPage(mostUsed: mostUsed, recent: Array(recent.prefix(each)))
+    }
+
     /// Narrows the list to one person. `nil` means everyone.
     public static func filter(_ entries: [FillEntry], person: UUID?) -> [FillEntry] {
         guard let person else { return entries }

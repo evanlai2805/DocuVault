@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 15 · Keyboard polish and 13c rebuild</title>
+<style>
+:root{--ink:#000;--ink2:#8A8A8E;--hair:#E5E5EA;--canvas:#F2F2F7;--kb:#D1D4DA;--accent:#2F6BFF;--g:#1B7F4C;--a:#B5731B;--r:#8E1F1F;--graph:#1C1C1E;--band:#E3E4E8}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px;max-width:900px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:22px}
+.phone{width:100%;max-width:360px;margin:0 auto;height:700px;border-radius:44px;background:#fff;position:relative;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;flex-direction:column}
+.page{flex:1;padding:22px 18px;background:#fff;overflow:hidden}
+.page h2{font-size:19px;margin:0 0 10px;font-weight:700}
+.inp{border:1px solid var(--hair);border-radius:10px;padding:11px;margin:7px 0;font-size:15px;color:var(--ink2)}
+.inp.on{border:2px solid var(--accent);color:var(--ink)}
+.hlabel{position:absolute;right:8px;top:8px;background:#0B2A4A;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;z-index:5}
+.cap{font-size:13px;color:#374151;margin:8px 2px 0;line-height:1.45}.cap b{color:#0B2A4A}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:middle;background:rgba(47,107,255,.14);color:var(--accent)}
+.tag.rec{background:rgba(27,127,76,.14);color:var(--g)}
+.note{background:#fff;border-left:4px solid var(--accent);padding:10px 12px;margin:10px 0;font-size:14px;border-radius:0 10px 10px 0;line-height:1.5;max-width:1100px}
+.note.warn{border-left-color:var(--r)}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px;max-width:1100px;line-height:1.45}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+table{width:100%;max-width:1100px;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 4px;font-size:13px}
+.flow .box{background:#fff;border:1px solid #C9D3E0;border-radius:10px;padding:7px 10px;font-weight:600;color:#0B2A4A}
+.flow .arr{color:#6B7A90;font-weight:700}
+svg{display:block}
+
+/* System sheet: in iOS 26 the keyboard sits on one rounded glass sheet that also holds the globe/mic band. */
+.sheet{flex:none;border-radius:30px 30px 44px 44px;overflow:hidden;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(244,245,248,.92),rgba(232,234,239,.95));
+  box-shadow:0 -1px 0 rgba(255,255,255,.9) inset,0 -6px 24px rgba(0,0,0,.08);border-top:1px solid rgba(255,255,255,.95)}
+.band{height:79px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;color:#333;flex:none}
+.band svg{width:26px;height:26px}
+
+/* Today: an opaque grey slab painted inside that sheet. */
+.kb{height:300px;padding:8px 6px 6px;display:flex;flex-direction:column;gap:6px;flex:none}
+.kb.today{background:var(--kb);margin-top:14px}
+.kb.glass{background:transparent}
+
+.bar{display:flex;gap:6px;align-items:center;height:34px;flex:none}
+.lock{width:30px;height:30px;border-radius:8px;background:var(--g);color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.lock svg{width:15px;height:15px}
+.sel{flex:1;height:32px;border-radius:16px;background:#fff;display:flex;align-items:center;gap:6px;padding:0 12px;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden}
+.sel small{color:var(--ink2);font-weight:500;font-size:13px}.sel .chev{margin-left:auto;color:var(--ink2);font-size:11px;font-weight:700}
+
+/* Glass pieces */
+.gpill{background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.95);box-shadow:0 1px 3px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.9);backdrop-filter:blur(18px) saturate(1.6);-webkit-backdrop-filter:blur(18px) saturate(1.6)}
+.gcirc{width:32px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center;flex:none;color:var(--g)}
+.gcirc svg{width:15px;height:15px}
+.state{flex:1;height:34px;border-radius:17px;display:flex;align-items:center;gap:7px;padding:0 6px 0 12px;color:#fff;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;
+  background:linear-gradient(135deg,#0C4A2E,#1B7F4C);box-shadow:0 2px 8px rgba(12,74,46,.25),inset 0 1px 0 rgba(255,255,255,.25)}
+.state small{font-weight:500;opacity:.78;font-size:13px}
+.state .seal{margin-left:auto;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.18);border-radius:12px;padding:3px 8px 3px 6px;font-size:11px;font-weight:700}
+.state .seal svg{width:11px;height:11px}
+.state.graph{background:linear-gradient(135deg,#1C1C1E,#3A3A3C);box-shadow:0 2px 8px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.18)}
+
+.keys{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,44px);gap:6px;flex:none}
+.key{background:#fff;border-radius:9px;font-size:15px;font-weight:600;text-align:center;box-shadow:0 1px 0 rgba(0,0,0,.25);height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;position:relative;white-space:nowrap}
+.key small{font-size:11px;color:var(--ink2);font-weight:500}
+.key .p{position:absolute;top:3px;right:6px;font-size:9px;font-weight:700;color:var(--g)}
+.keys.glass .key{border-radius:12px;background:rgba(255,255,255,.86);box-shadow:0 1px 2px rgba(0,0,0,.10),inset 0 1px 0 rgba(255,255,255,1);border:.5px solid rgba(255,255,255,.9)}
+.keys.caps .key{border-radius:22px;background:rgba(255,255,255,.86);box-shadow:0 1px 2px rgba(0,0,0,.10),inset 0 1px 0 #fff}
+.keys.old{grid-template-rows:repeat(4,46px)}.keys.old .key{height:46px}
+.clip{height:150px;overflow:hidden;position:relative;flex:none}
+.clip:after{content:"";position:absolute;left:0;right:0;bottom:0;height:26px;background:linear-gradient(to top,var(--kb),rgba(209,212,218,0))}
+.cue{text-align:center;font-size:11px;color:var(--ink2);font-weight:700;flex:none;margin-top:-4px}
+.spacer{flex:1}
+
+.bottom{display:grid;grid-template-columns:1fr 52px 70px;gap:6px;flex:none}
+.bottom .key{height:42px;font-weight:500;color:#111}
+.bottom.today .key{background:#ADB3BC}.bottom.today .key.w{background:#fff;color:var(--ink2)}.bottom.today .key.b{background:var(--accent);color:#fff;font-weight:600}
+.bottom.glass .key{border-radius:12px;background:rgba(255,255,255,.86);box-shadow:0 1px 2px rgba(0,0,0,.10),inset 0 1px 0 #fff;color:var(--ink2)}
+.bottom.glass .key.mod{background:rgba(255,255,255,.45);color:#111}
+.bottom.glass .key.b{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(47,107,255,.35),inset 0 1px 0 rgba(255,255,255,.3)}
+.bottom svg{width:20px;height:20px}
+/* C: two pills like the app's floating tab bar */
+.pillrow{display:flex;gap:8px;align-items:center;flex:none;height:46px}
+.pillrow .left{flex:1;height:46px;border-radius:23px;display:flex;align-items:center;padding:4px;gap:4px}
+.pillrow .left .seg{height:38px;border-radius:19px;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--ink2)}
+.pillrow .left .seg.sp{flex:1;background:rgba(255,255,255,.9)}.pillrow .left .seg.del{width:56px;color:#111}
+.pillrow .done{width:46px;height:46px;border-radius:23px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 8px rgba(47,107,255,.35)}
+.pillrow svg{width:20px;height:20px}
+
+.list{display:flex;flex-direction:column;gap:5px;flex:1;overflow:hidden}
+.row{border-radius:12px;padding:0 12px;height:40px;font-size:15px;font-weight:600;display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.86);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.row small{color:var(--ink2);font-weight:500;font-size:12px}
+.row .dot{width:8px;height:8px;border-radius:4px;display:inline-block;margin-right:7px;vertical-align:middle}
+.row.on{outline:2px solid var(--accent)}
+.unlock{flex:1;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;
+  background:linear-gradient(135deg,#1C1C1E,#3A3A3C);box-shadow:0 2px 10px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.15)}
+.unlock b{font-size:17px}.unlock span{font-size:12px;opacity:.75}
+.unlock svg{width:38px;height:38px}
+</style></head><body>
+</head><body>
+<svg width="0" height="0" style="position:absolute">
+ <symbol id="lockopen" viewBox="0 0 24 24"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 9.6-2l-1.8.9A3 3 0 0 0 9 7v3h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/></symbol>
+ <symbol id="seal" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+ <symbol id="del" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M8.5 5H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H8.5L3 12z"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M11 9.5l5 5m0-5l-5 5"/></symbol>
+ <symbol id="ret" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+ <symbol id="globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18"/></g></symbol>
+ <symbol id="mic" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4"/></g></symbol>
+ <symbol id="faceid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M9 9v1.5M15 9v1.5M12 9v4h-1M9 16c1.7 1.3 4.3 1.3 6 0"/></g></symbol>
+<symbol id="photo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l5-4 4 3 3-2 4 3"/></g></symbol><symbol id="menu" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M5 7h14M5 12h14M5 17h14"/></symbol><symbol id="person" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5z"/></g></symbol><symbol id="tri" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3l10 18H2zm-1 7v5h2v-5zm0 7v2h2v-2z"/></symbol><symbol id="plane" viewBox="0 0 24 24"><path fill="currentColor" d="M21 15v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V8l-8 5v2l8-2.5V18l-2 1.5V21l3.5-1 3.5 1v-1.5L13 18v-5.5z"/></symbol><symbol id="idcard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.6-1.6 1.7-2.3 3-2.3s2.4.7 3 2.3M14.5 10h4M14.5 13.5h3"/></g></symbol><symbol id="cardic" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M6.5 15h4"/></g></symbol></svg>
+<style>
+.bar{justify-content:flex-start}
+.gcirc.ink{color:#111}.gcirc.lockg{color:var(--g)}.gcirc.dim{color:#B0B3BA}
+.gcirc.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.srch{flex:1;min-width:0;height:32px;border-radius:16px;display:flex;align-items:center;gap:6px;padding:0 12px;font-size:14px;white-space:nowrap;overflow:hidden}
+.srch.ph{color:var(--ink2)}.srch b{font-weight:600}.srch small{color:var(--ink2);font-size:13px}
+.srch.act{outline:2px solid var(--accent)}
+.caret{display:inline-block;width:1.5px;height:16px;background:var(--accent);margin-left:1px;vertical-align:middle}
+.cap2{font-size:11px;font-weight:700;color:var(--ink2);letter-spacing:.3px;padding:0 4px;height:13px;display:flex;justify-content:space-between}
+.start{display:flex;flex-direction:column;gap:5px;flex:1}
+.srow{height:36px;border-radius:12px;background:rgba(255,255,255,.86);box-shadow:0 1px 2px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:15px;font-weight:600}
+.srow small{color:var(--ink2);font-weight:500;font-size:12px}
+.srow.hit{outline:2px solid var(--accent)}
+.res{display:flex;flex-direction:column;gap:4px}
+.res .srow{height:32px;font-size:14px}
+.pad{display:flex;flex-direction:column;gap:5px;margin-top:2px}
+.prow{display:flex;gap:4px;justify-content:center}
+.lk{flex:1;max-width:31px;height:40px;border-radius:8px;background:rgba(255,255,255,.9);box-shadow:0 1px 1px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;font-size:17px;color:#111}
+.lk.w{max-width:44px;background:rgba(255,255,255,.45)}.lk svg{width:18px;height:18px}
+.tabsm{display:flex;gap:6px;flex:none}
+.tabsm span{flex:1;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;background:rgba(255,255,255,.55);color:#333}
+.tabsm span.on{background:#111;color:#fff}
+.setcard{background:rgba(255,255,255,.86);border-radius:14px;padding:10px 12px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.setcard .t{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips span{font-size:12.5px;font-weight:600;padding:5px 9px;border-radius:12px;background:#EEF0F3;color:#222;font-family:ui-monospace,Menlo,monospace}
+.chips span.on{background:var(--accent);color:#fff}
+.setnote{font-size:11.5px;color:var(--ink2);margin-top:6px;line-height:1.35}
+.ic{display:inline-flex;align-items:center;gap:7px}.ic svg{width:16px;height:16px;color:var(--accent)}
+.app{flex:1;background:#F2F2F7;padding:0 14px 14px;overflow:hidden;display:flex;flex-direction:column}
+.status{height:44px;flex:none}
+.nav{display:flex;justify-content:space-between;align-items:center;height:40px;font-weight:600;font-size:16px;flex:none}
+.navbtn{color:var(--accent);font-size:16px;font-weight:500}
+.card{background:#fff;border-radius:20px;overflow:hidden;margin-top:12px;flex:none}
+.chead{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 4px;font-size:12px;color:var(--ink2);letter-spacing:.5px;text-transform:uppercase}
+.drow{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--hair);font-size:15px}
+.drow .ico{width:34px;height:34px;border-radius:10px;background:#EEF2FF;display:flex;align-items:center;justify-content:center;color:var(--accent);flex:none}
+.drow .ico svg{width:17px;height:17px}
+.drow .tx{flex:1}.drow .tx small{display:block;color:var(--ink2);font-size:12.5px}
+.flag{display:inline-flex;align-items:center;gap:4px;color:var(--a);font-size:12px;font-weight:700;background:rgba(181,115,27,.14);border-radius:10px;padding:3px 8px}
+.flag svg{width:12px;height:12px}
+.frow{display:flex;align-items:center;gap:8px;padding:9px 14px;border-top:1px solid var(--hair);font-size:14px}
+.frow .lab{width:88px;color:var(--ink2);font-size:13px;flex:none}.frow .val{flex:1;font-family:ui-monospace,Menlo,monospace;font-size:13.5px}
+.pill{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.pill.v{background:rgba(27,127,76,.14);color:var(--g)}.pill.i{background:rgba(47,107,255,.14);color:var(--accent)}.pill.u{background:rgba(181,115,27,.16);color:var(--a)}
+.banner{background:#FFF7EA;border:1px solid #F0D9B5;border-radius:18px;padding:12px 14px;margin-top:12px;flex:none}
+.banner b{display:flex;align-items:center;gap:6px;color:#7A4A0E;font-size:15px}.banner b svg{width:16px;height:16px}
+.banner p{margin:6px 0 10px;font-size:13px;color:#5B4A33;line-height:1.4}
+.bbtns{display:flex;gap:8px}.bbtns span{flex:1;text-align:center;font-size:14px;font-weight:600;padding:9px 0;border-radius:12px}
+.bbtns .p1{background:#fff;border:1px solid #E3D3B8;color:#111}.bbtns .p2{background:var(--g);color:#fff}
+.peek{flex:1;border-radius:14px;overflow:hidden;position:relative;background:linear-gradient(160deg,#F6E9EE 0%,#E9EEF7 55%,#E6F0EA 100%)}
+.peek .photo{position:absolute;left:12px;top:30px;width:62px;height:80px;border-radius:6px;background:linear-gradient(#C9CED6,#AEB5BF)}
+.peek .hdr{position:absolute;left:12px;top:9px;font-size:9px;font-weight:700;color:#7A3B52;letter-spacing:.5px}
+.peek .ln{position:absolute;left:84px;font-size:8.5px;color:#444;font-family:ui-monospace,Menlo,monospace;line-height:1.25}
+.peek .ln i{display:block;font-style:normal;color:#999;font-size:7px;font-family:-apple-system,sans-serif}
+.peek .mrz{position:absolute;left:10px;right:10px;bottom:8px;font-family:ui-monospace,Menlo,monospace;font-size:8.6px;color:#222;letter-spacing:.4px;line-height:1.35;white-space:nowrap;overflow:hidden}
+.peek .zoom{position:absolute;right:8px;top:8px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:600;border-radius:10px;padding:3px 8px}
+</style>
+
+<style>
+/* 15: app-palette pieces */
+.navy{background:linear-gradient(160deg,#1B0F55,#163C8C)}
+.keys.k15{grid-template-rows:repeat(4,40px)}.keys.k15 .key{height:40px;padding:0 12px;font-size:15px}
+.keys.k15 .key.shrink{font-size:13.5px;letter-spacing:-.2px}
+.keys.k15 .key small{font-size:9.5px;letter-spacing:.2px}
+.keys.k15 .key:after{content:"";position:absolute;left:12px;right:12px;top:4px;bottom:4px;border:1px dashed rgba(47,107,255,.35);border-radius:8px;pointer-events:none}
+.keys.k15.nodash .key:after{display:none}
+.from{height:14px;display:flex;align-items:center;gap:6px;padding:0 6px;font-size:11.5px;font-weight:700;color:var(--ink2);letter-spacing:.3px;flex:none;white-space:nowrap;overflow:hidden}
+.from b{color:#111;font-weight:700}.from svg{width:12px;height:12px;color:var(--accent)}
+.seg15{display:flex;gap:6px;flex:none}
+.seg15 span{flex:1;height:34px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--ink2)}
+.seg15 span.on{background:rgba(255,255,255,.92);border:1px solid var(--hair);color:#111;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.chips15{display:flex;flex-wrap:wrap;gap:6px}
+.chips15 span{font-size:13px;font-weight:600;padding:7px 12px;border-radius:14px;color:var(--ink2);background:transparent}
+.chips15 span.on{background:#fff;border:1px solid var(--hair);color:#111;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.flag.red{color:var(--r);background:rgba(142,31,31,.12)}
+.pill.c{background:rgba(27,127,76,.14);color:var(--g)}
+.banner.red{background:#FBEFEF;border-color:#E8C5C5}.banner.red b{color:var(--r)}.banner.red p{color:#5B3333}
+.bbtns .p1r{background:#fff;border:1px solid #E8C5C5;color:#111}
+.frow .val{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;font-size:14px;font-weight:500}
+.gcirc.matte{background:#1C1C1E;color:#fff;border-color:#1C1C1E;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.gcirc.matte.open{box-shadow:0 0 0 2px var(--accent),0 1px 3px rgba(0,0,0,.25)}
+.kbwrap{position:relative}
+.dimkeys{opacity:.35;filter:blur(1px)}
+.menu{position:absolute;left:14px;top:62px;width:214px;border-radius:18px;background:rgba(246,247,250,.96);box-shadow:0 10px 30px rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.9);overflow:hidden;z-index:4;backdrop-filter:blur(20px)}
+.menu .prev{padding:10px 12px;background:#fff;border-bottom:1px solid var(--hair)}
+.menu .prev i{display:block;font-style:normal;font-size:10px;font-weight:700;color:var(--ink2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
+.menu .prev b{font-size:17px;font-weight:700;color:#111}
+.menu .prev small{display:block;font-size:11px;color:var(--ink2);margin-top:2px}
+.menu .opt{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;font-size:13.5px;color:#111;border-top:1px solid var(--hair)}
+.menu .opt:first-of-type{border-top:0}.menu .opt .ck{color:var(--accent);font-weight:700}
+.menu .opt small{color:var(--ink2);font-size:11.5px}
+.key.held{outline:2px solid var(--accent);background:#fff!important;opacity:1!important;filter:none!important}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle;margin-right:6px;border:1px solid rgba(0,0,0,.12)}
+</style>
+
+<h1>Checkpoint 15 · Keyboard polish and 13c rebuild</h1>
+<p class="sub">13c sections 1 and 2 as you approved them, with your four corrections drawn in: the search bar always reads Search, text keeps a clear margin inside every key, the keyboard's buttons use the app's own palette, and the review screen shows red flags with no OCR or Regex tags. Your 13c answers (start page only after the lock window, A to Z pad, no status on keys, re-flag a failing edit) are built as decided and not asked again.</p>
+
+<div class="flow"><span class="box">Keyboard opens</span><span class="arr">→</span><span class="box">Start page, or the keys you left (inside the lock window)</span><span class="arr">→</span><span class="box">Search or menu</span><span class="arr">→</span><span class="box">Keys · "Filling from" line names the document</span><span class="arr">→</span><span class="box">Failed checks reviewed in the app, in red</span></div>
+
+<h3>1 · Keys: margin and the loaded document</h3>
+<div class="grid">
+
+<div class="phone"><span class="hlabel">1 · keys loaded</span><div class="page"><h2>Visa application</h2><div class="inp on">Surname|</div>
+<p class="cap"><b>Search stays Search.</b> The loaded document is named on a thin line above the keys. Keys drop from 44 to 40pt to make room, still four rows, still no scrolling. Text sits inside a 12pt inset (dashed, for this mock only); a label that does not fit shrinks to 90%, then 80%, before it ever touches the edge.</p></div>
+<div class="sheet"><div class="kb glass">
+<div class="bar"><div class="gcirc matte"><svg><use href="#menu"/></svg></div><div class="srch gpill ph">Search</div><div class="gcirc gpill ink"><svg><use href="#photo"/></svg></div><div class="gcirc gpill lockg"><svg><use href="#lockopen"/></svg></div></div>
+<div class="from"><svg><use href="#plane"/></svg>Filling from <b>Passport · CHAI</b> · Celine Chai</div>
+<div class="keys glass k15">
+<div class="key">Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+<div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key shrink">Place of birth</div>
+<div class="key shrink">Issuing country<small>SGP</small></div></div>
+<div class="bottom glass"><div class="key">space</div><div class="key mod"><svg><use href="#del"/></svg></div><div class="key b">Done</div></div>
+</div><div class="band"><svg><use href="#globe"/></svg><svg><use href="#mic"/></svg></div></div></div>
+
+<div class="phone"><span class="hlabel">2 · same, without the guide</span><div class="page"><h2>Visa application</h2><div class="inp on">Surname|</div>
+<p class="cap"><b>What you will see.</b> The same frame with the inset guide removed. Place of birth and Issuing country sit at 90%; every other key at full size. The menu circle is matte black, always. The scan circle is black when a document is loaded, grey on the start page. Date hints sit two points smaller than before.</p></div>
+<div class="sheet"><div class="kb glass">
+<div class="bar"><div class="gcirc matte"><svg><use href="#menu"/></svg></div><div class="srch gpill ph">Search</div><div class="gcirc gpill ink"><svg><use href="#photo"/></svg></div><div class="gcirc gpill lockg"><svg><use href="#lockopen"/></svg></div></div>
+<div class="from"><svg><use href="#plane"/></svg>Filling from <b>Passport · CHAI</b> · Celine Chai</div>
+<div class="keys glass k15 nodash">
+<div class="key">Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+<div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key shrink">Place of birth</div>
+<div class="key shrink">Issuing country<small>SGP</small></div></div>
+<div class="bottom glass"><div class="key">space</div><div class="key mod"><svg><use href="#del"/></svg></div><div class="key b">Done</div></div>
+</div><div class="band"><svg><use href="#globe"/></svg><svg><use href="#mic"/></svg></div></div></div>
+
+<div class="phone"><span class="hlabel">3 · start page</span><div class="page"><h2>Visa application</h2><div class="inp on">Surname|</div>
+<p class="cap"><b>Unchanged from 13c</b> except the palette: rows are the app's white cards, section captions are the app's uppercase section headers. Shown after the lock window; inside it you land on the keys you left.</p></div>
+<div class="sheet"><div class="kb glass">
+<div class="bar"><div class="gcirc matte"><svg><use href="#menu"/></svg></div><div class="srch gpill ph">Search</div><div class="gcirc gpill dim"><svg><use href="#photo"/></svg></div><div class="gcirc gpill lockg"><svg><use href="#lockopen"/></svg></div></div>
+<div class="start">
+<div class="cap2"><span>MOST USED</span></div>
+<div class="srow">Passport · CHAI<small>Celine Chai</small></div>
+<div class="srow"><span class="ic"><svg><use href="#person"/></svg>Contact details</span><small>Celine Chai</small></div>
+<div class="cap2"><span>RECENT</span></div>
+<div class="srow">NRIC<small>Ben Ong · 2 min ago</small></div>
+<div class="srow">DBS Altitude<small>Celine Chai · Yesterday</small></div>
+</div>
+<div class="bottom glass"><div class="key">space</div><div class="key mod"><svg><use href="#del"/></svg></div><div class="key b">Done</div></div>
+</div><div class="band"><svg><use href="#globe"/></svg><svg><use href="#mic"/></svg></div></div></div>
+
+</div>
+
+<h3>1b · Long press on any key</h3>
+<div class="note">Hold any key and a menu rises out of it, like holding an app icon on the Home Screen. The <b>top card is always the value</b>, shown in full; tap it to insert. Below it come only the options that make sense for that field. The keyboard draws this menu itself inside its own 300pt, because an extension cannot present a system context menu above the app. The old hold behaviours (dates open a format panel, card number inserts spaced) move into this menu.</div>
+<table>
+<tr><th>Key</th><th>Top card</th><th>Options below it</th></tr>
+<tr><td>DOB · Expiry · Issue date</td><td>The date in the current format</td><td>DD/MM/YYYY · DD/MMM/YYYY · YYYY-MM-DD · DDMMYYYY. Picking one re-renders the grey hint on that key and the other date keys, for this keyboard session.</td></tr>
+<tr><td>Card number</td><td>The number, spaced in fours</td><td>Insert without spaces · Insert with spaces</td></tr>
+<tr><td>Chinese name</td><td>The characters</td><td>Insert characters · Insert pinyin</td></tr>
+<tr><td>Everything else (Passport no., Surname, Nationality…)</td><td>The value</td><td>None. The menu is the preview card alone.</td></tr>
+</table>
+<div class="grid">
+
+<div class="phone"><span class="hlabel">1b · hold DOB</span><div class="page"><h2>Visa application</h2><div class="inp on">Date of birth|</div>
+<p class="cap"><b>Hold DOB.</b> The card shows 12/MAR/1990 in the format the key will insert. Below, the four formats; the current one is ticked. Pick DD/MMM/YYYY and the DOB, Expiry and Issue date hints all change to DD/MMM/YYYY. Tap the card, or anywhere outside, to close.</p></div>
+<div class="sheet"><div class="kb glass kbwrap">
+<div class="bar"><div class="gcirc matte"><svg><use href="#menu"/></svg></div><div class="srch gpill ph">Search</div><div class="gcirc gpill ink"><svg><use href="#photo"/></svg></div><div class="gcirc gpill lockg"><svg><use href="#lockopen"/></svg></div></div>
+<div class="from dimkeys"><svg><use href="#plane"/></svg>Filling from <b>Passport · CHAI</b> · Celine Chai</div>
+<div class="keys glass k15 nodash dimkeys">
+<div class="key">Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key held">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+<div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key shrink">Place of birth</div>
+<div class="key shrink">Issuing country<small>SGP</small></div></div>
+<div class="menu" style="top:112px;left:14px">
+<div class="prev"><i>Date of birth</i><b>12/03/1990</b><small>Tap to insert</small></div>
+<div class="opt">DD/MM/YYYY<span class="ck">✓</span></div>
+<div class="opt">DD/MMM/YYYY<small>12/MAR/1990</small></div>
+<div class="opt">YYYY-MM-DD<small>1990-03-12</small></div>
+<div class="opt">DDMMYYYY<small>12031990</small></div>
+</div>
+<div class="bottom glass dimkeys"><div class="key">space</div><div class="key mod"><svg><use href="#del"/></svg></div><div class="key b">Done</div></div>
+</div><div class="band"><svg><use href="#globe"/></svg><svg><use href="#mic"/></svg></div></div></div>
+
+<div class="phone"><span class="hlabel">1c · hold Passport no.</span><div class="page"><h2>Visa application</h2><div class="inp on">Passport number|</div>
+<p class="cap"><b>Hold a plain key.</b> Only the preview card appears: the full passport number, so you can read it off the keyboard or check it against the form. Tap it to insert, or tap outside to close. Nothing is inserted by the hold itself.</p></div>
+<div class="sheet"><div class="kb glass kbwrap">
+<div class="bar"><div class="gcirc matte"><svg><use href="#menu"/></svg></div><div class="srch gpill ph">Search</div><div class="gcirc gpill ink"><svg><use href="#photo"/></svg></div><div class="gcirc gpill lockg"><svg><use href="#lockopen"/></svg></div></div>
+<div class="from dimkeys"><svg><use href="#plane"/></svg>Filling from <b>Passport · CHAI</b> · Celine Chai</div>
+<div class="keys glass k15 nodash dimkeys">
+<div class="key held">Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+<div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key shrink">Place of birth</div>
+<div class="key shrink">Issuing country<small>SGP</small></div></div>
+<div class="menu" style="top:66px;left:14px">
+<div class="prev"><i>Passport number</i><b>K1234567</b><small>Tap to insert</small></div>
+</div>
+<div class="bottom glass dimkeys"><div class="key">space</div><div class="key mod"><svg><use href="#del"/></svg></div><div class="key b">Done</div></div>
+</div><div class="band"><svg><use href="#globe"/></svg><svg><use href="#mic"/></svg></div></div></div>
+
+<div class="phone"><span class="hlabel">1d · after picking DD/MMM/YYYY</span><div class="page"><h2>Visa application</h2><div class="inp on">Date of birth|</div>
+<p class="cap"><b>Hints follow the pick.</b> All three date keys now read DD/MMM/YYYY. The choice lasts until the keyboard closes; the Settings card in the menu shows the same choice.</p></div>
+<div class="sheet"><div class="kb glass">
+<div class="bar"><div class="gcirc matte"><svg><use href="#menu"/></svg></div><div class="srch gpill ph">Search</div><div class="gcirc gpill ink"><svg><use href="#photo"/></svg></div><div class="gcirc gpill lockg"><svg><use href="#lockopen"/></svg></div></div>
+<div class="from"><svg><use href="#plane"/></svg>Filling from <b>Passport · CHAI</b> · Celine Chai</div>
+<div class="keys glass k15 nodash">
+<div class="key">Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+<div class="key">DOB<small>DD/MMM/YYYY</small></div><div class="key">Expiry<small>DD/MMM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+<div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MMM/YYYY</small></div><div class="key shrink">Place of birth</div>
+<div class="key shrink">Issuing country<small>SGP</small></div></div>
+<div class="bottom glass"><div class="key">space</div><div class="key mod"><svg><use href="#del"/></svg></div><div class="key b">Done</div></div>
+</div><div class="band"><svg><use href="#globe"/></svg><svg><use href="#mic"/></svg></div></div></div>
+
+</div>
+
+<h3>2 · Menu and settings in the app's palette</h3>
+<div class="note">The 13c mock used a black selected segment, a solid blue menu circle and grey monospace chips. None of those exist in the app. The app's chip rule is: <b>selected = white fill with a hairline border, ink text; unselected = text only in grey</b> (Library filter chips, design-system.md). The keyboard now uses exactly that. The active menu circle and the active scan circle use the same accent-filled circle as the app's Scan button. Done and Back stay accent, as today.</div>
+<div class="grid">
+
+<div class="phone"><span class="hlabel">4 · menu · People</span><div class="page"><h2>Visa application</h2><div class="inp on">Surname|</div>
+<p class="cap"><b>Segments.</b> People, Documents, Settings as app chips: the selected one is a white pill with a hairline, the others are grey text. The matte black menu circle gets an accent ring while the menu is open.</p></div>
+<div class="sheet"><div class="kb glass">
+<div class="bar"><div class="gcirc matte open"><svg><use href="#menu"/></svg></div><div class="srch gpill ph" style="opacity:.5">Search</div><div class="gcirc gpill dim"><svg><use href="#photo"/></svg></div><div class="gcirc gpill lockg"><svg><use href="#lockopen"/></svg></div></div>
+<div class="seg15"><span class="on">People</span><span>Documents</span><span>Settings</span></div>
+<div class="start" style="gap:5px">
+<div class="srow">Celine Chai<small>4 documents</small></div>
+<div class="srow">Ben Ong<small>2 documents</small></div>
+<div class="srow">Corinne Yap<small>3 documents</small></div>
+</div>
+<div class="bottom glass"><div class="key">space</div><div class="key mod"><svg><use href="#del"/></svg></div><div class="key b">Back</div></div>
+</div><div class="band"><svg><use href="#globe"/></svg><svg><use href="#mic"/></svg></div></div></div>
+
+<div class="phone"><span class="hlabel">5 · menu · Settings</span><div class="page"><h2>Visa application</h2><div class="inp on">Date of birth|</div>
+<p class="cap"><b>Date format chips</b> follow the same chip rule, in SF Pro, not monospace. Auto: SG region is selected by default. The card is the app's white card at radius 14.</p></div>
+<div class="sheet"><div class="kb glass">
+<div class="bar"><div class="gcirc matte open"><svg><use href="#menu"/></svg></div><div class="srch gpill ph" style="opacity:.5">Search</div><div class="gcirc gpill dim"><svg><use href="#photo"/></svg></div><div class="gcirc gpill lockg"><svg><use href="#lockopen"/></svg></div></div>
+<div class="seg15"><span>People</span><span>Documents</span><span class="on">Settings</span></div>
+<div class="setcard"><div class="t">DATE FORMAT</div>
+<div class="chips15"><span class="on">Auto: SG region</span><span>DD/MM/YYYY</span><span>DD/MMM/YYYY</span><span>YYYY-MM-DD</span><span>DDMMYYYY</span></div>
+<div class="setnote">Start page and lock window: DocuVault app, Settings, Keyboard.</div></div>
+<div class="spacer"></div>
+<div class="bottom glass"><div class="key">space</div><div class="key mod"><svg><use href="#del"/></svg></div><div class="key b">Back</div></div>
+</div><div class="band"><svg><use href="#globe"/></svg><svg><use href="#mic"/></svg></div></div></div>
+
+<div class="phone"><span class="hlabel">6 · searching</span><div class="page"><h2>Visa application</h2><div class="inp on">Surname|</div>
+<p class="cap"><b>A to Z pad</b>, as decided. Result rows are the app's white cards; the hit has the accent outline. Letters go to the search only, never to the form.</p></div>
+<div class="sheet"><div class="kb glass" style="gap:5px">
+<div class="bar"><div class="gcirc matte"><svg><use href="#menu"/></svg></div><div class="srch gpill act"><b>cha</b><span class="caret"></span></div><div class="gcirc gpill dim"><svg><use href="#photo"/></svg></div><div class="gcirc gpill lockg"><svg><use href="#lockopen"/></svg></div></div>
+<div class="res">
+<div class="srow hit">Passport · CHAI<small>Celine Chai</small></div>
+<div class="srow"><span class="ic"><svg><use href="#person"/></svg>Contact details</span><small>Celine Chai</small></div>
+<div class="srow">DBS Altitude<small>Celine Chai</small></div>
+</div>
+<div class="pad">
+<div class="prow"><span class="lk">q</span><span class="lk">w</span><span class="lk">e</span><span class="lk">r</span><span class="lk">t</span><span class="lk">y</span><span class="lk">u</span><span class="lk">i</span><span class="lk">o</span><span class="lk">p</span></div>
+<div class="prow"><span class="lk">a</span><span class="lk">s</span><span class="lk">d</span><span class="lk">f</span><span class="lk">g</span><span class="lk">h</span><span class="lk">j</span><span class="lk">k</span><span class="lk">l</span></div>
+<div class="prow"><span class="lk w">Back</span><span class="lk">z</span><span class="lk">x</span><span class="lk">c</span><span class="lk">v</span><span class="lk">b</span><span class="lk">n</span><span class="lk">m</span><span class="lk w"><svg><use href="#del"/></svg></span></div>
+</div>
+</div><div class="band"><svg><use href="#globe"/></svg><svg><use href="#mic"/></svg></div></div></div>
+
+</div>
+
+<h3>Keyboard palette, piece by piece</h3>
+<table>
+<tr><th>Piece</th><th>13c mock</th><th>Now</th><th>App token</th></tr>
+<tr><td>Selected segment (People · Documents · Settings)</td><td>Black fill, white text</td><td><span class="swatch" style="background:#fff"></span>White pill, hairline border, ink text</td><td><code>Theme</code> chip, selected</td></tr>
+<tr><td>Unselected segment</td><td>Grey pill</td><td>Text only, grey</td><td>chip, unselected · <code>ink2</code></td></tr>
+<tr><td>Date format chips</td><td>Grey monospace, blue when on</td><td>Same chip rule, SF Pro</td><td>chip · <code>ink2</code> / <code>hairline</code></td></tr>
+<tr><td>Menu circle</td><td>Glass; solid blue when open</td><td><span class="swatch" style="background:#1C1C1E"></span>Matte black, white symbol; accent ring while the menu is open</td><td><code>graphite</code>, same as the app's Search circle</td></tr>
+<tr><td>Scan circle, open</td><td>Solid blue</td><td><span class="swatch" style="background:#2F6BFF"></span>Accent circle, white symbol</td><td><code>accent</code>, same as the app's Scan button</td></tr>
+<tr><td>Scan circle, ready</td><td>Glass, black symbol</td><td>Unchanged</td><td>glass circle · <code>ink</code></td></tr>
+<tr><td>Scan circle, nothing loaded</td><td>Glass, light grey</td><td>Unchanged</td><td>glass circle · <code>ink2</code></td></tr>
+<tr><td>Lock circle</td><td>Green open lock</td><td>Unchanged; graphite closed lock when locked</td><td><code>verified</code> / <code>graphite</code></td></tr>
+<tr><td>Rows and cards</td><td>White 86%</td><td>Unchanged</td><td><code>surface</code></td></tr>
+<tr><td>Section captions (Most used · Recent · Date format)</td><td>Bold grey, mixed case</td><td>Uppercase, tracked, grey</td><td>section header</td></tr>
+<tr><td>Done · Back</td><td>Accent</td><td>Unchanged</td><td><code>accent</code></td></tr>
+<tr><td>Date hint under a key</td><td>10.5pt</td><td>9.5pt, light tracking</td><td>caption</td></tr>
+<tr><td>Key text inset</td><td>None (Issuing country touched the edge)</td><td>12pt each side; shrink to 90% then 80% to fit</td><td>new keyboard rule</td></tr>
+</table>
+
+<h3>3 · Review in the app: red, and no source tags</h3>
+<div class="grid">
+
+<div class="phone"><span class="hlabel">7 · person page</span><div class="app"><div class="status"></div>
+<div class="nav"><span class="navbtn">‹ Vault</span><span>Celine Chai</span><span></span></div>
+<div class="card"><div class="chead">Documents</div>
+<div class="drow"><span class="ico"><svg><use href="#plane"/></svg></span><span class="tx">Passport · CHAI<small>K1234567</small></span><span class="pill v">5/5</span></div>
+<div class="drow"><span class="ico"><svg><use href="#idcard"/></svg></span><span class="tx">NRIC<small>S99••••5B</small></span><span class="flag red"><svg><use href="#tri"/></svg>Review</span></div>
+<div class="drow"><span class="ico"><svg><use href="#cardic"/></svg></span><span class="tx">DBS Altitude<small>•4417</small></span><span class="pill v">1/1</span></div>
+</div>
+<p class="cap" style="margin-top:12px"><b>Review is red</b>, the app's danger tint, the same red the failed-check card uses. Library and Vault lists carry the same tag.</p>
+</div></div>
+
+<div class="phone"><span class="hlabel">8 · review</span><div class="app"><div class="status"></div>
+<div class="nav"><span class="navbtn">‹ Celine</span><span>NRIC</span><span class="navbtn">Edit</span></div>
+<div class="banner red"><b><svg><use href="#tri"/></svg>NRIC needs your verification</b>
+<div class="bbtns" style="margin-top:10px"><span class="p1r">Edit</span><span class="p2">Verified</span></div></div>
+<div class="card"><div class="chead">Fields</div>
+<div class="frow"><span class="lab">NRIC / FIN</span><span class="val">S9912345B</span><span class="flag red"><svg><use href="#tri"/></svg>Check</span></div>
+<div class="frow"><span class="lab">Name</span><span class="val">CELINE CHAI</span></div>
+<div class="frow"><span class="lab">Date of birth</span><span class="val">12/MAR/1990</span></div>
+</div>
+<p class="cap" style="margin-top:12px"><b>One line, no explanation.</b> The banner names the fields that failed, in one sentence: “NRIC needs your verification”, or “NRIC and Date of birth need your verification”. No OCR or Regex tags. A field shows nothing, a red Check, or a green tick. Values are in SF Pro like the rest of the app, not monospace.</p>
+</div></div>
+
+<div class="phone"><span class="hlabel">9 · after Verified</span><div class="app"><div class="status"></div>
+<div class="nav"><span class="navbtn">‹ Celine</span><span>NRIC</span><span class="navbtn">Edit</span></div>
+<div class="card" style="margin-top:12px"><div class="chead">Fields</div>
+<div class="frow"><span class="lab">NRIC / FIN</span><span class="val">S9912345B</span><span class="pill c">User verified</span></div>
+<div class="frow"><span class="lab">Name</span><span class="val">CELINE CHAI</span></div>
+<div class="frow"><span class="lab">Date of birth</span><span class="val">12/MAR/1990</span></div>
+</div>
+<p class="cap" style="margin-top:12px"><b>Verified.</b> The banner is gone and the field carries a green User verified pill. It is never raised again unless you edit it to a value that fails its check, which gets one fresh review.</p>
+</div></div>
+
+</div>
+
+<h3>Rules that are code, not prompt</h3>
+<table>
+<tr><th>Rule</th><th>Where it lives</th></tr>
+<tr><td>Search letters never reach the form; only field keys call <code>insertText</code></td><td>The letter pad writes to the picker’s query (<code>FillPicker.filter</code>, tested)</td></tr>
+<tr><td>Start page and the “Filling from” line show titles and names only, never field values</td><td>The same <code>FillEntry</code> rows the picker uses today</td></tr>
+<tr><td>Use counts and recency hold document IDs and dates, nothing else</td><td>App Group defaults, next to <code>keyboard.lastUsed</code></td></tr>
+<tr><td>Inside the lock window the keyboard reopens on the keys you left; after it, on the start page</td><td>Same timestamp the lock uses</td></tr>
+<tr><td>The scan is decrypted into memory only while shown</td><td>Released when you leave the scan view</td></tr>
+<tr><td>The keyboard never shows check status: no tick, no warning</td><td>Key view takes no check input at all</td></tr>
+<tr><td>Key labels never come within 12pt of the key edge</td><td>Fixed inset; <code>minimumScaleFactor(0.8)</code>, one line</td></tr>
+<tr><td>“Verified” is stored per field; a later edit that fails its checksum flags once more</td><td>Field check becomes User verified; the pass count follows (<code>FieldEdit</code>)</td></tr>
+<tr><td>Holding a key never inserts; only a tap on the preview card or an option does</td><td>Hold opens the menu; the menu’s taps call <code>insertText</code></td></tr>
+<tr><td>A format picked in the hold menu re-renders every date hint and lasts for the session</td><td>One session override, shared by the hold menu and the Settings card</td></tr>
+<tr><td>The review surface never says how a value was read</td><td>Source enum stays in the model for the extractor; the UI does not render it</td></tr>
+</table>
+
+<h3>Questions</h3>
+<div class="q">Q1 answered: the Filling from line stays. Q2 answered: shrink. Q3 answered: white pill.</div>
+<div class="q">Q4 · The red “Screenshot taken, it is not protected by the vault” banner appears on every screen. Remove it everywhere, or keep it only while the Vault tab is unlocked? Recommended: <b>remove it everywhere</b>.</div>
+<div class="q">Q5 · Build order inside this checkpoint: keyboard first (ship, you test), then the review changes? Recommended: <b>yes, two pushes</b>.</div>
+<div class="q">Q6 · The hold menu covers the keys while open. Dim the keys behind it (frames 1b, 1c), or leave them as they are? Recommended: <b>dim</b>, so the menu reads as the only live thing.</div>
+<div class="q">Q7 · Values in the app’s field tables (frames 8, 9, person page, review) switch from monospace to SF Pro medium. Keep monospace only for the MRZ lines, which are genuinely fixed-width on the passport? Recommended: <b>yes, MRZ only</b>.</div>
+</body></html>

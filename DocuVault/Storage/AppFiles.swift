@@ -15,6 +15,16 @@ enum AppFiles {
     static let keyboardLockWindowKey = "keyboard.lockWindowSeconds"
     static let keyboardLockWindowDefault: Double = 60
 
+    /// What the keyboard opens on after the lock window (checkpoint 13c): suggestions, the last
+    /// document, or the full list. Set in the app's Settings, read by the keyboard.
+    static let keyboardStartPageKey = "keyboard.startPage"
+    enum KeyboardStartPage: String, CaseIterable {
+        case suggestions, last, list
+        var displayName: String {
+            switch self { case .suggestions: "Suggestions"; case .last: "Last document"; case .list: "Documents list" }
+        }
+    }
+
     static var containerURL: URL {
         if let url = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID) {
             return url
