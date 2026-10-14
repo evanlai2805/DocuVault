@@ -151,7 +151,8 @@ final class SearchPadView: UIView {
                         fill: down ? KeyColors.modifier : KeyColors.key)
             case .open:
                 if openEnabled {
-                    cap.set(text: "Open", font: .systemFont(ofSize: 16, weight: .semibold), color: .white, fill: nil, sheen: true)
+                    // Flat gunmetal like Done, no sheen (checkpoint 20 Q8).
+                    cap.set(text: "Open", font: .systemFont(ofSize: 16, weight: .semibold), color: .white, fill: UIColor(hex: 0x3A424C))
                     cap.alpha = down ? 0.75 : 1
                 } else {
                     cap.set(text: "Open", font: .systemFont(ofSize: 16, weight: .semibold), color: KeyColors.ink3,

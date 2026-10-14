@@ -114,9 +114,19 @@ public enum FillFormats {
             .init(fieldKey: "sex", label: "Sex", kind: .text), .init(fieldKey: "address", label: "住址", kind: .text),
             .init(fieldKey: "validTo", label: "Valid to", kind: .date)]
         case .businessCard: return [
-            .init(fieldKey: "name", label: "Name", kind: .text), .init(fieldKey: "company", label: "Company", kind: .text),
-            .init(fieldKey: "phone", label: "Phone", kind: .text), .init(fieldKey: "email", label: "Email", kind: .text)]
-        default: return []
+            .init(fieldKey: "name", label: "Name", kind: .text), .init(fieldKey: "title", label: "Title", kind: .text),
+            .init(fieldKey: "company", label: "Company", kind: .text), .init(fieldKey: "phone", label: "Phone", kind: .text),
+            .init(fieldKey: "email", label: "Email", kind: .text), .init(fieldKey: "website", label: "Website", kind: .text)]
+        // Checkpoint 20 (Evan, 14 Oct): regular documents fill too.
+        case .receipt: return [
+            .init(fieldKey: "merchant", label: "Merchant", kind: .text), .init(fieldKey: "date", label: "Date", kind: .date),
+            .init(fieldKey: "total", label: "Total", kind: .text), .init(fieldKey: "tax", label: "Tax", kind: .text),
+            .init(fieldKey: "reference", label: "Reference", kind: .text), .init(fieldKey: "paymentMethod", label: "Payment", kind: .text)]
+        case .contract, .letter: return [
+            .init(fieldKey: "title", label: "Title", kind: .text), .init(fieldKey: "partyA", label: "Party A", kind: .text),
+            .init(fieldKey: "partyB", label: "Party B", kind: .text), .init(fieldKey: "effectiveDate", label: "Effective date", kind: .date),
+            .init(fieldKey: "expiryDate", label: "Expiry", kind: .date), .init(fieldKey: "governingLaw", label: "Governing law", kind: .text)]
+        case .other: return []
         }
     }
 
@@ -128,6 +138,6 @@ public enum FillFormats {
 
     /// Document ordering in the keyboard: cards, passport, NRIC, China ID, then the rest.
     public static func order(_ t: DocumentType) -> Int {
-        switch t { case .bankCard: 0; case .passport: 1; case .nric: 2; case .chinaID: 3; case .businessCard: 4; default: 9 }
+        switch t { case .bankCard: 0; case .passport: 1; case .nric: 2; case .chinaID: 3; case .businessCard: 4; case .receipt: 5; case .contract: 6; case .letter: 7; case .other: 9 }
     }
 }

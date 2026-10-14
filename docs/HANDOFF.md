@@ -20,6 +20,7 @@ changes or a phase lands, edit the matching section in the same commit.
 | 17 | One card design, swipe, Settings cut, gunmetal accent | Built 13 Oct, partly seen on device |
 | 18 | Chinese model: background download, hash check, install flow | Built 13 Oct, model load **unverified on device** |
 | 19 | Dark mode (app and keyboard) and the keyboard search rebuild | Built 13 Oct; app checked in the Simulator, keyboard **unverified on device** |
+| 20 | Keyboard home: every document, four tabs, vault door, regular-document keys, text lines, field hints | Built 14 Oct, **unverified on device**. Search growth confirmed on the phone (Height 482 of 482) |
 
 CI: `core-tests.yml` (145 tests) and `app-build.yml` (Simulator build incl. MLX) both green at `d72ba81`,
 the keyboard selector rebuild: 145 tests, 0 failures, 0 compiler warnings.
@@ -252,7 +253,54 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
   word only from three letters. Pinyin matches from any character. Matched letters are highlighted. Passports, NRICs
   and China IDs whose stored title does not name the type show by type (`FillPicker.entryTitle`).
 
+14 Oct · keyboard direction (conversation, before checkpoint 20). Evan: "it's becoming a product"
+- The app goes to the App Store. The keyboard is the selling point; the vault is the privacy story behind it.
+  Name to change; not DocuKeys (App Store app id6737278276 used it: manual snippets, zero ratings).
+- The keyboard shows every document, not only vault ones. Only vault documents need Face ID. The full-panel
+  Face ID screen goes; the vault becomes one locked row, as in the Library.
+- New keys. Receipt: Merchant, Date, Total, Tax, Reference, Payment method. Contract and letter: Title, Party A,
+  Party B, Effective date, Expiry, Governing law. Business card (scanned or a digital copy): Name, Title, Company,
+  Phone, Email, Website. Other: the scan plus its text lines.
+- Right side of a row: the person; with no person, receipts show the capture date, other types the most relevant
+  detail (contract: the other party; business card: company), else blank.
+- Main moments: flights (passport), client KYC (many documents per person), expense claims (scan, then fill).
+  Checkout and sign-up forms are left to Apple's AutoFill.
+- Leftmost tab and landing page (proposed, mock in checkpoint 20): a suggestion row from the field's hint,
+  up to two pinned Favourites, then Recents by last touched (scanned or filled, whichever is newer), then the
+  locked Vault row. Hints fill the suggestion row only; they never reorder the list (Findlater & McGrenere 2004).
+- Design principle: you always know where you are filling from (person and document), by browsing or search.
+- Keyboard stays the main route; an AutoFill provider comes later as a second way in.
+- Sources wanted: Files (watched folder, share extension), Apple Notes (share sheet and a Shortcuts action;
+  Notes has no API), Notion (API). The app syncs; the keyboard only reads the local store.
+- Feel (motion, transitions, keyboard height) gets its own checkpoint, judged on the phone, not in a mock.
+- Field-hint test build: Debug builds show `Hint: <textContentType> · Keys: <keyboardType>` in place of the
+  search placeholder and the unlock line. Research says Safari passes name, address, email, phone and postcode
+  hints but none for cards or birthdays. Throwaway; remove after Evan reports.
+
+14 Oct · checkpoint 20 answers (`checkpoint20_keyboardhome.html`; Evan: "still haven't been implemented?", built
+with every recommended answer)
+- Tabs: Recents, People, Documents, Favourites. Favourites replaced the keyboard's Settings tab; its one setting
+  (a session date format) is covered by holding a date key. App, Settings · Keyboard: Opens on Recents (default),
+  Favourites or Last document. Old stored values "suggestions" and "list" read as Recents (`KeyboardStartPage(stored:)`).
+- Q1: the vault door replaces the lock circle. One raised, filled button: gunmetal gradient with a closed lock when
+  shut, green gradient with an open lock when open; same texture, only the colour changes. Tap: Face ID once, then
+  the vault's categories and people. Lock seals it at once; otherwise the lock window applies.
+- Q2: vault rows show with a lock in every tab and in search while shut; tapping one asks for Face ID once. The
+  keyboard never opens on a Face ID screen; the full-panel unlock screen is gone.
+- Q3: Recents by last touched (`FillPicker.recents`), the later of capture and last fill.
+- Q4: a field hint fills one suggestion row on Recents and rings the matching key; the list never reorders
+  (`FillInference.hint`). Raw content-type names in the mapping are unverified until the field-hint test screenshots.
+- Q5: Documents tab by type first (`FillPicker.groups`). Q6: keyless documents show text lines; tap types, hold
+  splits "Label: value" (`FillLines`). Q7: as above. Q8: Open on the search pad is flat gunmetal like Done.
+- Search: the keyboard resizes once when search opens (four-row card slot) and never while typing; per-keystroke
+  resizes jolted keys under the finger (Evan's recording). The height rule switches on after viewWillAppear, the
+  fix from Apple's forums (thread 808167). The 41pt Open-hint strip is gone; the bar sits on the letter pad.
+- Rows with no person show a grey detail: receipt capture date ("14/OCT"), business card company, contract other party.
+
 ## 3. Open device validations (do these next, in order)
+- Checkpoint 20 on the iPhone: the keyboard opens on Recents with no Face ID; a vault row asks once, then opens;
+  the door opens the vault folders and turns green; Lock seals it; a receipt fills Merchant, Date, Total; a keyless
+  document shows lines and the hold split; typing fast in search never moves the keys.
 - Checkpoint 19 on the iPhone: the keyboard grows upward with matches; no dead taps between keys; callout, click and
   tap on each key; fast typing drops nothing; the app and keyboard in dark mode.
 - Checkpoint 18 on the iPhone: download on Wi-Fi, hash check, install, load, and the Try it summary.
@@ -284,10 +332,17 @@ Checkpoint 10 — Claude opt-in (built with these defaults; Evan has not yet ans
 - `mlx-swift` resolved to 0.31.6 on both CI and Evan's Mac and built fine with Swift 6.2; the pin comment in
   `project.yml` about Swift 6.3 may be stale. Re-test before bumping `mlx-swift-lm` past 3.31.x.
 - Price table in `CloudCost.models` is a placeholder list price; check against the console before relying on it.
+- Custom keyboards get swapped for the system keyboard in secure and phone-pad fields, and apps can block them.
+  Full Access shows an iOS warning; for strangers that prompt is the riskiest step in the product.
 - `Redactor` Chinese name rules are heuristic (role words, honorifics, company suffixes). Over-redaction is the
   safe failure; under-redaction of a bare 2-char name mid-sentence is possible.
 
 ## 5. Roadmap (not started)
+
+- Checkpoint 20: keyboard structure (landing tab, all documents, locked vault row, new keys). 21: keyboard feel
+  (motion, height) on the device. 22: sources (watched folder, share extension, Notes shortcut, Notion).
+- App Store readiness: name, Full Access onboarding that earns trust, Claude step billing, Chinese model size,
+  Notion OAuth instead of a personal token.
 
 - TestFlight: GitHub Actions archive + upload on tag, needs an App Store Connect API key.
 - Chat over the library/vault: on-device embeddings + local model; vault answers only while unlocked.

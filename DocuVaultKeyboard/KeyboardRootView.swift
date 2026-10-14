@@ -39,15 +39,20 @@ struct KeyboardRootView: View {
     static let matchRowHeight: CGFloat = 44
     static let maxMatches = 4
 
+    /// Card slots while search is open: always four, so the keyboard resizes once when search opens and
+    /// never while you type. Resizing per keystroke jolted the keys under the finger (Evan's recording, 14 Oct).
     static func matchCount(_ model: KeyboardModel) -> Int {
-        guard model.isUnlocked, model.panel == .search, !model.searchText.trimmingCharacters(in: .whitespaces).isEmpty else { return 0 }
-        return max(1, min(maxMatches, model.searchResults.count))   // "No match" takes one row
+        model.panel == .search ? maxMatches : 0
     }
 
-    /// 300pt, plus the match card while a search has letters in it.
+    /// In search the bar sits straight on the letter pad, as Apple's suggestion bar does; the 41pt strip
+    /// that held the Open hint is gone (Evan, 14 Oct). Bar 34 + 6 + pad 205 + padding 14 = 259.
+    static let searchBaseHeight: CGFloat = 8 + 34 + 6 + System.padHeight + 6
+
+    /// 300pt; in search, the bar and pad plus the fixed four-row match card.
     static func preferredHeight(_ model: KeyboardModel) -> CGFloat {
         let n = matchCount(model)
-        return n == 0 ? height : height + CGFloat(n) * matchRowHeight + 6
+        return n == 0 ? height : searchBaseHeight + CGFloat(n) * matchRowHeight + 6
     }
 
     @Bindable var model: KeyboardModel
@@ -68,32 +73,28 @@ struct KeyboardRootView: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            if model.isUnlocked {
-                if Self.matchCount(model) > 0 {
-                    matchCard.transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                bar
-                ZStack(alignment: .topLeading) {
-                    content
-                        .opacity(holdSpec == nil ? 1 : 0.35)
-                        .animation(.easeOut(duration: 0.18), value: holdSpec == nil)
-                    if holdSpec != nil {
-                        Color.clear.contentShape(Rectangle()).onTapGesture { closeMenu() }
-                    }
-                    if let spec = holdSpec {
-                        holdMenu(spec)
-                            .offset(menuOffset(for: spec))
-                            .transition(.scale(scale: 0.4, anchor: menuAnchor(for: spec)).combined(with: .opacity))
-                    }
-                }
-                .coordinateSpace(name: "content")
-                .onGeometryChange(for: CGSize.self) { $0.size } action: { contentSize = $0 }
-                .frame(maxHeight: .infinity)
-            } else {
-                unlockPanel
+            if Self.matchCount(model) > 0 {
+                matchCard.transition(.move(edge: .bottom).combined(with: .opacity))
             }
+            bar
+            ZStack(alignment: .topLeading) {
+                content
+                    .opacity(holdSpec == nil ? 1 : 0.35)
+                    .animation(.easeOut(duration: 0.18), value: holdSpec == nil)
+                if holdSpec != nil {
+                    Color.clear.contentShape(Rectangle()).onTapGesture { closeMenu() }
+                }
+                if let spec = holdSpec {
+                    holdMenu(spec)
+                        .offset(menuOffset(for: spec))
+                        .transition(.scale(scale: 0.4, anchor: menuAnchor(for: spec)).combined(with: .opacity))
+                }
+            }
+            .coordinateSpace(name: "content")
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { contentSize = $0 }
+            .frame(maxHeight: .infinity)
             // The search pad brings its own bottom row, laid out like Apple's.
-            if !(model.isUnlocked && model.panel == .search) { bottomRow }
+            if model.panel != .search { bottomRow }
         }
         .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, 6)
         .background(Palette.canvas)
@@ -103,11 +104,11 @@ struct KeyboardRootView: View {
 
     @ViewBuilder private var content: some View {
         switch model.panel {
-        case .start: startPage
+        case .home: homePanel
         case .keys: keyArea
         case .search: searchPanel
-        case .menu: menuPanel
         case .scan: scanPanel
+        case .vault: vaultPanel
         }
     }
 
@@ -116,8 +117,9 @@ struct KeyboardRootView: View {
     private var bar: some View {
         HStack(spacing: 6) {
             // Glass like the scan circle until the menu is open; then filled black, no ring (Evan, 13 Oct).
-            circle("line.3.horizontal", style: model.panel == .menu ? .matte : .ink) { model.toggleMenu() }
-                .accessibilityLabel("Menu")
+            // Filled black on home, glass elsewhere: the way home (checkpoint 20).
+            circle("line.3.horizontal", style: model.panel == .home ? .matte : .ink) { model.toggleHome() }
+                .accessibilityLabel("Home")
             Button { model.openSearch() } label: {
                 HStack(spacing: 6) {
                     if model.panel == .search {
@@ -128,7 +130,8 @@ struct KeyboardRootView: View {
                         }
                         Spacer(minLength: 0)
                     } else {
-                        Text("Search").font(.system(size: 14)).foregroundStyle(Palette.ink2)
+                        Text(probeOr("Search")).font(.system(size: 14)).foregroundStyle(Palette.ink2)
+                            .lineLimit(1).minimumScaleFactor(0.7)
                         Spacer(minLength: 0)
                     }
                 }
@@ -137,14 +140,12 @@ struct KeyboardRootView: View {
                 .background(Palette.glass)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(model.panel == .search ? Palette.accent : Palette.glassEdge, lineWidth: model.panel == .search ? 2 : 1))
-                .opacity(model.panel == .menu ? 0.5 : 1)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Search people and documents")
             circle("photo", style: model.panel == .scan ? .accent : (model.currentDoc?.firstPageFile == nil ? .dim : .ink)) { model.toggleScan() }
                 .accessibilityLabel("Show the scan")
-            circle("lock.open.fill", style: .green) { model.lock() }
-                .accessibilityLabel("Lock the keyboard")
+            vaultDoor
         }
         .frame(height: 34)
     }
@@ -170,38 +171,163 @@ struct KeyboardRootView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: Start page
+    /// The vault door (checkpoint 20, Evan 14 Oct): the one raised, filled button in the bar. Same texture
+    /// open or shut, a gradient with a light top edge and a shadow; only the colour changes. Gunmetal with a
+    /// closed lock when shut, green with an open lock when open.
+    private var vaultDoor: some View {
+        let open = model.isUnlocked
+        return Button { model.openVault() } label: {
+            Image(systemName: open ? "lock.open.fill" : "lock.fill")
+                .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(open ? Palette.doorOpen : Palette.doorShut))
+                .overlay(Circle().stroke(LinearGradient(colors: [.white.opacity(0.35), .white.opacity(0.08)],
+                                                        startPoint: .top, endPoint: .bottom), lineWidth: 1))
+                .shadow(color: .black.opacity(0.28), radius: 2.5, y: 1.5)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(open ? "Vault, open" : "Vault, locked")
+    }
 
-    /// Two most used, then two most recent (13c). Captions 13pt, rows 36pt: 195pt in all. With
-    /// favourites starred in the app, up to two favourites take the Most used slot (checkpoint 16 Q8).
-    private var startPage: some View {
-        let page = startPageRows
-        return VStack(spacing: 5) {
-            if page.mostUsed.isEmpty, page.recent.isEmpty {
-                Text(model.status ?? "Nothing in the vault yet")
-                    .font(.system(size: 13)).foregroundStyle(Palette.ink2).padding(.top, 20)
+    // MARK: Home
+
+    /// Four tabs: Recents, People, Documents, Favourites (checkpoint 20). Recents is last touched first,
+    /// with a suggestion row on top when the field says what it wants.
+    private var homePanel: some View {
+        VStack(spacing: 5) {
+            HStack(spacing: 6) {
+                ForEach(KeyboardModel.MenuTab.allCases, id: \.self) { tab in
+                    chip(tab.rawValue, on: model.menuTab == tab) { model.showTab(tab) }
+                }
             }
-            if !page.mostUsed.isEmpty {
-                caption(model.favouriteEntries.isEmpty ? "Most used" : "Favourites")
-                ForEach(page.mostUsed) { e in entryRow(e, height: 36) }
+            .frame(height: 34)
+            if let status = model.status {
+                Text(status).font(.system(size: 13)).foregroundStyle(Palette.ink2)
+                    .multilineTextAlignment(.center).padding(.top, 16)
             }
-            if !page.recent.isEmpty {
-                caption(page.mostUsed.isEmpty && !model.hasUsage ? "Documents" : "Recent")
-                ForEach(page.recent) { e in entryRow(e, height: 36) }
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(spacing: 5) {
+                    switch model.menuTab {
+                    case .recents:
+                        if let s = model.suggestion, let h = model.fieldHint { suggestionRow(s, label: h.label) }
+                        ForEach(model.recentEntries) { e in entryRow(e) }
+                    case .people:
+                        if let p = model.people.first(where: { $0.id == model.personFilter }) {
+                            caption(p.name)
+                            ForEach(model.personEntries) { e in entryRow(e) }
+                        } else {
+                            ForEach(model.people) { p in
+                                folderRow(p.name, count: model.rowCount(for: p)) { model.personFilter = p.id }
+                            }
+                        }
+                    case .documents:
+                        if let g = model.groupFilter {
+                            caption(g)
+                            ForEach(model.groupEntries) { e in entryRow(e) }
+                        } else {
+                            ForEach(model.groups) { g in
+                                folderRow(g.name, count: g.entries.count) { model.groupFilter = g.name }
+                            }
+                        }
+                    case .favourites:
+                        if model.favouriteEntries.isEmpty {
+                            Text("Star a document in DocuVault to keep it here").font(.system(size: 13))
+                                .foregroundStyle(Palette.ink2).padding(.top, 16)
+                        }
+                        ForEach(model.favouriteEntries) { e in entryRow(e, star: true) }
+                    }
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
-    private var startPageRows: FillPicker.StartPage {
-        let page = model.startPage
-        let favs = Array(model.favouriteEntries.prefix(2))
-        guard !favs.isEmpty else { return page }
-        let ids = Set(favs.map(\.id))
-        let rest = (page.mostUsed + page.recent + model.entries).filter { !ids.contains($0.id) }
-        var seen = Set<String>()
-        let recent = rest.filter { seen.insert($0.id).inserted }.prefix(2)
-        return FillPicker.StartPage(mostUsed: favs, recent: Array(recent))
+    /// Offered only when the field says what it wants ("Email"); one tap opens it with the key ringed.
+    private func suggestionRow(_ e: FillEntry, label: String) -> some View {
+        Button { model.select(e) } label: {
+            HStack(spacing: 6) {
+                Text(label.uppercased()).font(.system(size: 11, weight: .bold)).tracking(0.5).foregroundStyle(Palette.accent)
+                Text(Self.shortTitle(e.title)).font(.system(size: 15, weight: .semibold)).lineLimit(1)
+                Spacer(minLength: 4)
+                if let t = e.trailing {
+                    Text(t).font(.system(size: 15, weight: .semibold)).foregroundStyle(e.personName.isEmpty ? Palette.ink2 : Palette.navy).lineLimit(1)
+                }
+            }
+            .minimumScaleFactor(0.8)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity).frame(height: 36)
+            .foregroundStyle(Palette.ink)
+            .background(Palette.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Palette.accent, lineWidth: 2))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// A person or a document group: name on the left, row count on the right; tap narrows the list.
+    private func folderRow(_ name: String, count: Int, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(name).font(.system(size: 15, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
+                Spacer(minLength: 4)
+                Text("\(count)").font(.system(size: 14)).foregroundStyle(Palette.ink2)
+                Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.ink3)
+            }
+            .padding(.horizontal, 12).frame(maxWidth: .infinity).frame(height: 36)
+            .foregroundStyle(Palette.ink).background(Palette.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .shadow(color: .black.opacity(0.08), radius: 1, y: 1)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Vault
+
+    /// Behind the door: the vault's own categories and people, as in the app's Vault tab. Lock seals it now;
+    /// otherwise the lock window from the app's Settings applies.
+    private var vaultPanel: some View {
+        VStack(spacing: 5) {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.open.fill").font(.system(size: 13, weight: .semibold)).foregroundStyle(Palette.verified)
+                Text(vaultTitle).font(.system(size: 15, weight: .bold)).lineLimit(1)
+                Spacer(minLength: 4)
+                Button { model.lock() } label: {
+                    Label("Lock", systemImage: "lock.fill").font(.system(size: 12, weight: .semibold))
+                        .padding(.horizontal, 10).frame(height: 26)
+                        .background(Palette.surfaceOff).clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            .foregroundStyle(Palette.ink)
+            .padding(.horizontal, 4).frame(height: 30)
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(spacing: 5) {
+                    if model.vaultFilter != nil {
+                        ForEach(model.vaultFilteredEntries) { e in entryRow(e) }
+                    } else {
+                        if model.vaultEntries.isEmpty {
+                            Text("Nothing in the vault yet").font(.system(size: 13)).foregroundStyle(Palette.ink2).padding(.top, 16)
+                        }
+                        ForEach(model.vaultGroups) { g in
+                            folderRow(g.name, count: g.entries.count) { model.vaultFilter = .group(g.name) }
+                        }
+                        if !model.vaultPeople.isEmpty { caption("People") }
+                        ForEach(model.vaultPeople) { p in
+                            folderRow(p.name, count: model.vaultEntries.filter { $0.personID == p.id }.count) { model.vaultFilter = .person(p.id) }
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var vaultTitle: String {
+        switch model.vaultFilter {
+        case .group(let name): "Vault · \(name)"
+        case .person(let id): "Vault · \(model.people.first { $0.id == id }?.name ?? "")"
+        case nil: "Vault"
+        }
     }
 
     private func caption(_ text: String) -> some View {
@@ -211,20 +337,32 @@ struct KeyboardRootView: View {
             .padding(.horizontal, 4)
     }
 
-    /// "Passport" on the left and the person's name on the right in navy, same size (Evan, 15). The
-    /// document's own suffix ("· CHAI") shows only on the Filling from line.
-    private func entryRow(_ e: FillEntry, height: CGFloat, trailing: String? = nil) -> some View {
+    /// "Passport" on the left and the person's name on the right in navy, same size (Evan, 15). With no
+    /// person, the detail in grey: a receipt's date, a card's company (checkpoint 20). Vault rows show a
+    /// lock while the vault is shut; tapping one asks for Face ID once. The document's own suffix
+    /// ("· CHAI") shows only on the Filling from line.
+    private func entryRow(_ e: FillEntry, star: Bool = false) -> some View {
         Button { model.select(e) } label: {
             HStack(spacing: 6) {
+                if model.isLocked(e) {
+                    Image(systemName: "lock.fill").font(.system(size: 11, weight: .semibold)).foregroundStyle(Palette.ink2)
+                }
+                if star {
+                    Image(systemName: "star.fill").font(.system(size: 11)).foregroundStyle(Palette.amber)
+                }
                 if case .shared = e.kind {
                     Image(systemName: "person.fill").font(.system(size: 13)).foregroundStyle(Palette.ink)
                 }
                 Text(Self.shortTitle(e.title)).font(.system(size: 15, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
                 Spacer(minLength: 4)
-                Text(trailing ?? e.personName).font(.system(size: 15, weight: .semibold)).foregroundStyle(Palette.navy).lineLimit(1).minimumScaleFactor(0.8)
+                if let t = e.trailing {
+                    Text(t).font(.system(size: 15, weight: e.personName.isEmpty ? .medium : .semibold))
+                        .foregroundStyle(e.personName.isEmpty ? Palette.ink2 : Palette.navy)
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                }
             }
             .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity).frame(height: height)
+            .frame(maxWidth: .infinity).frame(height: 36)
             .foregroundStyle(Palette.ink)
             .background(Palette.surface)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -241,31 +379,80 @@ struct KeyboardRootView: View {
     // MARK: Keys
 
     private var specs: [FillFormats.KeySpec] {
-        guard model.isUnlocked else { return [] }
-        if model.selectedDoc == nil { return FillFormats.sharedKeys }
+        guard model.currentEntry != nil else { return [] }
+        if model.isSharedSelected { return FillFormats.sharedKeys }
         return model.currentDoc.map { FillFormats.keys(for: $0.type) } ?? []
     }
 
     private var keyArea: some View {
         VStack(spacing: 6) {
             fillingFrom
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: Self.columns), spacing: 6) {
-                ForEach(specs.prefix(Self.columns * Self.rows), id: \.fieldKey) { spec in
-                    key(spec)
+            if specs.isEmpty {
+                linesList
+            } else {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: Self.columns), spacing: 6) {
+                    ForEach(specs.prefix(Self.columns * Self.rows), id: \.fieldKey) { spec in
+                        key(spec)
+                    }
                 }
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
     }
 
+    /// Documents with no keys show their text lines (checkpoint 20 Q6). Tap types the line. Hold a line with
+    /// a label ("Booking reference: K7Q2LM") to pick the label or the value.
+    @State private var splitLine: String?
+
+    private var linesList: some View {
+        let lines = model.currentLines
+        return ScrollView(.vertical, showsIndicators: false) {
+            LazyVStack(spacing: 5) {
+                if lines.isEmpty {
+                    Text("No text in this document. The photo circle shows the scan").font(.system(size: 13))
+                        .foregroundStyle(Palette.ink2).padding(.top, 16)
+                }
+                ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                    if splitLine == line, let parts = FillLines.split(line) {
+                        HStack(spacing: 5) {
+                            lineButton(parts.label) { model.insertLine(parts.label); splitLine = nil }
+                            lineButton(parts.value, bold: true) { model.insertLine(parts.value); splitLine = nil }
+                        }
+                    } else {
+                        lineButton(line) { model.insertLine(line) }
+                            .simultaneousGesture(LongPressGesture(minimumDuration: 0.35).onEnded { _ in
+                                guard FillLines.split(line) != nil else { return }
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                withAnimation(.snappy(duration: 0.18)) { splitLine = line }
+                            })
+                    }
+                }
+            }
+        }
+    }
+
+    private func lineButton(_ text: String, bold: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(text).font(.system(size: 14, weight: bold ? .semibold : .regular)).lineLimit(1).truncationMode(.tail)
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, alignment: .leading).frame(height: 32)
+                .foregroundStyle(Palette.ink).background(Palette.surface)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .shadow(color: .black.opacity(0.08), radius: 1, y: 1)
+        }
+        .buttonStyle(.plain)
+    }
+
     /// Names the loaded document, so the search bar can always read Search (15 Q1).
     private var fillingFrom: some View {
         HStack(spacing: 6) {
-            Image(systemName: model.selectedDoc == nil ? "person.fill" : "doc.text.fill")
+            Image(systemName: model.isSharedSelected ? "person.fill" : "doc.text.fill")
                 .font(.system(size: 10, weight: .semibold)).foregroundStyle(Palette.accent)
             Text("Filling from").font(.system(size: 11.5, weight: .semibold)).foregroundStyle(Palette.ink2)
             Text(model.currentEntry?.title ?? "").font(.system(size: 11.5, weight: .bold)).foregroundStyle(Palette.ink)
-            Text("· \(model.currentEntry?.personName ?? "")").font(.system(size: 11.5, weight: .semibold)).foregroundStyle(Palette.ink2)
+            if let t = model.currentEntry?.trailing {
+                Text("· \(t)").font(.system(size: 11.5, weight: .semibold)).foregroundStyle(Palette.ink2)
+            }
             Spacer(minLength: 0)
         }
         .lineLimit(1).minimumScaleFactor(0.8)
@@ -274,7 +461,7 @@ struct KeyboardRootView: View {
     }
 
     private func key(_ spec: FillFormats.KeySpec) -> some View {
-        let enabled = model.isUnlocked && model.hasValue(spec)
+        let enabled = model.hasValue(spec)
         let hint = enabled ? model.hint(for: spec) : nil
         let held = holdSpec == spec
         return VStack(spacing: 1) {
@@ -288,7 +475,10 @@ struct KeyboardRootView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .shadow(color: .black.opacity(0.10), radius: 1, y: 1)
         .overlay {
-            if held { RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Palette.accent, lineWidth: 2) }
+            // Held, or the key the field asks for (checkpoint 20 Q4): a ring; nothing moves.
+            if held || (enabled && model.isHinted(spec)) {
+                RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Palette.accent, lineWidth: 2)
+            }
         }
         .scaleEffect(pressedKey == spec.fieldKey && !held ? 0.96 : 1)
         .animation(.easeOut(duration: 0.12), value: pressedKey == spec.fieldKey)
@@ -420,43 +610,13 @@ struct KeyboardRootView: View {
     // MARK: Search
 
     /// The keyboard's own letter pad: letters go to the query, never to the form (13c Q3). Laid out like
-    /// Apple's English keyboard and never resized (Evan, 13 Oct). Above it, a strip of recent documents
-    /// before you type, and the Open hint once you do; matches show in the card above the bar.
+    /// Apple's English keyboard and never resized (Evan, 13 Oct). The bar sits straight on it; matches show
+    /// in the card above the bar, and the tinted top row is what Open loads.
     private var searchPanel: some View {
-        VStack(spacing: 5) {
-            searchStrip.frame(height: 36)
-            searchPad
-                .frame(height: System.padHeight)
-                .padding(.horizontal, System.sideInset)
-        }
-        .frame(maxHeight: .infinity, alignment: .bottom)
-    }
-
-    @ViewBuilder private var searchStrip: some View {
-        if let top = model.topMatch {
-            Text("Open loads \(Self.shortTitle(top.title)) · \(top.personName)")
-                .font(.system(size: 13)).foregroundStyle(Palette.ink2).lineLimit(1)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if !model.searchText.isEmpty {
-            Color.clear
-        } else {
-            // Most recent first, like the system keyboard's three suggestion slots.
-            let recent = Array(model.entries.prefix(3))
-            HStack(spacing: 0) {
-                ForEach(Array(recent.enumerated()), id: \.element.id) { i, e in
-                    if i > 0 { Rectangle().fill(Palette.ink3).frame(width: 1, height: 22) }
-                    Button { model.select(e) } label: {
-                        VStack(spacing: 1) {
-                            Text(Self.shortTitle(e.title)).font(.system(size: 14, weight: .semibold)).foregroundStyle(Palette.ink)
-                            Text(e.personName).font(.system(size: 11, weight: .medium)).foregroundStyle(Palette.navy)
-                        }
-                        .lineLimit(1).minimumScaleFactor(0.8).padding(.horizontal, 4)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
+        searchPad
+            .frame(height: System.padHeight)
+            .padding(.horizontal, System.sideInset)
+            .frame(maxHeight: .infinity, alignment: .bottom)
     }
 
     /// One UIKit touch surface (see `SearchPad`): nearest-key hits, callouts, clicks and rollover.
@@ -472,10 +632,19 @@ struct KeyboardRootView: View {
 
     /// Up to four matches above the bar, Telegram style. The top row is tinted: Open loads it. Matched
     /// letters show in full colour and the rest dimmed, as in Spotlight.
+    /// The card keeps a fixed four-row slot and hugs its rows at the bottom, next to the bar; fewer rows leave
+    /// the canvas above them empty. Before you type it shows the four most recent rows.
     private var matchCard: some View {
-        let results = Array(model.searchMatches.prefix(Self.maxMatches))
+        let typing = !model.searchText.trimmingCharacters(in: .whitespaces).isEmpty
+        let results: [CardRow]
+        if typing {
+            results = model.searchMatches.prefix(Self.maxMatches)
+                .map { CardRow(entry: $0.entry, titleHighlight: $0.titleHighlight, personHighlight: $0.personHighlight) }
+        } else {
+            results = model.recentEntries.prefix(Self.maxMatches).map { CardRow(entry: $0, titleHighlight: [], personHighlight: []) }
+        }
         return VStack(spacing: 0) {
-            if results.isEmpty {
+            if typing, results.isEmpty {
                 Text("No match").font(.system(size: 15)).foregroundStyle(Palette.ink2)
                     .frame(maxWidth: .infinity).frame(height: Self.matchRowHeight)
             }
@@ -483,18 +652,24 @@ struct KeyboardRootView: View {
                 let e = m.entry
                 Button { model.select(e) } label: {
                     HStack(spacing: 8) {
+                        if model.isLocked(e) {
+                            Image(systemName: "lock.fill").font(.system(size: 12, weight: .semibold)).foregroundStyle(Palette.ink2)
+                        }
                         if case .shared = e.kind {
                             Image(systemName: "person.fill").font(.system(size: 14)).foregroundStyle(Palette.ink)
                         }
                         Self.highlighted(Self.shortTitle(e.title), m.titleHighlight, on: Palette.ink, off: Palette.ink2)
                         Spacer(minLength: 4)
-                        Self.highlighted(e.personName, m.personHighlight, on: Palette.navy, off: Palette.navy.opacity(0.6))
+                        if let t = e.trailing {
+                            let side = e.personName.isEmpty ? Palette.ink2 : Palette.navy
+                            Self.highlighted(t, m.personHighlight, on: side, off: side.opacity(0.6))
+                        }
                     }
                     .font(.system(size: 16, weight: .semibold))
                     .lineLimit(1).minimumScaleFactor(0.8)
                     .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity).frame(height: Self.matchRowHeight)
-                    .background(i == 0 ? Palette.accent.opacity(0.10) : Color.clear)
+                    .background(typing && i == 0 ? Palette.accent.opacity(0.10) : Color.clear)
                     .overlay(alignment: .top) {
                         if i > 0 { Rectangle().fill(Palette.hairline).frame(height: 0.5).padding(.leading, 14) }
                     }
@@ -507,8 +682,14 @@ struct KeyboardRootView: View {
         .background(Palette.surface)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
-        .frame(height: CGFloat(Self.matchCount(model)) * Self.matchRowHeight)
+        .frame(height: CGFloat(Self.maxMatches) * Self.matchRowHeight, alignment: .bottom)
         .animation(.snappy(duration: 0.18), value: results.map(\.entry.id))
+    }
+
+    private struct CardRow {
+        let entry: FillEntry
+        let titleHighlight: [Range<Int>]
+        let personHighlight: [Range<Int>]
     }
 
     /// A title or name with the matched characters in `on` and the rest in `off`. With no match in this
@@ -523,57 +704,7 @@ struct KeyboardRootView: View {
         return out
     }
 
-    // MARK: Menu
-
-    private var menuPanel: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 6) {
-                ForEach(KeyboardModel.MenuTab.allCases, id: \.self) { tab in
-                    chip(tab.rawValue, on: model.menuTab == tab) {
-                        model.menuTab = tab
-                        if tab != .documents { model.personFilter = nil }
-                    }
-                }
-            }
-            .frame(height: 34)
-            switch model.menuTab {
-            case .people:
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(spacing: 5) {
-                        ForEach(model.people) { p in
-                            Button { model.showDocuments(of: p) } label: {
-                                HStack {
-                                    Text(p.name).font(.system(size: 15, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.8)
-                                    Spacer(minLength: 4)
-                                    Text("\(model.documentCount(for: p)) rows").font(.system(size: 12)).foregroundStyle(Palette.ink2)
-                                }
-                                .padding(.horizontal, 12).frame(maxWidth: .infinity).frame(height: 36)
-                                .foregroundStyle(Palette.ink).background(Palette.surface)
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                .shadow(color: .black.opacity(0.08), radius: 1, y: 1)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        if model.people.isEmpty {
-                            Text(model.status ?? "No people in the vault yet").font(.system(size: 13)).foregroundStyle(Palette.ink2).padding(.top, 16)
-                        }
-                    }
-                }
-            case .documents:
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(spacing: 5) {
-                        if let p = model.people.first(where: { $0.id == model.personFilter }) {
-                            caption(p.name)
-                        }
-                        ForEach(model.menuEntries) { e in entryRow(e, height: 36) }
-                    }
-                }
-            case .settings:
-                settingsCard
-            }
-        }
-        .frame(maxHeight: .infinity, alignment: .top)
-    }
+    // MARK: Tabs
 
     /// App chip rule: selected is a white pill with a hairline, unselected is grey text (15 Q3).
     private func chip(_ title: String, on: Bool, action: @escaping () -> Void) -> some View {
@@ -586,39 +717,6 @@ struct KeyboardRootView: View {
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(on ? Palette.hairline : Color.clear, lineWidth: 1))
                 .shadow(color: .black.opacity(on ? 0.08 : 0), radius: 1, y: 1)
-        }
-        .buttonStyle(.plain)
-    }
-
-    /// Date format for this keyboard session. A format picked by holding a date key is remembered for
-    /// that row and field and wins over this card. Long-term settings stay in the app.
-    private var settingsCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("DATE FORMAT").font(.system(size: 11, weight: .semibold)).tracking(0.8).foregroundStyle(Palette.ink2)
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 3), spacing: 5) {
-                smallChip("Auto: \(model.dateOverride == nil ? model.datePlan.reason : model.fieldContext.region + " region")", on: model.dateOverride == nil) { model.setDateStyle(nil) }
-                ForEach(FillFormats.DateStyle.menu, id: \.self) { st in
-                    smallChip(st.rawValue, on: model.dateOverride == st) { model.setDateStyle(st) }
-                }
-            }
-            Text("Start page and lock window: DocuVault app, Settings, Keyboard.")
-                .font(.system(size: 11)).foregroundStyle(Palette.ink2).lineLimit(2)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.surface)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .shadow(color: .black.opacity(0.08), radius: 1, y: 1)
-    }
-
-    private func smallChip(_ title: String, on: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title).font(.system(size: 12, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.7)
-                .padding(.horizontal, 8).frame(maxWidth: .infinity).frame(height: 30)
-                .foregroundStyle(on ? Palette.ink : Palette.ink2)
-                .background(on ? Palette.surface : Palette.canvasDeep)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(on ? Palette.hairline : Color.clear, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -650,32 +748,13 @@ struct KeyboardRootView: View {
         .onDisappear { scanScale = 1 }
     }
 
-    // MARK: Locked
-
-    /// One large target instead of greyed-out keys that belong to no document.
-    private var unlockPanel: some View {
-        Button {
-            guard model.hasFullAccess else { return }
-            Task { await model.unlock() }
-        } label: {
-            VStack(spacing: 8) {
-                Image(systemName: "faceid").font(.system(size: 34, weight: .light))
-                Text(model.hasFullAccess ? "Unlock with Face ID" : "Full Access is off")
-                    .font(.system(size: 17, weight: .semibold))
-                Text(model.status ?? (model.hasFullAccess
-                                      ? "Values stay on this phone"
-                                      : "Turn it on in Settings, then Keyboards"))
-                    .font(.system(size: 12)).foregroundStyle(Palette.ink2)
-                    .multilineTextAlignment(.center).lineLimit(2)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .foregroundStyle(Palette.ink)
-            .background(Palette.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .shadow(color: .black.opacity(0.10), radius: 1, y: 1)
-        }
-        .buttonStyle(.plain)
-        .disabled(!model.hasFullAccess)
+    /// Field-hint test build (14 Oct, throwaway): Debug builds show the field's hints in place of the search
+    /// placeholder. Remove with `KeyboardViewController.probe`.
+    private func probeOr(_ text: String) -> String {
+        #if DEBUG
+        if !model.fieldHintProbe.isEmpty { return model.fieldHintProbe }
+        #endif
+        return text
     }
 
     // MARK: Bottom
@@ -694,16 +773,18 @@ struct KeyboardRootView: View {
             Button { dismissOrBack() } label: {
                 Text(isShowingBack ? "Back" : "Done").font(.system(size: 15, weight: .semibold)).foregroundStyle(.white)
                     .frame(width: 70, height: 42)
-                    .sheen(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(Palette.accentFill)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .shadow(color: .black.opacity(0.10), radius: 1, y: 1)
             }.buttonStyle(.plain)
         }
     }
 
-    private var isShowingBack: Bool { holdSpec != nil || (model.isUnlocked && model.showsBack) }
+    private var isShowingBack: Bool { holdSpec != nil || model.showsBack }
 
     private func dismissOrBack() {
         if holdSpec != nil { closeMenu() }
-        else if model.isUnlocked, model.showsBack { model.back() }
+        else if model.showsBack { model.back() }
         else { model.done() }
     }
 
@@ -723,11 +804,8 @@ struct KeyboardRootView: View {
 /// keyboard follows the phone's setting (checkpoint 19); the key greys match Apple's own keyboard.
 enum Palette {
     static let accent = Color(light: 0x3A424C, dark: 0xA9B4C2)   // gunmetal, checkpoint 17b; steel in dark
-    static let sheen = LinearGradient(
-        colors: [Color(red: 0x22/255, green: 0x28/255, blue: 0x2F/255),
-                 Color(red: 0x5C/255, green: 0x66/255, blue: 0x72/255),
-                 Color(red: 0x22/255, green: 0x28/255, blue: 0x2F/255)],
-        startPoint: .topLeading, endPoint: .bottomTrailing)
+    /// Done and Back: flat gunmetal, no sheen (Evan, 14 Oct). Same value as the app's `accentFill`.
+    static let accentFill = Color(light: 0x3A424C, dark: 0x3A424C)
     /// The menu circle while the menu is open: black with a white glyph, inverted in dark.
     static let matte = Color(light: 0x1C1C1E, dark: 0xFFFFFF)
     static let matteInk = Color(light: 0xFFFFFF, dark: 0x1C1C1E)
@@ -748,6 +826,11 @@ enum Palette {
     static let glass = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightAlpha: 0.62, darkAlpha: 0.14)
     static let glassEdge = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightAlpha: 0.95, darkAlpha: 0.10)
     static let menu = Color(light: 0xF6F7FA, dark: 0x3A3A3C)
+    static let amber = Color(light: 0xB5731B, dark: 0xE3A341)
+    /// The vault door (checkpoint 20): gunmetal shut, green open, the app's existing gradients. Fixed in both
+    /// modes because they carry a white glyph.
+    static let doorShut = LinearGradient(colors: [Color(uiColor: UIColor(hex: 0x3A424C)), Color(uiColor: UIColor(hex: 0x5C6672))], startPoint: .topLeading, endPoint: .bottomTrailing)
+    static let doorOpen = LinearGradient(colors: [Color(uiColor: UIColor(hex: 0x0C4A2E)), Color(uiColor: UIColor(hex: 0x1B7F4C))], startPoint: .topLeading, endPoint: .bottomTrailing)
 }
 
 extension Color {
@@ -802,15 +885,3 @@ struct RepeatingKey: View {
     }
 }
 
-extension View {
-    /// The app's gunmetal sheen for the return keys (Open, Done, Back). Mirrors `accentSheen(in:)` in
-    /// the app's Theme, which this target cannot import.
-    func sheen<S: Shape>(in shape: S) -> some View {
-        self
-            .background(shape.fill(Palette.sheen))
-            .overlay(shape.stroke(LinearGradient(colors: [.white.opacity(0.35), .clear, .black.opacity(0.2)],
-                                                 startPoint: .top, endPoint: .bottom), lineWidth: 1))
-            .clipShape(shape)
-            .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
-    }
-}

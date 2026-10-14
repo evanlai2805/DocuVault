@@ -6,6 +6,37 @@ public enum FillInference {
 
     public enum FieldKeyboard: Sendable { case numeric, other }
 
+    /// What the field asks for, read from its content type (checkpoint 20). Drives the suggestion row on
+    /// Recents and the ring on the matching key. Safari passes name, address, email, phone, postcode,
+    /// organisation and job title; card and birthday hints come only from native apps.
+    public struct FieldHint: Equatable, Sendable {
+        public enum Target: Equatable, Sendable { case contact, businessCard, bankCard, passport }
+        public let label: String         // shown on the suggestion row: "Email"
+        public let target: Target        // which row the suggestion offers
+        public let keys: [String]        // field keys to ring
+    }
+
+    public static func hint(contentType: String?) -> FieldHint? {
+        guard let ct = contentType else { return nil }
+        switch ct {
+        case "name": return .init(label: "Name", target: .contact, keys: ["fullName", "name", "nameOnCard"])
+        case "givenName": return .init(label: "Given name", target: .contact, keys: ["givenNames", "givenNamePinyin"])
+        case "familyName": return .init(label: "Surname", target: .contact, keys: ["surname", "surnamePinyin"])
+        case "emailAddress": return .init(label: "Email", target: .contact, keys: ["email"])
+        case "telephoneNumber": return .init(label: "Phone", target: .contact, keys: ["phone"])
+        case "fullStreetAddress", "streetAddressLine1", "streetAddressLine2":
+            return .init(label: "Address", target: .contact, keys: ["address"])
+        case "postalCode": return .init(label: "Postcode", target: .contact, keys: ["postcode", "postalCode"])
+        case "organizationName": return .init(label: "Company", target: .businessCard, keys: ["company"])
+        case "jobTitle": return .init(label: "Job title", target: .businessCard, keys: ["title"])
+        case "creditCardNumber": return .init(label: "Card number", target: .bankCard, keys: ["pan"])
+        case "creditCardExpiration": return .init(label: "Card expiry", target: .bankCard, keys: ["expiry"])
+        case "creditCardName": return .init(label: "Name on card", target: .bankCard, keys: ["nameOnCard"])
+        case "birthdate": return .init(label: "Birthday", target: .passport, keys: ["dateOfBirth"])
+        default: return nil
+        }
+    }
+
     /// What to insert for a date field.
     public enum DatePlan: Equatable, Sendable {
         case full(FillFormats.DateStyle)

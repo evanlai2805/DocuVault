@@ -15,13 +15,19 @@ enum AppFiles {
     static let keyboardLockWindowKey = "keyboard.lockWindowSeconds"
     static let keyboardLockWindowDefault: Double = 60
 
-    /// What the keyboard opens on after the lock window (checkpoint 13c): suggestions, the last
-    /// document, or the full list. Set in the app's Settings, read by the keyboard.
+    /// The tab the keyboard opens on (checkpoint 20): Recents, Favourites, or the last document filled
+    /// from. Set in the app's Settings, read by the keyboard.
     static let keyboardStartPageKey = "keyboard.startPage"
     enum KeyboardStartPage: String, CaseIterable {
-        case suggestions, last, list
+        case recents, favourites, last
         var displayName: String {
-            switch self { case .suggestions: "Suggestions"; case .last: "Last document"; case .list: "Documents list" }
+            switch self { case .recents: "Recents"; case .favourites: "Favourites"; case .last: "Last document" }
+        }
+        /// Values saved before checkpoint 20 ("suggestions", "list") open on Recents.
+        init?(stored: String) {
+            if let v = Self(rawValue: stored) { self = v }
+            else if stored == "suggestions" || stored == "list" { self = .recents }
+            else { return nil }
         }
     }
 

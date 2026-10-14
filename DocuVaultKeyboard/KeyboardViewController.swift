@@ -9,21 +9,35 @@ final class KeyboardViewController: UIInputViewController {
     private var model: KeyboardModel!
     private var host: UIHostingController<KeyboardRootView>!
     private var heightConstraint: NSLayoutConstraint?
+    /// The height the keyboard wants now: 300pt, or taller while search shows matches.
+    private var targetHeight = KeyboardRootView.height
+    private var hasAppeared = false
 
     /// A keyboard cannot draw above its own top edge, so search matches grow the keyboard upward
     /// instead of floating over the app the way Telegram's list does (Evan, 13 Oct).
     /// The first build never grew on the phone: iOS sizes a keyboard from its own constraints only when
     /// `allowsSelfSizing` is on (it is off by default), and our height rule sat at a priority iOS's own
-    /// height rule beat. Both are fixed in viewDidLoad.
+    /// height rule beat. The second build still did not grow on the phone (Evan, 14 Oct): the rule was
+    /// switched on in viewDidLoad, before iOS adds its own size rules, and iOS ignored it. The rule is now
+    /// created in viewDidLoad but switched on in updateViewConstraints after viewWillAppear, the fix
+    /// reported on Apple's forums (thread 808167, May 2026).
     private func trackHeight() {
         let target = withObservationTracking { KeyboardRootView.preferredHeight(model) } onChange: { [weak self] in
             Task { @MainActor in self?.trackHeight() }
         }
-        guard let c = heightConstraint, c.constant != target else { return }
-        c.constant = target
+        guard target != targetHeight else { return }
+        targetHeight = target
+        view.setNeedsUpdateConstraints()
         UIView.animate(withDuration: 0.22, delay: 0, options: [.curveEaseOut, .beginFromCurrentState]) {
             self.view.superview?.layoutIfNeeded() ?? self.view.layoutIfNeeded()
         }
+    }
+
+    override func updateViewConstraints() {
+        super.updateViewConstraints()
+        guard hasAppeared, let c = heightConstraint else { return }
+        if c.constant != targetHeight { c.constant = targetHeight }
+        if !c.isActive { c.isActive = true }
     }
 
     override func viewDidLoad() {
@@ -47,9 +61,9 @@ final class KeyboardViewController: UIInputViewController {
             host.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
         (view as? UIInputView)?.allowsSelfSizing = true
-        let h = view.heightAnchor.constraint(equalToConstant: KeyboardRootView.height)
-        h.priority = UILayoutPriority(999)
-        h.isActive = true
+        // Created now, switched on only after viewWillAppear (see trackHeight).
+        let h = (inputView ?? view).heightAnchor.constraint(equalToConstant: KeyboardRootView.height)
+        h.priority = UILayoutPriority.required - 1
         heightConstraint = h
         host.didMove(toParent: self)
         model.load()
@@ -65,6 +79,9 @@ final class KeyboardViewController: UIInputViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         model.willAppear()
+        refreshContext()
+        hasAppeared = true
+        view.setNeedsUpdateConstraints()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -95,5 +112,31 @@ final class KeyboardViewController: UIInputViewController {
             after: proxy.documentContextAfterInput ?? "",
             region: Locale.current.region?.identifier ?? "SG"
         )
+        #if DEBUG
+        model.fieldHintProbe = Self.probe(proxy)
+        #endif
     }
+
+    #if DEBUG
+    /// Field-hint test build (14 Oct, throwaway): the field's own hints, never its text. Answers whether apps
+    /// and Safari forms fill `textContentType` for a third-party keyboard. Remove once Evan has reported.
+    private static func probe(_ p: UITextDocumentProxy) -> String {
+        let keys: String = switch p.keyboardType ?? .default {
+            case .default: "Default"
+            case .asciiCapable: "ASCII"
+            case .numbersAndPunctuation: "Numbers"
+            case .URL: "URL"
+            case .numberPad: "Number pad"
+            case .phonePad: "Phone pad"
+            case .namePhonePad: "Name phone"
+            case .emailAddress: "Email"
+            case .decimalPad: "Decimal"
+            case .twitter: "Twitter"
+            case .webSearch: "Web search"
+            case .asciiCapableNumberPad: "ASCII number pad"
+            @unknown default: "Other"
+        }
+        return "Hint: \(p.textContentType?.rawValue ?? "None") · Keys: \(keys)"
+    }
+    #endif
 }

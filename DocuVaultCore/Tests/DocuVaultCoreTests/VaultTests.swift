@@ -182,7 +182,7 @@ final class FillFormatsTests: XCTestCase {
         XCTAssertEqual(FillFormats.keys(for: .bankCard).first { $0.fieldKey == "cvv" }?.kind, .holdOnly)
         XCTAssertTrue(FillFormats.keys(for: .chinaID).contains { $0.label == "姓名" })
         XCTAssertTrue(FillFormats.keys(for: .chinaID).contains { $0.fieldKey == "namePinyin" })
-        XCTAssertTrue(FillFormats.keys(for: .receipt).isEmpty)
+        XCTAssertTrue(FillFormats.keys(for: .other).isEmpty)   // receipts gained keys in checkpoint 20
         XCTAssertLessThan(FillFormats.order(.bankCard), FillFormats.order(.passport))
     }
 }

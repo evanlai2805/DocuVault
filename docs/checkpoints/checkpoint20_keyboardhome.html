@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 20 · Keyboard home</title>
+<style>
+:root{--ink2:#8A8A8E;--hair:#E5E5EA;--accent:#3A424C}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px;max-width:900px;line-height:1.5}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:22px}
+.cap{font-size:13px;color:#374151;margin:8px auto 0;line-height:1.45;max-width:380px}.cap b{color:#0B2A4A}
+.note{background:#fff;border-left:4px solid var(--accent);padding:10px 12px;margin:14px 0;font-size:14px;border-radius:0 10px 10px 0;line-height:1.5;max-width:1100px}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px;max-width:1100px;line-height:1.45}
+table{width:100%;max-width:1100px;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+code{font-size:12px}
+
+/* keyboard, dark, as on Evan's phone */
+.kb{position:relative;width:100%;max-width:380px;margin:0 auto;background:#2B2B2B;border-radius:22px;padding:8px 6px 8px;display:flex;flex-direction:column;gap:6px;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.lab{position:absolute;right:10px;top:-10px;background:#0B2A4A;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
+.bar{display:flex;gap:6px;height:34px;align-items:center}
+.circ{width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;flex:none;color:#fff}
+.circ svg{width:15px;height:15px}.circ.g{color:#4CC38A}.circ.dim{color:#6E6E73}.circ.lk{color:#C8C8CC}
+.sf{flex:1;height:32px;border-radius:16px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.14);color:#98989F;font-size:14px;display:flex;align-items:center;padding-left:12px}
+.content{height:198px;display:flex;flex-direction:column;gap:5px;overflow:hidden;position:relative}
+.content.fade:after{content:"";position:absolute;left:0;right:0;bottom:0;height:22px;background:linear-gradient(to top,#2B2B2B,rgba(43,43,43,0))}
+.chips{display:flex;gap:6px;height:30px;flex:none}
+.chip{flex:1;border-radius:15px;background:#464646;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;color:#E5E5EA}
+.chip.on{background:#F2F2F7;color:#111}
+.er{height:36px;flex:none;border-radius:12px;background:#6B6B6B;display:flex;align-items:center;padding:0 12px;font-size:15px;font-weight:600;gap:6px;white-space:nowrap;overflow:hidden}
+.er svg{width:13px;height:13px;flex:none}
+.er .r{margin-left:auto;color:#9AA9F0}
+.er .d{margin-left:auto;color:#D1D1D6;font-weight:500}
+.er .lkc{color:#C8C8CC}
+.favs{display:flex;gap:6px;flex:none}
+.fav{flex:1;height:36px;border-radius:12px;background:#6B6B6B;display:flex;align-items:center;gap:5px;padding:0 8px;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;min-width:0}
+.fav svg{width:12px;height:12px;flex:none;color:#E3A341}.fav .r{color:#9AA9F0;margin-left:auto;font-size:12px}
+.fav.peek{flex:0 0 34px;padding:0;justify-content:center;color:#98989F}
+.sug{height:36px;flex:none;border-radius:12px;background:#3A3F46;box-shadow:inset 0 0 0 2px #A9B4C2;display:flex;align-items:center;padding:0 12px;gap:6px;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden}
+.sug small{color:#A9B4C2;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.sug .r{margin-left:auto;color:#9AA9F0}
+.vrow{height:36px;flex:none;border-radius:12px;background:linear-gradient(135deg,#0C4A2E,#1B7F4C);display:flex;align-items:center;padding:0 12px;gap:8px;font-size:15px;font-weight:600}
+.vrow svg{width:14px;height:14px}.vrow .d{margin-left:auto;font-size:13px;opacity:.85;font-weight:500}
+.fill{font-size:11.5px;color:#98989F;height:14px;display:flex;gap:4px;align-items:center;padding:0 4px;white-space:nowrap;overflow:hidden;flex:none}
+.fill b{color:#fff}.fill svg{width:10px;height:10px;color:#A9B4C2}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.key{height:40px;border-radius:12px;background:#6B6B6B;text-align:center;font-weight:600;font-size:15px;display:flex;flex-direction:column;justify-content:center;line-height:1.15}
+.key small{font-size:10px;color:#C8C8CC;font-weight:500}
+.key.hot{box-shadow:inset 0 0 0 2px #A9B4C2;background:#4A5059}
+.ln{height:30px;flex:none;border-radius:10px;background:#6B6B6B;font-size:13.5px;padding:0 10px;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
+.ln span{overflow:hidden;text-overflow:ellipsis}
+.bottom{display:flex;gap:6px;height:42px}
+.bottom div{border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.space{flex:1;background:#6B6B6B;color:#98989F}.del{width:76px;background:#464646}.del svg{width:20px;height:20px}
+.done{width:100px;font-weight:600;background:#3A424C;color:#fff}
+.grp{display:flex;align-items:center;gap:8px}
+.grp .n{margin-left:auto;color:#D1D1D6;font-weight:500;font-size:14px}
+</style><style>
+.circ.vo,.circ.vl{border-color:rgba(255,255,255,.28);color:#fff;box-shadow:0 2px 5px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.25)}
+.circ.vo{background:linear-gradient(135deg,#0C4A2E,#1B7F4C)}
+.circ.vl{background:linear-gradient(135deg,#3A424C,#5C6672)}
+.kb.light{background:#E8EAEF;color:#0A0A0C}
+.kb.light .circ{background:rgba(255,255,255,.62);border-color:rgba(255,255,255,.95);color:#0A0A0C}
+.kb.light .circ.dim{color:#B0B3BA}
+.kb.light .circ.vo{background:linear-gradient(135deg,#0C4A2E,#1B7F4C)}
+.kb.light .circ.vl{background:linear-gradient(135deg,#3A424C,#5C6672)}
+.kb.light .circ.vo,.kb.light .circ.vl{color:#fff;border-color:rgba(255,255,255,.5);box-shadow:0 2px 5px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.3)}
+.kb.light .sf{background:rgba(255,255,255,.62);border-color:rgba(255,255,255,.95);color:#8A8A8E}
+.kb.mini{gap:0;padding:8px 6px}
+.vhead{height:30px;flex:none;display:flex;align-items:center;gap:8px;padding:0 4px;font-size:15px;font-weight:700}
+.vhead svg{width:14px;height:14px;color:#4CC38A}
+.vhead .lockp{margin-left:auto;font-size:12px;font-weight:600;background:#464646;border-radius:13px;padding:5px 10px;display:flex;gap:5px;align-items:center}
+.vhead .lockp svg{width:11px;height:11px;color:#fff}
+.sec{font-size:10.5px;font-weight:600;letter-spacing:.8px;color:#98989F;padding:2px 4px 0;flex:none}
+.match{background:#3A3A3C;border-radius:14px;padding:6px;display:flex;flex-direction:column;gap:5px}
+.pad{display:flex;flex-direction:column;gap:6px;padding:2px 0}
+.krow{display:flex;gap:5px;justify-content:center}
+.krow span{width:31px;height:38px;border-radius:7px;background:#6B6B6B;display:flex;align-items:center;justify-content:center;font-size:17px}
+.krow span.w{width:48px;background:#464646;font-size:13px}.krow span.sp{flex:1;font-size:13px;color:#98989F}.krow span.o{width:84px;font-size:14px;font-weight:600;background:linear-gradient(160deg,#22282F 0%,#5C6672 48%,#22282F 100%)}
+.er mark{background:none;color:#fff;text-decoration:underline;text-decoration-color:#A9B4C2;text-underline-offset:3px}
+</style>
+</head><body>
+<svg width="0" height="0" style="position:absolute">
+ <symbol id="menu" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></g></symbol>
+ <symbol id="photo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></g></symbol>
+ <symbol id="lockopen" viewBox="0 0 24 24"><path fill="currentColor" d="M15 10V7a3 3 0 0 0-6 0h-2a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"/></symbol>
+ <symbol id="lock" viewBox="0 0 24 24"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zm2 0h6V7a3 3 0 0 0-6 0z"/></symbol>
+ <symbol id="starf" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8 6.6 19.7l1.1-6.1-4.5-4.2 6.1-.8z"/></symbol>
+ <symbol id="person" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5z"/></g></symbol>
+ <symbol id="doc" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2.5h8.5L19 7v14.5H6zM14 3v4.5h4.5"/></symbol>
+ <symbol id="faceid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16M9 9v1.5M15 9v1.5M12 9v4h-1M9 16c1.6 1.3 4.4 1.3 6 0"/></g></symbol>
+ <symbol id="bksp" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8.5 5H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H8.5L2.5 12z"/><path d="M11 9.5l5 5M16 9.5l-5 5" stroke-linecap="round"/></g></symbol>
+ <symbol id="chev" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></symbol>
+ <symbol id="card" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/></g></symbol>
+</svg>
+
+<h1>Checkpoint 20 · Keyboard home</h1>
+<p class="sub">The keyboard opens on a real page: <b>Recents</b>, the first of four tabs: Recents, People, Documents, Favourites. Every document is on the keyboard, not only vault ones. Only vault documents need Face ID. The green circle at the right of the bar is the door to the vault. One rule runs through every screen: <b>you always know which person and which document you are filling from.</b> Shown in dark, as on your phone. Same 300 pt height as today; resizing and motion come in checkpoint 21. Revised after your notes: Favourites replaces Settings, the lock circle becomes the vault door.</p>
+
+<h3>1 · Home: the Recents tab</h3>
+<div class="grid">
+
+<div><div class="kb"><span class="lab">home · vault open</span>
+<div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vo"><svg><use href="#lockopen"/></svg></span></div>
+<div class="content fade">
+ <div class="chips"><span class="chip on">Recents</span><span class="chip">People</span><span class="chip">Documents</span><span class="chip">Favourites</span></div>
+ <div class="er">Starbucks<span class="d">14/OCT</span></div>
+ <div class="er">Passport<span class="r">Ben Ong</span></div>
+ <div class="er"><svg><use href="#person"/></svg>Contact details<span class="r">Corinne Yap</span></div>
+ <div class="er">Daniel Koh<span class="d">Harbour Law LLP</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>Recents, by last touched.</b> A receipt you scanned a minute ago and a passport you filled from yesterday both sit near the top. The list scrolls. No captions: the tab names the list. The favourites row from the first draft is gone; Favourites has its own tab now, so Recents gets that row back.<br><b>Right side.</b> The person in navy. With no person: a receipt shows its capture date, a business card the company, a contract the other party. Grey, so it never reads as a person.</p></div>
+
+<div><div class="kb"><span class="lab">home · in an email field</span>
+<div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vo"><svg><use href="#lockopen"/></svg></span></div>
+<div class="content fade">
+ <div class="chips"><span class="chip on">Recents</span><span class="chip">People</span><span class="chip">Documents</span><span class="chip">Favourites</span></div>
+ <div class="sug"><small>Email</small>Contact details<span class="r">Ben Ong</span></div>
+ <div class="er">Starbucks<span class="d">14/OCT</span></div>
+ <div class="er">Passport<span class="r">Ben Ong</span></div>
+ <div class="er"><svg><use href="#person"/></svg>Contact details<span class="r">Corinne Yap</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>Suggestion row.</b> Shows only when the field says what it wants. Here the field says "email", so the row offers the contact details of the person you last filled for (you, when nobody is loaded). One tap opens them with the Email key ringed (section 3).<br><b>The list below never moves.</b> Hints fill this one row and nothing else, so your recents stay where your thumb expects them.</p></div>
+
+<div><div class="kb"><span class="lab">favourites tab</span>
+<div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vo"><svg><use href="#lockopen"/></svg></span></div>
+<div class="content fade">
+ <div class="chips"><span class="chip">Recents</span><span class="chip">People</span><span class="chip">Documents</span><span class="chip on">Favourites</span></div>
+ <div class="er"><svg style="color:#E3A341"><use href="#starf"/></svg>Passport<span class="r">Ben Ong</span></div>
+ <div class="er"><svg style="color:#E3A341"><use href="#starf"/></svg>Passport<span class="r">Celine Chai</span></div>
+ <div class="er"><svg style="color:#E3A341"><use href="#starf"/></svg>Bank card · DBS<span class="r">Ben Ong</span></div>
+ <div class="er"><svg style="color:#E3A341"><use href="#starf"/></svg><svg><use href="#person"/></svg>Contact details<span class="r">Ben Ong</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>Favourites, where Settings was.</b> Everything you starred in the app, in the order you starred it. Stars work on any document, vault or not. If you mostly fill the same passport, set the keyboard to open here instead of Recents (app, Settings · Keyboard).</p></div>
+
+</div>
+
+<h3>2 · The vault door</h3>
+<div class="grid">
+
+<div><div class="kb"><span class="lab">home · vault locked</span>
+<div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vl"><svg><use href="#lock"/></svg></span></div>
+<div class="content fade">
+ <div class="chips"><span class="chip on">Recents</span><span class="chip">People</span><span class="chip">Documents</span><span class="chip">Favourites</span></div>
+ <div class="er">Starbucks<span class="d">14/OCT</span></div>
+ <div class="er"><svg class="lkc"><use href="#lock"/></svg>Passport<span class="r">Ben Ong</span></div>
+ <div class="er"><svg><use href="#person"/></svg>Contact details<span class="r">Corinne Yap</span></div>
+ <div class="er">Daniel Koh<span class="d">Harbour Law LLP</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>Locked.</b> The door is gunmetal with a closed lock. Vault documents still show in Recents, People, Documents and Favourites, with a small lock; their values stay sealed. Tap one: Face ID once, then its keys. Regular documents never ask.</p></div>
+
+<div><div class="kb"><span class="lab">inside the vault</span>
+<div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vo"><svg><use href="#lockopen"/></svg></span></div>
+<div class="content fade">
+ <div class="vhead"><svg><use href="#lockopen"/></svg>Vault<span class="lockp"><svg><use href="#lock"/></svg>Lock</span></div>
+ <div class="er grp">Passports<span class="n">3</span></div>
+ <div class="er grp">ID cards<span class="n">2</span></div>
+ <div class="er grp"><svg><use href="#card"/></svg>Bank cards<span class="n">2</span></div>
+ <div class="sec">PEOPLE</div>
+ <div class="er grp">Ben Ong<span class="n">4</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>Tap the door: Face ID, then the vault's own folders,</b> the same categories and people as the app's Vault tab. The door turns green: open. <b>Lock</b> seals it at once; otherwise your lock window from the app applies (1 min by default). The menu circle, or the door again, takes you back home.</p></div>
+
+<div><div class="kb"><span class="lab">search · vault locked</span>
+<div class="match">
+ <div class="er"><svg class="lkc"><use href="#lock"/></svg><span><mark>Pass</mark>port</span><span class="r">Ben Ong</span></div>
+ <div class="er"><svg class="lkc"><use href="#lock"/></svg><span><mark>Pass</mark>port</span><span class="r">Celine Chai</span></div>
+</div>
+<div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf"><span style="color:#fff;font-weight:600">pass</span></span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vl"><svg><use href="#lock"/></svg></span></div>
+<div class="pad">
+ <div class="krow"><span>q</span><span>w</span><span>e</span><span>r</span><span>t</span><span>y</span><span>u</span><span>i</span><span>o</span><span>p</span></div>
+ <div class="krow"><span>a</span><span>s</span><span>d</span><span>f</span><span>g</span><span>h</span><span>j</span><span>k</span><span>l</span></div>
+ <div class="krow"><span class="w">⇧</span><span>z</span><span>x</span><span>c</span><span>v</span><span>b</span><span>n</span><span>m</span><span class="w"><svg style="width:18px;height:18px"><use href="#bksp"/></svg></span></div>
+ <div class="krow"><span class="w">Back</span><span class="sp">space</span><span class="o">Open</span></div>
+</div>
+</div>
+<p class="cap"><b>Search reaches into the vault while it is locked.</b> Matches show with a lock. Pick one: Face ID once, then its keys. After that the lock window applies, so the next vault document opens without asking.</p></div>
+
+</div>
+<h3>2b · The door, light and dark</h3>
+<div class="grid">
+<div><div class="kb mini light"><span class="lab">light · closed</span><div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vl"><svg><use href="#lock"/></svg></span></div></div></div><div><div class="kb mini light"><span class="lab">light · open</span><div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vo"><svg><use href="#lockopen"/></svg></span></div></div></div><div><div class="kb mini "><span class="lab">dark · closed</span><div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vl"><svg><use href="#lock"/></svg></span></div></div></div><div><div class="kb mini "><span class="lab">dark · open</span><div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vo"><svg><use href="#lockopen"/></svg></span></div></div></div>
+</div>
+<div class="note"><b>One button, two colours.</b> The door keeps the same texture whether open or closed: a filled gradient, a light top edge, a white glyph and a small shadow that lifts it off the bar. Only the colour changes: <b>gunmetal when closed</b> (the app's colour for things you tap), <b>green when open</b> (the app's colour for a good state). The other circles are flat glass, so the door is the one raised, filled button in the bar and reads as something to press. Both colours already exist in the app; nothing new is invented. The full-panel "Unlock with Face ID" screen goes: the keyboard always opens on a usable list.<br><b>Done</b> is flat gunmetal now, no sheen (already changed in the code). The search pad's Open key still has its sheen.</div>
+
+<h3>3 · Filling from regular documents</h3>
+<div class="grid">
+
+<div><div class="kb"><span class="lab">receipt</span>
+<div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ"><svg><use href="#photo"/></svg></span><span class="circ vl"><svg><use href="#lock"/></svg></span></div>
+<div class="content">
+ <div class="fill"><svg><use href="#doc"/></svg>Filling from <b>Receipt · Starbucks</b> · 14/OCT</div>
+ <div class="keys">
+  <div class="key">Merchant</div><div class="key">Date<small>DD/MM/YYYY</small></div><div class="key">Total<small>SGD</small></div>
+  <div class="key">Tax</div><div class="key">Reference</div><div class="key">Payment<small>Visa ·4421</small></div>
+ </div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>The expense-claim moment.</b> Scan the receipt, open the claim form, and it is first in Recents. No Face ID: the vault door stays closed in the bar. Contracts and letters get Title, Party A, Party B, Effective date, Expiry and Governing law the same way.</p></div>
+
+<div><div class="kb"><span class="lab">business card · in an email field</span>
+<div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ"><svg><use href="#photo"/></svg></span><span class="circ vl"><svg><use href="#lock"/></svg></span></div>
+<div class="content">
+ <div class="fill"><svg><use href="#doc"/></svg>Filling from <b>Business card · Daniel Koh</b> · Harbour Law LLP</div>
+ <div class="keys">
+  <div class="key">Name</div><div class="key">Title</div><div class="key">Company</div>
+  <div class="key">Phone</div><div class="key hot">Email</div><div class="key">Website</div>
+ </div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>The key that fits the field gets a ring.</b> The field said "email", so Email is ringed. Nothing moves; the ring only points. Scanned cards and screenshots or PDFs of digital cards both land here.</p></div>
+
+<div><div class="kb"><span class="lab">other · text lines</span>
+<div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ"><svg><use href="#photo"/></svg></span><span class="circ vl"><svg><use href="#lock"/></svg></span></div>
+<div class="content fade">
+ <div class="fill"><svg><use href="#doc"/></svg>Filling from <b>Booking confirmation</b> · 9 lines</div>
+ <div class="ln"><span>Booking reference: K7Q2LM</span></div>
+ <div class="ln"><span>Singapore Airlines SQ 322 · 21/OCT/2026 · 23:35</span></div>
+ <div class="ln"><span>Changi Terminal 3 to London Heathrow Terminal 2</span></div>
+ <div class="ln"><span>Passenger: ONG / BEN MR</span></div>
+ <div class="ln"><span>Seat 42K · Economy · 30 kg baggage</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>Documents with no keys show their text lines.</b> Tap a line to type it. Hold a line to pick part of it: the hold menu splits "Booking reference: K7Q2LM" into the label and "K7Q2LM". The photo circle shows the scan, as today. Imported notes, files and Notion pages (checkpoint 22) work the same way.</p></div>
+
+</div>
+
+<h3>4 · Documents tab, and where settings went</h3>
+<div class="grid">
+
+<div><div class="kb"><span class="lab">documents tab</span>
+<div class="bar"><span class="circ"><svg><use href="#menu"/></svg></span><span class="sf">Search</span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="circ vo"><svg><use href="#lockopen"/></svg></span></div>
+<div class="content fade">
+ <div class="chips"><span class="chip">Recents</span><span class="chip">People</span><span class="chip on">Documents</span><span class="chip">Favourites</span></div>
+ <div class="er grp">Passports<span class="n">3</span></div>
+ <div class="er grp">ID cards<span class="n">2</span></div>
+ <div class="er grp"><svg><use href="#card"/></svg>Bank cards<span class="n">2</span></div>
+ <div class="er grp">Receipts<span class="n">48</span></div>
+ <div class="er grp">Business cards<span class="n">12</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>Documents by type, then the list.</b> With every document on the keyboard, one flat list would run to hundreds of rows. Types first matches the app's categories, so your mental map carries over. Contracts, Letters, Notes and other follow below. <b>People</b> stays as today: person, then their documents.</p></div>
+
+</div>
+<div class="note"><b>Settings live in the app only.</b> The keyboard's Settings tab held one thing: a date format for the current session. Holding a date key already picks the format for that field and remembers it, so nothing is lost. App, Settings · Keyboard keeps the lock window and gains the start tab: Recents (default), Favourites or Last document.<br><b>Search covers everything,</b> as now: titles, people, and for regular documents the merchant, company and party names too.</div>
+
+<h3>5 · Field hints: what triggers the suggestion row and the ring</h3>
+<table>
+<tr><th>The field says</th><th>Suggestion row</th><th>Ring</th><th>Reaches the keyboard in</th></tr>
+<tr><td>Name, given name, family name</td><td>Contact details of the current person</td><td>Full name / Surname / Given names</td><td>Apps; Safari forms</td></tr>
+<tr><td>Email, phone</td><td>Contact details of the current person</td><td>Email / Phone</td><td>Apps; Safari forms</td></tr>
+<tr><td>Street address, postcode</td><td>Contact details of the current person</td><td>Address / Postcode</td><td>Apps; Safari forms</td></tr>
+<tr><td>Organisation, job title</td><td>Last business card</td><td>Company / Title</td><td>Apps; Safari forms</td></tr>
+<tr><td>Card number, expiry, birthday</td><td>Bank card / passport of the current person</td><td>Number / Expiry / DOB</td><td>Apps only. Safari sends no hint for these</td></tr>
+<tr><td>Nothing</td><td>No row</td><td>No ring</td><td>Most fields today</td></tr>
+</table>
+<div class="note"><b>Test build first (on your phone now).</b> Debug builds show what each field tells the keyboard in place of the Search placeholder, for example <code>Hint: emailAddress · Keys: Email</code>. Never the text in the field. Press ⌘R, then switch to the keyboard in: Mail's To field, a Safari checkout or address form, an airline app's passenger form, your bank app, and Notes. Screenshot each. That tells us how often the suggestion row would actually appear, before we build it.</div>
+
+<h3>What changes in code</h3>
+<table>
+<tr><th>Change</th><th>Where</th></tr>
+<tr><td>Load every document, not only vault ones; vault values stay sealed until Face ID</td><td><code>KeyboardModel.load()</code> drops the <code>sensitive</code> filter; a light index (titles, people, fields), not full text</td></tr>
+<tr><td>Rows without a person</td><td><code>FillEntry</code> person becomes optional; right-side detail per type</td></tr>
+<tr><td>Recents by last touched; favourites row; suggestion row</td><td><code>FillPicker</code> in DocuVaultCore, with tests</td></tr>
+<tr><td>Keys for receipts, contracts, letters, business cards; text lines for the rest</td><td><code>FillFormats.keys(for:)</code>, with tests</td></tr>
+<tr><td>Hint to key and hint to suggestion mapping</td><td><code>FillInference</code>, with tests</td></tr>
+<tr><td>Home tabs replace the start page; Settings tab removed; vault door in the bar; start tab setting (Recents, Favourites, Last document)</td><td><code>KeyboardRootView</code>, <code>AppFiles.KeyboardStartPage</code></td></tr>
+</table>
+
+<h3>Questions</h3>
+<div class="q">Q1 · The vault door: one raised, filled button; gunmetal with a closed lock when closed, green with an open lock when open (section 2b). Recommended: <b>yes</b>.</div>
+<div class="q">Q2 · Vault documents show with a small lock in Recents, People, Documents, Favourites and search while locked; tapping one asks for Face ID once. Recommended: <b>yes</b>; the alternative hides them until you open the door, which means two steps to your passport.</div>
+<div class="q">Q3 · Recents ordered by last touched (scanned or filled, whichever is newer), with no favourites row now that Favourites has a tab. Recommended: <b>yes</b>.</div>
+<div class="q">Q4 · Field hints fill one suggestion row and ring the matching key, and never reorder the list. Recommended: <b>yes</b>, sized by what the test build shows.</div>
+<div class="q">Q5 · Documents tab grouped by type first. Recommended: <b>yes</b>.</div>
+<div class="q">Q6 · Text lines for documents without keys: tap types the line, hold splits it into label and value. Recommended: <b>yes</b>.</div>
+<div class="q">Q8 · Open on the search pad: keep its sheen, or flat like Done? Recommended: <b>flat like Done</b>, so the two return keys match.</div>
+<div class="q">Q7 · Start tab, set in the app: Recents (default), Favourites or Last document. Recommended: <b>yes</b>.</div>
+</body></html>

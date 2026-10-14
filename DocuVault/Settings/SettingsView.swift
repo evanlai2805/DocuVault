@@ -14,7 +14,7 @@ struct SettingsView: View {
     @AppStorage(AppFiles.keyboardLockWindowKey, store: UserDefaults(suiteName: AppFiles.appGroupID))
     private var keyboardLockWindow: Double = AppFiles.keyboardLockWindowDefault
     @AppStorage(AppFiles.keyboardStartPageKey, store: UserDefaults(suiteName: AppFiles.appGroupID))
-    private var keyboardStartPage: String = AppFiles.KeyboardStartPage.suggestions.rawValue
+    private var keyboardStartPage: String = AppFiles.KeyboardStartPage.recents.rawValue
 
     var body: some View {
         CardPage {
@@ -36,7 +36,7 @@ struct SettingsView: View {
                         ForEach(AppFiles.KeyboardStartPage.allCases, id: \.rawValue) { Text($0.displayName).tag($0.rawValue) }
                     }
                 } label: {
-                    CardRow(title: "Opens on", value: AppFiles.KeyboardStartPage(rawValue: keyboardStartPage)?.displayName, chevron: true)
+                    CardRow(title: "Opens on", value: AppFiles.KeyboardStartPage(stored: keyboardStartPage)?.displayName, chevron: true)
                 }
                 .buttonStyle(.plain)
             }

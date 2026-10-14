@@ -1,9 +1,15 @@
 # DocuVault — project memory for Claude Code
 
-Personal iOS 26 app for Evan Lai (Singapore, restructuring analyst, works in English and Mandarin).
+iOS 26 app by Evan Lai (Singapore, restructuring analyst, works in English and Mandarin).
 Document scanner with on-device OCR (en + zh-Hans + zh-Hant), a Face ID vault for identity and card
 documents, on-device summaries, a fill-form keyboard, and an opt-in Claude cloud step with code-side
-redaction. Not for the App Store. One user, one phone (iPhone 17 Pro).
+redaction. Evan tests on one phone (iPhone 17 Pro).
+
+**Becoming an App Store product (Evan, 14 Oct 2026).** The keyboard is the selling point: scan once, fill
+anywhere, and always know which person and document you are filling from. Design for strangers who do not
+trust the app yet. A new name is pending; "DocuKeys" is out because an existing App Store app used it. A rename
+changes `CFBundleDisplayName` only: bundle IDs and the App Group `group.com.evanlai.docuvault` stay, or the
+phone's store looks lost.
 
 Read `docs/HANDOFF.md` before any non-trivial task: it holds status, every decision Evan made at the
 ten checkpoints, the open device-validation list, and the roadmap.

@@ -25,12 +25,14 @@ import DocuVaultCore
 
     static func touch() { lastActivity = Date() }
     static func wipe() { key = nil; lastEntryID = nil }
+    /// Past the lock window: the vault seals and the keyboard stops reopening on the last row.
     static func expireIfStale(now: Date = Date()) {
-        if key != nil, now.timeIntervalSince(lastActivity) > window { wipe() }
+        if key != nil || lastEntryID != nil, now.timeIntervalSince(lastActivity) > window { wipe() }
     }
 }
 
-/// Keyboard state: people, their vault documents, the unlocked key, and the insert bridge.
+/// Keyboard state: people, every document, the vault key, and the insert bridge.
+/// Checkpoint 20 (Evan, 14 Oct): every document is on the keyboard; only vault documents need Face ID.
 @MainActor @Observable
 final class KeyboardModel {
     struct Person: Identifiable, Hashable {
@@ -45,14 +47,21 @@ final class KeyboardModel {
         let type: DocumentType
         let fields: [String: (value: Data?, plain: String)]   // key → sealed or plain
         let firstPageFile: String?                            // for the scan circle
-        var favourite = false                                 // starred in the app's Vault (checkpoint 16)
+        var favourite = false                                 // starred in the app (checkpoint 16)
+        var sensitive = false                                 // a vault document: values sealed
+        var personID: UUID?
+        var capturedAt = Date.distantPast
+        var lines: [String] = []                              // keyless regular documents: their text lines
+        var sealedText: Data?                                 // keyless vault documents: text, sealed
         static func == (a: Doc, b: Doc) -> Bool { a.id == b.id }
         func hash(into h: inout Hasher) { h.combine(id) }
     }
 
-    /// What the content area shows (checkpoint 13c/15). The hold menu is view state, not a panel.
-    enum Panel: Equatable { case start, keys, search, menu, scan }
-    enum MenuTab: String, CaseIterable { case people = "People", documents = "Documents", settings = "Settings" }
+    /// What the content area shows. Home is the four tabs; the vault is its own folders behind the door.
+    /// The hold menu is view state, not a panel.
+    enum Panel: Equatable { case home, keys, search, scan, vault }
+    enum MenuTab: String, CaseIterable { case recents = "Recents", people = "People", documents = "Documents", favourites = "Favourites" }
+    enum VaultFilter: Equatable { case group(String), person(UUID) }
 
     /// One row of the hold menu under the preview card.
     struct HoldOption: Identifiable {
@@ -70,20 +79,26 @@ final class KeyboardModel {
     private let dismissKeyboard: () -> Void
 
     private(set) var people: [Person] = []
-    private(set) var docsByPerson: [UUID: [Doc]] = [:]
-    var selectedPerson: UUID?
-    var selectedDoc: UUID?          // nil = Shared fields
+    private(set) var docs: [Doc] = []
+    /// Every row, built once per load: documents (owner, then type order), then each person's contact details.
+    private(set) var entries: [FillEntry] = []
+    /// The loaded row. Nil on home with nothing loaded.
+    private(set) var selectedID: String?
     private(set) var key: SymmetricKey?
     private(set) var status: String?
     var isSecureField = false
+    /// Field-hint test build (14 Oct, throwaway): what the host field says about itself, never its text.
+    var fieldHintProbe = ""
 
-    var panel: Panel = .start
-    var menuTab: MenuTab = .people
+    var panel: Panel = .home
+    var menuTab: MenuTab = .recents
     var searchText = ""
-    var personFilter: UUID?          // nil = every person
+    var personFilter: UUID?          // People tab: one person's rows
+    var groupFilter: String?         // Documents tab: one group's rows
+    var vaultFilter: VaultFilter?    // inside the vault: one category or person
     private var lastUsed: [String: Date] = [:]
     private var useCounts: [String: Int] = [:]
-    /// The wording or format last picked in the hold menu, per person, document and field
+    /// The wording or format last picked in the hold menu, per row and field
     /// ("<entry id>|<field key>" → option id). Survives the keyboard closing (Evan, 15 follow-up).
     private var fieldPrefs: [String: String] = [:]
     private static let lastUsedDefaultsKey = "keyboard.lastUsed"
@@ -92,7 +107,7 @@ final class KeyboardModel {
 
     /// What the host text field tells us; refreshed on every textDidChange.
     var fieldContext = FillInference.Context(region: Locale.current.region?.identifier ?? "SG")
-    /// Explicit picks from the hold menu or the Settings card override inference for this keyboard session.
+    /// An explicit pick from the hold menu overrides inference for this keyboard session.
     var dateOverride: FillFormats.DateStyle?
     var expiryOverride: FillFormats.ExpiryStyle?
 
@@ -116,113 +131,151 @@ final class KeyboardModel {
         self.key = KeyboardVault.key
     }
 
+    /// The vault is open: its values can be read and filled.
     var isUnlocked: Bool { key != nil }
-    var currentPerson: Person? { people.first { $0.id == selectedPerson } }
-    var currentDocs: [Doc] { selectedPerson.flatMap { docsByPerson[$0] } ?? [] }
-    var currentDoc: Doc? { currentDocs.first { $0.id == selectedDoc } }
-    var hasSelection: Bool { selectedPerson != nil && (selectedDoc != nil || currentPerson != nil) && currentEntry != nil }
+    var currentEntry: FillEntry? { selectedID.flatMap { id in entries.first { $0.id == id } } }
+    var isSharedSelected: Bool { currentEntry?.kind == .shared }
+    var selectedDoc: UUID? { if case .document(let id)? = currentEntry?.kind { return id }; return nil }
+    var currentPerson: Person? { currentEntry?.personID.flatMap { id in people.first { $0.id == id } } }
+    var currentDoc: Doc? { selectedDoc.flatMap { id in docs.first { $0.id == id } } }
+    /// A vault row while the vault is shut: shown with a lock, values sealed.
+    func isLocked(_ e: FillEntry) -> Bool { e.sensitive && !isUnlocked }
 
     // MARK: Load
 
     func load() {
-        guard hasFullAccess else { status = "Full Access is off. Enable it in Settings, then Keyboards"; return }
+        guard hasFullAccess else { status = "Full Access is off. Turn it on in Settings, then Keyboards"; return }
         do {
             let container = try AppFiles.makeContainer()
             let ctx = ModelContext(container)
             let persons = try ctx.fetch(FetchDescriptor<StoredPerson>())
             people = persons.map { Person(id: $0.id, name: $0.name, kind: $0.kind, fullName: $0.fullName, address: $0.address, phone: $0.phone, email: $0.email) }
                 .sorted { a, b in rank(a.kind) == rank(b.kind) ? a.name < b.name : rank(a.kind) < rank(b.kind) }
-            var map: [UUID: [Doc]] = [:]
-            for p in persons {
-                map[p.id] = p.documents.filter { $0.sensitive && $0.deletedAt == nil }
-                    .sorted { FillFormats.order($0.type) < FillFormats.order($1.type) }
-                    .map { d in Doc(id: d.id, title: d.title, type: d.type,
-                                    fields: Dictionary(uniqueKeysWithValues: d.fields.map { ($0.key, ($0.sealedValue, $0.value)) }),
-                                    firstPageFile: d.pages.sorted { $0.index < $1.index }.first?.imageFileName,
-                                    favourite: d.favourite) }
+            let order = Dictionary(uniqueKeysWithValues: people.enumerated().map { ($0.element.id, $0.offset) })
+            let stored = try ctx.fetch(FetchDescriptor<StoredDocument>()).filter { $0.deletedAt == nil }
+            docs = stored.map { d in
+                let keyless = FillFormats.keys(for: d.type).isEmpty
+                return Doc(id: d.id, title: d.title, type: d.type,
+                           fields: Dictionary(d.fields.map { ($0.key, ($0.sealedValue, $0.value)) }, uniquingKeysWith: { a, _ in a }),
+                           firstPageFile: d.pages.sorted { $0.index < $1.index }.first?.imageFileName,
+                           favourite: d.favourite, sensitive: d.sensitive, personID: d.person?.id, capturedAt: d.capturedAt,
+                           lines: keyless && !d.sensitive ? FillLines.lines(from: d.fullText) : [],
+                           sealedText: keyless && d.sensitive ? d.sealedText : nil)
             }
-            docsByPerson = map
+            .sorted { a, b in
+                let pa = a.personID.flatMap { order[$0] } ?? Int.max, pb = b.personID.flatMap { order[$0] } ?? Int.max
+                return pa == pb ? FillFormats.order(a.type) < FillFormats.order(b.type) : pa < pb
+            }
+            entries = buildEntries()
             loadUsage()
-            status = people.isEmpty ? "No people in the vault yet. Add one in DocuVault" : nil
+            status = entries.isEmpty ? "Nothing here yet. Scan a document in DocuVault" : nil
             openingPanel()
         } catch {
-            status = "Could not open the vault store"
+            status = "Could not open the DocuVault store"
         }
     }
 
     private func rank(_ k: PersonKind) -> Int { switch k { case .me: 0; case .family: 1; case .partner: 2; case .client: 3; case .other: 4 } }
 
-    /// Where the keyboard opens (checkpoint 13c Q2 and the Settings option): inside the lock window,
-    /// on the keys you left; otherwise on the start page chosen in Settings.
+    private func buildEntries() -> [FillEntry] {
+        var out: [FillEntry] = []
+        for d in docs {
+            let p = d.personID.flatMap { id in people.first { $0.id == id } }
+            let plain = d.fields.compactMapValues { $0.value == nil ? $0.plain : nil }
+            out.append(FillEntry(title: FillPicker.entryTitle(stored: d.title, type: d.type), personName: p?.name ?? "",
+                                 personID: p?.id, kind: .document(d.id), sensitive: d.sensitive,
+                                 detail: p == nil ? FillPicker.detail(type: d.type, fields: plain, addedAt: d.capturedAt) : nil,
+                                 addedAt: d.capturedAt, type: d.type, favourite: d.favourite))
+        }
+        for p in people {
+            out.append(FillEntry(title: "Contact details", personName: p.name, personID: p.id, kind: .shared))
+        }
+        return out
+    }
+
+    /// Where the keyboard opens: inside the lock window, on the keys you left (checkpoint 13c Q2); otherwise
+    /// on the tab chosen in the app's Settings (checkpoint 20). Never on a Face ID screen.
     private func openingPanel() {
-        if isUnlocked, let id = KeyboardVault.lastEntryID, let e = entries.first(where: { $0.id == id }) {
-            select(e)
+        if let id = KeyboardVault.lastEntryID, let e = entries.first(where: { $0.id == id }), !isLocked(e) {
+            selectedID = id
+            panel = .keys
             return
         }
+        panel = .home
         switch startPageMode {
-        case .suggestions:
-            panel = .start
+        case .recents: menuTab = .recents
+        case .favourites: menuTab = favouriteEntries.isEmpty ? .recents : .favourites
         case .last:
-            if let e = FillPicker.sorted(entries, lastUsed: lastUsed).first, lastUsed[e.id] != nil { select(e) } else { panel = .start }
-        case .list:
-            personFilter = nil
-            menuTab = .documents
-            panel = .menu
+            menuTab = .recents
+            if let e = recentEntries.first(where: { lastUsed[$0.id] != nil }), !isLocked(e) { selectedID = e.id; panel = .keys }
         }
     }
 
     private var startPageMode: AppFiles.KeyboardStartPage {
-        sharedDefaults?.string(forKey: AppFiles.keyboardStartPageKey).flatMap(AppFiles.KeyboardStartPage.init) ?? .suggestions
+        sharedDefaults?.string(forKey: AppFiles.keyboardStartPageKey).flatMap(AppFiles.KeyboardStartPage.init(stored:)) ?? .recents
     }
 
     // MARK: Rows
 
-    /// Every row the keyboard can offer: each document and each person's shared fields.
-    var entries: [FillEntry] {
-        var out: [FillEntry] = []
-        for p in people {
-            for d in docsByPerson[p.id] ?? [] {
-                out.append(FillEntry(title: FillPicker.entryTitle(stored: d.title, type: d.type), personName: p.name, personID: p.id, kind: .document(d.id)))
-            }
-            out.append(FillEntry(title: "Contact details", personName: p.name, personID: p.id, kind: .shared))
+    /// Recents: last touched first, the later of capture and last fill (checkpoint 20 Q3).
+    var recentEntries: [FillEntry] { FillPicker.recents(entries, lastUsed: lastUsed) }
+    var favouriteEntries: [FillEntry] { recentEntries.filter(\.favourite) }
+    var groups: [FillPicker.Group] { FillPicker.groups(recentEntries) }
+
+    /// The People and Documents tabs, narrowed by the row tapped.
+    var personEntries: [FillEntry] { FillPicker.filter(recentEntries, person: personFilter) }
+    var groupEntries: [FillEntry] { groups.first { $0.name == groupFilter }?.entries ?? [] }
+    func rowCount(for person: Person) -> Int { entries.filter { $0.personID == person.id }.count }
+
+    /// Inside the vault: categories, then the people who have vault documents.
+    var vaultEntries: [FillEntry] { recentEntries.filter(\.sensitive) }
+    var vaultGroups: [FillPicker.Group] { FillPicker.groups(vaultEntries) }
+    var vaultPeople: [Person] { people.filter { p in vaultEntries.contains { $0.personID == p.id } } }
+    var vaultFilteredEntries: [FillEntry] {
+        switch vaultFilter {
+        case .group(let name): vaultGroups.first { $0.name == name }?.entries ?? []
+        case .person(let id): vaultEntries.filter { $0.personID == id }
+        case nil: []
         }
-        return FillPicker.sorted(out, lastUsed: lastUsed)
     }
 
-    var startPage: FillPicker.StartPage { FillPicker.startPage(entries, useCounts: useCounts, lastUsed: lastUsed) }
-
-    /// Starred documents, which take the place of Most used on the start page (checkpoint 16 Q8).
-    var favouriteEntries: [FillEntry] {
-        let starred = Set(docsByPerson.values.joined().filter(\.favourite).map(\.id))
-        return entries.filter { if case .document(let id) = $0.kind { return starred.contains(id) }; return false }
-    }
-    var hasUsage: Bool { !lastUsed.isEmpty }
-
-    /// Ranked by word starts, with the letters to highlight (keyboard rebuild, 13 Oct).
-    var searchMatches: [FillPicker.Match] { FillPicker.search(entries, query: searchText) }
+    /// Ranked by word starts, with the letters to highlight. Covers the vault too; a locked row asks for
+    /// Face ID once when picked (Evan, 14 Oct).
+    var searchMatches: [FillPicker.Match] { FillPicker.search(recentEntries, query: searchText) }
     var searchResults: [FillEntry] { searchMatches.map(\.entry) }
 
-    var menuEntries: [FillEntry] { FillPicker.filter(entries, person: personFilter) }
+    // MARK: Field hints (checkpoint 20 Q4)
 
-    func documentCount(for person: Person) -> Int { (docsByPerson[person.id]?.count ?? 0) + 1 }
+    var fieldHint: FillInference.FieldHint? { FillInference.hint(contentType: fieldContext.contentType) }
 
-    var currentEntryKind: FillEntry.Kind { selectedDoc.map { .document($0) } ?? .shared }
-
-    var currentEntry: FillEntry? {
-        guard let person = selectedPerson else { return nil }
-        let id = FillPicker.key(personID: person, kind: currentEntryKind)
-        return entries.first { $0.id == id }
+    /// The one row the suggestion row offers for the field's hint: the person you last filled for, else you.
+    var suggestion: FillEntry? {
+        guard let h = fieldHint else { return nil }
+        let rows = recentEntries
+        let pid = currentEntry?.personID ?? people.first { $0.kind == .me }?.id ?? people.first?.id
+        switch h.target {
+        case .contact: return rows.first { $0.kind == .shared && $0.personID == pid }
+        case .businessCard: return rows.first { $0.type == .businessCard }
+        case .bankCard: return rows.first { $0.type == .bankCard && $0.personID == pid } ?? rows.first { $0.type == .bankCard }
+        case .passport: return rows.first { $0.type == .passport && $0.personID == pid } ?? rows.first { $0.type == .passport }
+        }
     }
 
+    /// The key the field asks for gets a ring; nothing moves.
+    func isHinted(_ spec: FillFormats.KeySpec) -> Bool { fieldHint?.keys.contains(spec.fieldKey) ?? false }
+
+    // MARK: Selecting
+
+    /// Loads a row. A vault row while the vault is shut asks for Face ID once, then opens; the lock window
+    /// from the app's Settings applies after that.
     func select(_ e: FillEntry) {
-        selectedPerson = e.personID
-        switch e.kind {
-        case .document(let id): selectedDoc = id
-        case .shared: selectedDoc = nil
+        if isLocked(e) {
+            Task { await unlock(); if isUnlocked { select(e) } }
+            return
         }
+        selectedID = e.id
         KeyboardVault.lastEntryID = e.id
         searchText = ""
-        personFilter = nil
         panel = .keys
         markCurrentUsed(count: true)
     }
@@ -230,29 +283,71 @@ final class KeyboardModel {
     // MARK: Panels
 
     func openSearch() { searchText = ""; panel = .search }
-    func openMenu() { personFilter = nil; menuTab = .people; panel = .menu }
-    func toggleMenu() { panel == .menu ? back() : openMenu() }
+
+    /// The menu circle: home, the four tabs. From home with a row loaded, back to its keys.
+    func toggleHome() {
+        if panel == .home, personFilter == nil, groupFilter == nil, currentEntry != nil { panel = .keys; return }
+        personFilter = nil; groupFilter = nil; searchText = ""
+        panel = .home
+    }
+
+    func showTab(_ tab: MenuTab) { menuTab = tab; personFilter = nil; groupFilter = nil }
+
+    /// The vault door: Face ID once if shut, then the vault's own folders. Tapping it inside the vault goes back.
+    func openVault() {
+        if panel == .vault { panel = .home; vaultFilter = nil; return }
+        if isUnlocked { vaultFilter = nil; panel = .vault; return }
+        Task {
+            await unlock()
+            if isUnlocked { vaultFilter = nil; panel = .vault }
+        }
+    }
+
     func toggleScan() {
         guard currentDoc?.firstPageFile != nil else { return }
         panel == .scan ? back() : (panel = .scan)
     }
-    func showDocuments(of person: Person) { personFilter = person.id; menuTab = .documents }
 
-    /// Back from search, the menu or the scan: to the keys when something is loaded, else the start page.
+    /// Back: out of a filter first, then to the keys when a row is loaded, else home.
     func back() {
         searchText = ""
-        panel = currentEntry != nil ? .keys : .start
+        switch panel {
+        case .home: personFilter = nil; groupFilter = nil
+        case .vault: if vaultFilter != nil { vaultFilter = nil } else { panel = .home }
+        case .keys: panel = .home
+        case .search, .scan: panel = currentEntry != nil ? .keys : .home
+        }
     }
 
-    var showsBack: Bool { panel == .search || panel == .menu || panel == .scan }
+    var showsBack: Bool {
+        switch panel {
+        case .search, .scan, .vault: true
+        case .home: personFilter != nil || groupFilter != nil
+        case .keys: false
+        }
+    }
 
     func typeSearch(_ letter: String) { searchText += letter }
     func backspaceSearch() { if !searchText.isEmpty { searchText.removeLast() } }
-    /// The best match while typing; the pad's blue Open key loads it, like Search on Apple's keyboard.
+    /// The best match while typing; the pad's Open key loads it, like Search on Apple's keyboard.
     var topMatch: FillEntry? { searchText.isEmpty ? nil : searchResults.first }
     func openTopMatch() { if let e = topMatch { select(e) } }
 
     func setDateStyle(_ style: FillFormats.DateStyle?) { dateOverride = style; KeyboardVault.touch() }
+
+    // MARK: Text lines (checkpoint 20 Q6)
+
+    /// A keyless document's text lines. Vault ones open with the key and are never kept.
+    var currentLines: [String] {
+        guard let d = currentDoc, FillFormats.keys(for: d.type).isEmpty else { return [] }
+        if let sealed = d.sealedText {
+            guard let key, let text = try? VaultCrypto.openString(sealed, key: key) else { return [] }
+            return FillLines.lines(from: text)
+        }
+        return d.lines
+    }
+
+    func insertLine(_ text: String) { commit(text) }
 
     /// The loaded document's first page, decrypted into memory only while the scan panel shows it.
     func scanImage() -> CGImage? {
@@ -278,8 +373,7 @@ final class KeyboardModel {
 
     /// Loading a row counts as a use; an insert refreshes its recency.
     private func markCurrentUsed(count: Bool = false) {
-        guard let person = selectedPerson else { return }
-        let id = FillPicker.key(personID: person, kind: currentEntryKind)
+        guard let id = selectedID else { return }
         lastUsed[id] = Date()
         if count { useCounts[id, default: 0] += 1 }
         sharedDefaults?.set(lastUsed.mapValues(\.timeIntervalSince1970), forKey: Self.lastUsedDefaultsKey)
@@ -287,8 +381,7 @@ final class KeyboardModel {
     }
 
     private func prefKey(_ spec: FillFormats.KeySpec) -> String? {
-        guard let person = selectedPerson else { return nil }
-        return FillPicker.key(personID: person, kind: currentEntryKind) + "|" + spec.fieldKey
+        selectedID.map { $0 + "|" + spec.fieldKey }
     }
 
     /// The option id picked last for this field on this row, if any.
@@ -310,7 +403,6 @@ final class KeyboardModel {
             let k = try await Task.detached(priority: .userInitiated) { try VaultKeychain.load(reason: "Fill from your DocuVault") }.value
             if let k {
                 key = k; KeyboardVault.key = k; KeyboardVault.touch()
-                openingPanel()
             } else { status = "No vault key yet. Open DocuVault and unlock the Vault once" }
         } catch let e as VaultError {
             status = VaultSession.describe(e)
@@ -319,12 +411,19 @@ final class KeyboardModel {
         }
     }
 
-    func lock() { key = nil; KeyboardVault.wipe(); panel = .start }
+    /// Seals the vault. Regular rows stay open; a loaded vault row goes back home.
+    func lock() {
+        key = nil
+        KeyboardVault.wipe()
+        vaultFilter = nil
+        if currentEntry?.sensitive == true { selectedID = nil }
+        if panel == .vault || ((panel == .keys || panel == .scan) && selectedID == nil) { panel = .home }
+    }
 
-    /// The keyboard is about to show: drop the key if the lock window has passed while it was hidden.
+    /// The keyboard is about to show: seal the vault if the lock window has passed while it was hidden.
     func willAppear() {
         KeyboardVault.expireIfStale()
-        if KeyboardVault.key == nil { key = nil; panel = .start }
+        if KeyboardVault.key == nil, key != nil { lock() }
     }
 
     /// The keyboard hid, usually because you switched apps. The lock window starts now; with
@@ -337,7 +436,7 @@ final class KeyboardModel {
     // MARK: Values
 
     func value(for spec: FillFormats.KeySpec) -> String? {
-        if selectedDoc == nil {
+        if isSharedSelected {
             guard let p = currentPerson else { return nil }
             switch spec.fieldKey {
             case "fullName": return p.fullName.isEmpty ? nil : p.fullName
@@ -357,7 +456,7 @@ final class KeyboardModel {
     }
 
     func hasValue(_ spec: FillFormats.KeySpec) -> Bool {
-        if selectedDoc == nil { return value(for: spec) != nil }
+        if isSharedSelected { return value(for: spec) != nil }
         guard let doc = currentDoc, let f = doc.fields[spec.fieldKey] else { return false }
         return f.value != nil || !f.plain.isEmpty
     }
