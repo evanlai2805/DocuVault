@@ -28,7 +28,10 @@ struct KeyboardRootView: View {
         static let keyGap: CGFloat = 6
         static let sideInset: CGFloat = 2.0 / 3.0   // on top of the keyboard's 6pt padding: 6.7pt in all
         static let modifierWidth: CGFloat = 45.3
-        static let returnWidth: CGFloat = 93
+        /// Bottom row, measured from Evan's screenshot of Apple's keyboard in Notes (14 Oct, IMG_3401): 123 and
+        /// emoji keys 44pt each, space 105 to 297pt, return 93.7pt. Back spans the two 44pt slots.
+        static let bottomModifierWidth: CGFloat = 44
+        static let returnWidth: CGFloat = 93.7
         static let radius: CGFloat = 8.5
         static let font: CGFloat = 22
         /// Four rows: 4 × 43 + 3 × 11.
@@ -46,8 +49,10 @@ struct KeyboardRootView: View {
     }
 
     /// In search the bar sits straight on the letter pad, as Apple's suggestion bar does; the 41pt strip
-    /// that held the Open hint is gone (Evan, 14 Oct). Bar 34 + 6 + pad 205 + padding 14 = 259.
-    static let searchBaseHeight: CGFloat = 8 + 34 + 6 + System.padHeight + 6
+    /// that held the Open hint is gone (Evan, 14 Oct). No bottom padding in search: on Evan's phone Apple's
+    /// bottom row ends 71pt above the screen's bottom edge and ours ended 80pt above it, so the pad drops as far
+    /// as the keyboard's frame allows (about 3pt still above Apple's). Top 8 + bar 34 + 6 + pad 205 = 253.
+    static let searchBaseHeight: CGFloat = 8 + 34 + 6 + System.padHeight
 
     /// 300pt; in search, the bar and pad plus the fixed four-row match card.
     static func preferredHeight(_ model: KeyboardModel) -> CGFloat {
@@ -96,7 +101,7 @@ struct KeyboardRootView: View {
             // The search pad brings its own bottom row, laid out like Apple's.
             if model.panel != .search { bottomRow }
         }
-        .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, 6)
+        .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, model.panel == .search ? 0 : 6)
         .background(Palette.canvas)
         .tint(Palette.accent)
         .animation(.snappy(duration: 0.22), value: Self.matchCount(model) > 0)

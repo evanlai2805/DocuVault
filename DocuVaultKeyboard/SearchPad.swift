@@ -97,10 +97,10 @@ final class SearchPadView: UIView {
         // Bottom row: [globe] Back · space · Open. Without the globe, Back spans both modifier slots.
         var x: CGFloat = 0
         if showsGlobe {
-            f[.globe] = CGRect(x: 0, y: y(3), width: System.modifierWidth, height: h)
-            x = System.modifierWidth + gap
+            f[.globe] = CGRect(x: 0, y: y(3), width: System.bottomModifierWidth, height: h)
+            x = System.bottomModifierWidth + gap
         }
-        let backWidth = showsGlobe ? System.modifierWidth : 2 * System.modifierWidth + gap
+        let backWidth = showsGlobe ? System.bottomModifierWidth : 2 * System.bottomModifierWidth + gap
         f[.back] = CGRect(x: x, y: y(3), width: backWidth, height: h)
         let openX = w - System.returnWidth
         f[.open] = CGRect(x: openX, y: y(3), width: System.returnWidth, height: h)
