@@ -297,6 +297,17 @@ with every recommended answer)
   fix from Apple's forums (thread 808167). The 41pt Open-hint strip is gone; the bar sits on the letter pad.
 - Rows with no person show a grey detail: receipt capture date ("14/OCT"), business card company, contract other party.
 
+14 Oct · after checkpoint 20 (Evan's phone tests and `checkpoint20b_back.html`)
+- Search opens and closes in one frame (no animated resize, no sliding card). The card fits its results; the
+  keyboard resizes only after typing pauses 0.3 s. Before typing it shows the top four Recents.
+- The keyboard paints no background of its own: iOS's backdrop runs through, no edges at the top or bottom.
+- Bar: photo circle · Search · back · menu pill · vault pill. Menu and vault are 46 × 32 pills; the photo stays a
+  32 pt circle. Search pad aligned to Apple's keyboard (IMG_3401): no bottom padding in search, 44 pt bottom
+  modifier slots, 93.7 pt return.
+- Back (20b, Evan's own option): a black circle emerges left of the menu pill only when there is somewhere to go
+  back to; swipe right does the same. Done always stays Done. Back from a document's keys returns to the list it
+  was picked from. The menu pill is black only at a tab's top level.
+
 ## 3. Open device validations (do these next, in order)
 - Checkpoint 20 on the iPhone: the keyboard opens on Recents with no Face ID; a vault row asks once, then opens;
   the door opens the vault folders and turns green; Lock seals it; a receipt fills Merchant, Date, Total; a keyless

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checkpoint 20b · Back</title>
+<style>
+:root{--hair:#E5E5EA;--accent:#3A424C}
+*{box-sizing:border-box}body{margin:0;background:#DDE3EA;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;padding:16px;-webkit-font-smoothing:antialiased}
+h1{font-size:22px;margin:0 0 4px}.sub{color:#374151;margin:0 0 16px;font-size:14px;max-width:900px;line-height:1.5}
+h3{font-size:15px;margin:26px 0 8px;border-top:2px solid #0B2A4A;padding-top:10px;color:#0B2A4A}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:22px}
+.cap{font-size:13px;color:#374151;margin:8px auto 0;line-height:1.45;max-width:380px}.cap b{color:#0B2A4A}
+.note{background:#fff;border-left:4px solid var(--accent);padding:10px 12px;margin:14px 0;font-size:14px;border-radius:0 10px 10px 0;line-height:1.5;max-width:1100px}
+.q{background:#FBF1E0;border-left:4px solid #B5731B;padding:8px 10px;margin:6px 0;font-size:14px;max-width:1100px;line-height:1.45}
+table{width:100%;max-width:1100px;border-collapse:collapse;font-size:13px;background:#fff}th,td{border:1px solid var(--hair);padding:6px 8px;text-align:left;vertical-align:top}th{background:#EEF3FA}
+
+/* keyboard, light, on iOS's backdrop */
+.kb{position:relative;width:100%;max-width:380px;margin:0 auto;background:#E1E3E8;border-radius:22px;padding:8px 6px 8px;display:flex;flex-direction:column;gap:6px;color:#0A0A0C;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.lab{position:absolute;right:10px;top:-10px;background:#0B2A4A;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
+.bar{display:flex;gap:6px;height:34px;align-items:center}
+.circ{width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;flex:none;color:#0A0A0C}
+.circ svg{width:15px;height:15px}.circ.dim{color:#B0B3BA}
+.pill{width:46px;height:32px;border-radius:16px;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.95);display:flex;align-items:center;justify-content:center;flex:none;color:#0A0A0C}
+.pill svg{width:15px;height:15px}
+.pill.back{background:#1C1C1E;color:#fff;border-color:#1C1C1E}
+.pill.back svg{width:13px;height:13px}
+.circ.back{background:#1C1C1E;color:#fff;border-color:#1C1C1E}
+.vault{width:46px;height:32px;border-radius:16px;background:linear-gradient(135deg,#3A424C,#5C6672);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 2px 5px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.3)}
+.vault svg{width:14px;height:14px}
+.sf{flex:1;min-width:0;height:32px;border-radius:16px;background:rgba(255,255,255,.62);border:1px solid rgba(255,255,255,.95);color:#8A8A8E;font-size:14px;display:flex;align-items:center;padding-left:12px}
+.content{height:198px;display:flex;flex-direction:column;gap:5px;overflow:hidden;position:relative}
+.content.fade:after{content:"";position:absolute;left:0;right:0;bottom:0;height:22px;background:linear-gradient(to top,#E1E3E8,rgba(225,227,232,0))}
+.chips{display:flex;gap:6px;height:30px;flex:none}
+.chip{flex:1;border-radius:15px;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;color:#8A8A8E}
+.chip.on{background:#fff;color:#111;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.crumb{height:14px;font-size:11px;font-weight:600;letter-spacing:.8px;color:#8A8A8E;padding:0 4px;flex:none;text-transform:uppercase}
+.er{height:36px;flex:none;border-radius:12px;background:#fff;display:flex;align-items:center;padding:0 12px;font-size:15px;font-weight:600;gap:6px;white-space:nowrap;overflow:hidden;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.er svg{width:12px;height:12px;flex:none;color:#8A8A8E}
+.er .r{margin-left:auto;color:#1B0F55}
+.fill{font-size:11.5px;color:#8A8A8E;height:22px;display:flex;gap:5px;align-items:center;padding:0 4px;white-space:nowrap;overflow:hidden;flex:none}
+.fill b{color:#0A0A0C}.fill svg{width:10px;height:10px;color:#3A424C}
+.thumb{width:28px;height:22px;border-radius:5px;background:linear-gradient(#FFFDF6,#E9E3D4);border:1px solid #CFC9BA;position:relative;flex:none;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.thumb:before{content:"";position:absolute;left:4px;right:4px;top:5px;height:11px;background:repeating-linear-gradient(#B9B2A2 0 1px,transparent 1px 3px)}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.key{height:40px;border-radius:12px;background:#fff;text-align:center;font-weight:600;font-size:15px;display:flex;flex-direction:column;justify-content:center;line-height:1.15;box-shadow:0 1px 1px rgba(0,0,0,.1)}
+.key small{font-size:10px;color:#8A8A8E;font-weight:500}
+.bottom{display:flex;gap:6px;height:42px}
+.bottom div{border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.space{flex:1;background:#fff;color:#8A8A8E}.del{width:52px;background:#ECEDF0}.del svg{width:20px;height:20px}
+.done{width:70px;font-weight:600;background:#3A424C;color:#fff}
+.hand{position:absolute;width:30px;height:30px;border-radius:15px;border:2px solid #B5731B;background:rgba(181,115,27,.12)}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute">
+ <symbol id="menu" viewBox="0 0 24 24"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></g></symbol>
+ <symbol id="photo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></g></symbol>
+ <symbol id="lock" viewBox="0 0 24 24"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zm2 0h6V7a3 3 0 0 0-6 0z"/></symbol>
+ <symbol id="back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M15 4l-8 8 8 8"/></symbol>
+ <symbol id="doc" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2.5h8.5L19 7v14.5H6zM14 3v4.5h4.5"/></symbol>
+ <symbol id="person" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5z"/></g></symbol>
+ <symbol id="bksp" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M8.5 5H20a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H8.5L2.5 12z"/><path d="M11 9.5l5 5M16 9.5l-5 5" stroke-linecap="round"/></g></symbol>
+</svg>
+
+<h1>Checkpoint 20b · Back</h1>
+<p class="sub">Where the back button goes, now that the bar reads <b>photo · Search · menu · vault</b>. Each option is shown in the two places you need back: <b>inside a folder</b> (People, then Celine Chai) and <b>on a document's keys</b> (her passport). The black button is back. Swipe right on the list goes back in every option. Light mode, as on your phone now.</p>
+
+<h3>Today, for reference</h3>
+<div class="grid">
+<div><div class="kb"><span class="lab">today · inside a folder</span>
+<div class="bar"><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="sf">Search</span><span class="pill"><svg><use href="#menu"/></svg></span><span class="vault"><svg><use href="#lock"/></svg></span></div>
+<div class="content fade">
+ <div class="chips"><span class="chip">Recents</span><span class="chip on">People</span><span class="chip">Documents</span><span class="chip">Favourites</span></div>
+ <div class="crumb">Celine Chai</div>
+ <div class="er"><svg><use href="#lock"/></svg>Passport<span class="r">Celine Chai</span></div>
+ <div class="er"><svg style="color:#0A0A0C"><use href="#person"/></svg>Contact details<span class="r">Celine Chai</span></div>
+ <div class="er">DBS Altitude<span class="r">Celine Chai</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Back</div></div>
+</div>
+<p class="cap"><b>Today back hides in the Done key</b> at the bottom right, and only inside folders. On a document's keys there is no back at all: you press the menu pill.</p></div>
+</div>
+
+<h3>A1 · The photo circle's spot becomes back; the photo moves next to the document</h3>
+<div class="grid">
+<div><div class="kb"><span class="lab">A1 · inside a folder</span>
+<div class="bar"><span class="circ back"><svg><use href="#back"/></svg></span><span class="sf">Search</span><span class="pill"><svg><use href="#menu"/></svg></span><span class="vault"><svg><use href="#lock"/></svg></span></div>
+<div class="content fade">
+ <div class="chips"><span class="chip">Recents</span><span class="chip on">People</span><span class="chip">Documents</span><span class="chip">Favourites</span></div>
+ <div class="crumb">Celine Chai</div>
+ <div class="er"><svg><use href="#lock"/></svg>Passport<span class="r">Celine Chai</span></div>
+ <div class="er"><svg style="color:#0A0A0C"><use href="#person"/></svg>Contact details<span class="r">Celine Chai</span></div>
+ <div class="er">DBS Altitude<span class="r">Celine Chai</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>Inside a folder</b> the top-left button is back. It returns to the list of people. At a tab's top level it is the photo circle again (dim, as now).</p></div>
+
+<div><div class="kb"><span class="lab">A1 · on a document's keys</span>
+<div class="bar"><span class="circ back"><svg><use href="#back"/></svg></span><span class="sf">Search</span><span class="pill"><svg><use href="#menu"/></svg></span><span class="vault"><svg><use href="#lock"/></svg></span></div>
+<div class="content">
+ <div class="fill"><span class="thumb"></span>Filling from <b>Passport · CHAI</b> · Celine Chai</div>
+ <div class="keys">
+  <div class="key">Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+  <div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MMM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+  <div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key">Place of birth</div>
+ </div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>On the keys</b> back takes you to the folder you came from. The scan moves to a small thumbnail at the start of the "Filling from" line, right beside the document it shows; tap it to see the scan.</p></div>
+</div>
+
+<h3>A2 · Back is an extra pill, shown only when there is somewhere to go back to</h3>
+<div class="grid">
+<div><div class="kb"><span class="lab">A2 · inside a folder</span>
+<div class="bar"><span class="pill back" style="width:38px"><svg><use href="#back"/></svg></span><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="sf">Search</span><span class="pill"><svg><use href="#menu"/></svg></span><span class="vault"><svg><use href="#lock"/></svg></span></div>
+<div class="content fade">
+ <div class="chips"><span class="chip">Recents</span><span class="chip on">People</span><span class="chip">Documents</span><span class="chip">Favourites</span></div>
+ <div class="crumb">Celine Chai</div>
+ <div class="er"><svg><use href="#lock"/></svg>Passport<span class="r">Celine Chai</span></div>
+ <div class="er"><svg style="color:#0A0A0C"><use href="#person"/></svg>Contact details<span class="r">Celine Chai</span></div>
+ <div class="er">DBS Altitude<span class="r">Celine Chai</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>A fifth item appears at the far left.</b> The search field gets about 44 pt narrower while it shows, and grows back at a tab's top level.</p></div>
+
+<div><div class="kb"><span class="lab">A2 · on a document's keys</span>
+<div class="bar"><span class="pill back" style="width:38px"><svg><use href="#back"/></svg></span><span class="circ"><svg><use href="#photo"/></svg></span><span class="sf">Search</span><span class="pill"><svg><use href="#menu"/></svg></span><span class="vault"><svg><use href="#lock"/></svg></span></div>
+<div class="content">
+ <div class="fill"><svg><use href="#doc"/></svg>Filling from <b>Passport · CHAI</b> · Celine Chai</div>
+ <div class="keys">
+  <div class="key">Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+  <div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MMM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+  <div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key">Place of birth</div>
+ </div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>The photo circle stays where it is.</b> The bar gets crowded: five items on one row.</p></div>
+</div>
+
+<h3>A3 · The menu pill becomes back when there is somewhere to go back to</h3>
+<div class="grid">
+<div><div class="kb"><span class="lab">A3 · inside a folder</span>
+<div class="bar"><span class="circ dim"><svg><use href="#photo"/></svg></span><span class="sf">Search</span><span class="pill back"><svg><use href="#back"/></svg></span><span class="vault"><svg><use href="#lock"/></svg></span></div>
+<div class="content fade">
+ <div class="chips"><span class="chip">Recents</span><span class="chip on">People</span><span class="chip">Documents</span><span class="chip">Favourites</span></div>
+ <div class="crumb">Celine Chai</div>
+ <div class="er"><svg><use href="#lock"/></svg>Passport<span class="r">Celine Chai</span></div>
+ <div class="er"><svg style="color:#0A0A0C"><use href="#person"/></svg>Contact details<span class="r">Celine Chai</span></div>
+ <div class="er">DBS Altitude<span class="r">Celine Chai</span></div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>Nothing moves; the menu pill's icon changes</b> from three lines to a back arrow. Back sits on the right, next to the vault, not top-left.</p></div>
+
+<div><div class="kb"><span class="lab">A3 · on a document's keys</span>
+<div class="bar"><span class="circ"><svg><use href="#photo"/></svg></span><span class="sf">Search</span><span class="pill back"><svg><use href="#back"/></svg></span><span class="vault"><svg><use href="#lock"/></svg></span></div>
+<div class="content">
+ <div class="fill"><svg><use href="#doc"/></svg>Filling from <b>Passport · CHAI</b> · Celine Chai</div>
+ <div class="keys">
+  <div class="key">Passport no.</div><div class="key">Surname</div><div class="key">Given names</div>
+  <div class="key">DOB<small>DD/MM/YYYY</small></div><div class="key">Expiry<small>DD/MMM/YYYY</small></div><div class="key">Nationality<small>SGP</small></div>
+  <div class="key">Sex<small>F</small></div><div class="key">Issue date<small>DD/MM/YYYY</small></div><div class="key">Place of birth</div>
+ </div>
+</div>
+<div class="bottom"><div class="space">space</div><div class="del"><svg><use href="#bksp"/></svg></div><div class="done">Done</div></div>
+</div>
+<p class="cap"><b>The way home is gone while back shows.</b> To jump straight home from deep in a folder you press back twice, or tap a tab.</p></div>
+</div>
+
+<h3>Side by side</h3>
+<table>
+<tr><th></th><th>A1 · photo spot becomes back</th><th>A2 · extra back pill</th><th>A3 · menu becomes back</th></tr>
+<tr><td>Back is top-left, like iOS apps</td><td>Yes</td><td>Yes</td><td>No, right of the search field</td></tr>
+<tr><td>Items in the bar</td><td>4, always</td><td>4 or 5</td><td>4, always</td></tr>
+<tr><td>Scan</td><td>Thumbnail on the Filling from line</td><td>Photo circle, as now</td><td>Photo circle, as now</td></tr>
+<tr><td>One tap home from deep inside</td><td>Menu pill</td><td>Menu pill</td><td>No</td></tr>
+<tr><td>Done key</td><td>Always Done</td><td>Always Done</td><td>Always Done</td></tr>
+</table>
+<div class="note">In every option the Done key stops turning into Back. Back lives in the bar only, so it is always in the same place. Swipe right on any list or on the keys goes back one level.</div>
+
+<h3>Question</h3>
+<div class="q">Q1 · A1, A2 or A3? Recommended: <b>A1</b>. Back stays top-left, the bar keeps four items, and the scan thumbnail sits beside the document it belongs to.</div>
+</body></html>

@@ -68,6 +68,7 @@ struct KeyboardRootView: View {
     @State private var holdSpec: FillFormats.KeySpec?
     @State private var pressedKey: String?
     @State private var holdTask: Task<Void, Never>?
+    @State private var swipedKey: String?                // a press that became a swipe; types nothing
     @State private var highlighted: String?           // "preview" or an option id
     @State private var keyFrames: [String: CGRect] = [:]
     @State private var targetFrames: [String: CGRect] = [:]
@@ -98,6 +99,12 @@ struct KeyboardRootView: View {
             .coordinateSpace(name: "content")
             .onGeometryChange(for: CGSize.self) { $0.size } action: { contentSize = $0 }
             .frame(maxHeight: .infinity)
+            // Swipe right goes back one level, as in iOS apps (checkpoint 20b).
+            .simultaneousGesture(DragGesture(minimumDistance: 24).onEnded { v in
+                guard holdSpec == nil, model.canGoBack,
+                      v.translation.width > 70, abs(v.translation.height) < 40 else { return }
+                model.goBack()
+            })
             // The search pad brings its own bottom row, laid out like Apple's.
             if model.panel != .search { bottomRow }
         }
@@ -149,18 +156,35 @@ struct KeyboardRootView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Search people and documents")
+            if model.canGoBack {
+                backButton.transition(.scale(scale: 0.6).combined(with: .opacity))
+            }
             menuPill
             vaultDoor
         }
         .frame(height: 34)
+        .animation(.snappy(duration: 0.2), value: model.canGoBack)
+    }
+
+    /// Checkpoint 20b (Evan, 14 Oct): a black back circle emerges left of the menu pill when there is
+    /// somewhere to go back to. Back lives here only; the Done key stays Done.
+    private var backButton: some View {
+        Button { model.goBack() } label: {
+            Image(systemName: "chevron.left").font(.system(size: 14, weight: .bold)).foregroundStyle(Palette.matteInk)
+                .frame(width: 32, height: 32)
+                .background(Palette.matte)
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Back")
     }
 
     /// Bar pills: the menu and the vault door share one size.
     static let pillSize = CGSize(width: 46, height: 32)
 
-    /// Filled black on home, glass elsewhere: the way home (checkpoint 20).
+    /// Filled black at a tab's top level, glass elsewhere: the way home (checkpoint 20).
     private var menuPill: some View {
-        let home = model.panel == .home
+        let home = model.isAtHomeTop
         return Button { model.toggleHome() } label: {
             Image(systemName: "line.3.horizontal").font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(home ? Palette.matteInk : Palette.ink)
@@ -518,7 +542,7 @@ struct KeyboardRootView: View {
         DragGesture(minimumDistance: 0, coordinateSpace: .named("content"))
             .onChanged { v in
                 guard enabled else { return }
-                if holdSpec == nil, holdTask == nil, pressedKey == nil {
+                if holdSpec == nil, holdTask == nil, pressedKey == nil, swipedKey != spec.fieldKey {
                     pressedKey = spec.fieldKey
                     holdTask = Task { @MainActor in
                         try? await Task.sleep(for: Self.holdDelay)
@@ -528,10 +552,16 @@ struct KeyboardRootView: View {
                 }
                 if holdSpec == spec {
                     highlighted = targetFrames.first { $0.value.contains(v.location) }?.key
+                } else if holdSpec == nil, abs(v.translation.width) > 20 {
+                    // A swipe, not a tap: cancel the press so the swipe can go back without typing.
+                    holdTask?.cancel(); holdTask = nil
+                    pressedKey = nil
+                    swipedKey = spec.fieldKey
                 }
             }
             .onEnded { _ in
                 holdTask?.cancel(); holdTask = nil
+                swipedKey = nil
                 let wasPressed = pressedKey == spec.fieldKey
                 pressedKey = nil
                 guard enabled else { return }
@@ -804,12 +834,11 @@ struct KeyboardRootView: View {
         }
     }
 
-    private var isShowingBack: Bool { holdSpec != nil || model.showsBack }
+    /// Done stays Done (checkpoint 20b); it reads Back only to close an open hold menu.
+    private var isShowingBack: Bool { holdSpec != nil }
 
     private func dismissOrBack() {
-        if holdSpec != nil { closeMenu() }
-        else if model.showsBack { model.back() }
-        else { model.done() }
+        if holdSpec != nil { closeMenu() } else { model.done() }
     }
 
     private func bottomKey(_ name: String, action: @escaping () -> Void) -> some View {

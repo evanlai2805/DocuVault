@@ -273,6 +273,7 @@ final class KeyboardModel {
             Task { await unlock(); if isUnlocked { select(e) } }
             return
         }
+        keysOrigin = panel == .vault ? .vault : .home
         selectedID = e.id
         KeyboardVault.lastEntryID = e.id
         searchText = ""
@@ -334,7 +335,34 @@ final class KeyboardModel {
         panel == .scan ? back() : (panel = .scan)
     }
 
-    /// Back: out of a filter first, then to the keys when a row is loaded, else home.
+    /// Where back from a document's keys goes: the list it was picked from (checkpoint 20b).
+    private var keysOrigin: Panel = .home
+
+    /// The bar's back button shows only when there is somewhere to go back to (checkpoint 20b, Evan 14 Oct).
+    /// Search has its own Back key on the letter pad.
+    var canGoBack: Bool {
+        switch panel {
+        case .home: personFilter != nil || groupFilter != nil
+        case .keys, .scan, .vault: true
+        case .search: false
+        }
+    }
+
+    /// One level up: keys to the list they came from, a person or group to its tab, the vault to home.
+    func goBack() {
+        switch panel {
+        case .home: personFilter = nil; groupFilter = nil
+        case .keys: panel = keysOrigin
+        case .scan: panel = .keys
+        case .vault: if vaultFilter != nil { vaultFilter = nil } else { panel = .home }
+        case .search: back()
+        }
+    }
+
+    /// The menu pill is filled black only at a tab's top level, so it never sits black beside the back button.
+    var isAtHomeTop: Bool { panel == .home && personFilter == nil && groupFilter == nil }
+
+    /// Back from search or the scan (the pad's Back key, the photo circle): to the keys when a row is loaded, else home.
     func back() {
         searchText = ""
         switch panel {
@@ -342,14 +370,6 @@ final class KeyboardModel {
         case .vault: if vaultFilter != nil { vaultFilter = nil } else { panel = .home }
         case .keys: panel = .home
         case .search, .scan: panel = currentEntry != nil ? .keys : .home
-        }
-    }
-
-    var showsBack: Bool {
-        switch panel {
-        case .search, .scan, .vault: true
-        case .home: personFilter != nil || groupFilter != nil
-        case .keys: false
         }
     }
 
