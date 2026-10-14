@@ -282,7 +282,33 @@ final class KeyboardModel {
 
     // MARK: Panels
 
-    func openSearch() { searchText = ""; panel = .search }
+    /// Rows the search card shows, and so the keyboard's height. Set at once when search opens, then only after
+    /// typing pauses, so the keys never move under a finger (Evan, 14 Oct).
+    private(set) var cardRows = 4
+    @ObservationIgnored private var resizeTask: Task<Void, Never>?
+    private static let maxCardRows = 4
+
+    private var wantedCardRows: Int {
+        searchText.trimmingCharacters(in: .whitespaces).isEmpty
+            ? max(1, min(Self.maxCardRows, recentEntries.count))
+            : max(1, min(Self.maxCardRows, searchMatches.count))   // "No match" takes one row
+    }
+
+    private func scheduleResize() {
+        resizeTask?.cancel()
+        resizeTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard let self, !Task.isCancelled, self.panel == .search else { return }
+            let rows = self.wantedCardRows
+            if rows != self.cardRows { self.cardRows = rows }
+        }
+    }
+
+    func openSearch() {
+        searchText = ""
+        cardRows = wantedCardRows
+        panel = .search
+    }
 
     /// The menu circle: home, the four tabs. From home with a row loaded, back to its keys.
     func toggleHome() {
@@ -327,8 +353,8 @@ final class KeyboardModel {
         }
     }
 
-    func typeSearch(_ letter: String) { searchText += letter }
-    func backspaceSearch() { if !searchText.isEmpty { searchText.removeLast() } }
+    func typeSearch(_ letter: String) { searchText += letter; scheduleResize() }
+    func backspaceSearch() { if !searchText.isEmpty { searchText.removeLast(); scheduleResize() } }
     /// The best match while typing; the pad's Open key loads it, like Search on Apple's keyboard.
     var topMatch: FillEntry? { searchText.isEmpty ? nil : searchResults.first }
     func openTopMatch() { if let e = topMatch { select(e) } }

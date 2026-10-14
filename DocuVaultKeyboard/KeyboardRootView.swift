@@ -42,10 +42,11 @@ struct KeyboardRootView: View {
     static let matchRowHeight: CGFloat = 44
     static let maxMatches = 4
 
-    /// Card slots while search is open: always four, so the keyboard resizes once when search opens and
-    /// never while you type. Resizing per keystroke jolted the keys under the finger (Evan's recording, 14 Oct).
+    /// Card rows while search is open. The card fits its results (Evan, 14 Oct: "No match" left dead space),
+    /// but the keyboard resizes only once typing pauses (`KeyboardModel.cardRows`), never under a moving
+    /// finger: per-keystroke resizes jolted the keys (his first recording).
     static func matchCount(_ model: KeyboardModel) -> Int {
-        model.panel == .search ? maxMatches : 0
+        model.panel == .search ? model.cardRows : 0
     }
 
     /// In search the bar sits straight on the letter pad, as Apple's suggestion bar does; the 41pt strip
@@ -101,7 +102,8 @@ struct KeyboardRootView: View {
             if model.panel != .search { bottomRow }
         }
         .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, model.panel == .search ? 0 : 6)
-        .background(Palette.canvas)
+        // No fill of our own: iOS's keyboard backdrop runs through, so there is no edge at the top or above the
+        // globe strip (Evan, 14 Oct: "awkward lines").
         .tint(Palette.accent)
         // No animation on panel changes: panels swap in one frame, as Apple's keyboard swaps to emoji.
     }
@@ -119,11 +121,11 @@ struct KeyboardRootView: View {
     // MARK: Bar
 
     private var bar: some View {
+        // Photo circle · Search · menu pill · vault pill (Evan, 14 Oct: menu and photo swapped; menu and vault
+        // are small pills of one size, the photo stays a circle).
         HStack(spacing: 6) {
-            // Glass like the scan circle until the menu is open; then filled black, no ring (Evan, 13 Oct).
-            // Filled black on home, glass elsewhere: the way home (checkpoint 20).
-            circle("line.3.horizontal", style: model.panel == .home ? .matte : .ink) { model.toggleHome() }
-                .accessibilityLabel("Home")
+            circle("photo", style: model.panel == .scan ? .accent : (model.currentDoc?.firstPageFile == nil ? .dim : .ink)) { model.toggleScan() }
+                .accessibilityLabel("Show the scan")
             Button { model.openSearch() } label: {
                 HStack(spacing: 6) {
                     if model.panel == .search {
@@ -147,11 +149,28 @@ struct KeyboardRootView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Search people and documents")
-            circle("photo", style: model.panel == .scan ? .accent : (model.currentDoc?.firstPageFile == nil ? .dim : .ink)) { model.toggleScan() }
-                .accessibilityLabel("Show the scan")
+            menuPill
             vaultDoor
         }
         .frame(height: 34)
+    }
+
+    /// Bar pills: the menu and the vault door share one size.
+    static let pillSize = CGSize(width: 46, height: 32)
+
+    /// Filled black on home, glass elsewhere: the way home (checkpoint 20).
+    private var menuPill: some View {
+        let home = model.panel == .home
+        return Button { model.toggleHome() } label: {
+            Image(systemName: "line.3.horizontal").font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(home ? Palette.matteInk : Palette.ink)
+                .frame(width: Self.pillSize.width, height: Self.pillSize.height)
+                .background(home ? Palette.matte : Palette.glass)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Palette.glassEdge, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Home")
     }
 
     private enum CircleStyle { case matte, ink, dim, accent, green }
@@ -183,10 +202,10 @@ struct KeyboardRootView: View {
         return Button { model.openVault() } label: {
             Image(systemName: open ? "lock.open.fill" : "lock.fill")
                 .font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(Circle().fill(open ? Palette.doorOpen : Palette.doorShut))
-                .overlay(Circle().stroke(LinearGradient(colors: [.white.opacity(0.35), .white.opacity(0.08)],
-                                                        startPoint: .top, endPoint: .bottom), lineWidth: 1))
+                .frame(width: Self.pillSize.width, height: Self.pillSize.height)
+                .background(Capsule().fill(open ? Palette.doorOpen : Palette.doorShut))
+                .overlay(Capsule().stroke(LinearGradient(colors: [.white.opacity(0.35), .white.opacity(0.08)],
+                                                         startPoint: .top, endPoint: .bottom), lineWidth: 1))
                 .shadow(color: .black.opacity(0.28), radius: 2.5, y: 1.5)
         }
         .buttonStyle(.plain)
@@ -642,10 +661,10 @@ struct KeyboardRootView: View {
         let typing = !model.searchText.trimmingCharacters(in: .whitespaces).isEmpty
         let results: [CardRow]
         if typing {
-            results = model.searchMatches.prefix(Self.maxMatches)
+            results = model.searchMatches.prefix(model.cardRows)
                 .map { CardRow(entry: $0.entry, titleHighlight: $0.titleHighlight, personHighlight: $0.personHighlight) }
         } else {
-            results = model.recentEntries.prefix(Self.maxMatches).map { CardRow(entry: $0, titleHighlight: [], personHighlight: []) }
+            results = model.recentEntries.prefix(model.cardRows).map { CardRow(entry: $0, titleHighlight: [], personHighlight: []) }
         }
         return VStack(spacing: 0) {
             if typing, results.isEmpty {
@@ -686,7 +705,8 @@ struct KeyboardRootView: View {
         .background(Palette.surface)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .shadow(color: .black.opacity(0.08), radius: 2, y: 1)
-        .frame(height: CGFloat(Self.maxMatches) * Self.matchRowHeight, alignment: .bottom)
+        .frame(height: CGFloat(Self.matchCount(model)) * Self.matchRowHeight, alignment: .bottom)
+        .clipped()
         .animation(.snappy(duration: 0.18), value: results.map(\.entry.id))
     }
 
@@ -825,8 +845,6 @@ enum Palette {
     static let key = surface
     static let keyModifier = Color(light: 0xACB1B9, dark: 0x464646)
     static let keyShadow = Color(light: 0x000000, dark: 0x000000, lightAlpha: 0.30, darkAlpha: 0.55)
-    static let canvas = Color(light: 0xE8EAEF, dark: 0x2B2B2B)
-    static let canvasDeep = Color(light: 0xEEF0F3, dark: 0x3A3A3A)
     static let glass = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightAlpha: 0.62, darkAlpha: 0.14)
     static let glassEdge = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightAlpha: 0.95, darkAlpha: 0.10)
     static let menu = Color(light: 0xF6F7FA, dark: 0x3A3A3C)
