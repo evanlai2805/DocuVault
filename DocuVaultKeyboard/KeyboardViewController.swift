@@ -27,8 +27,10 @@ final class KeyboardViewController: UIInputViewController {
         }
         guard target != targetHeight else { return }
         targetHeight = target
+        // Instant, like Apple's keyboard switching to emoji: an animated resize ran alongside iOS's own and
+        // SwiftUI's, and the bar and card floated about (Evan's recording, 14 Oct).
         view.setNeedsUpdateConstraints()
-        UIView.animate(withDuration: 0.22, delay: 0, options: [.curveEaseOut, .beginFromCurrentState]) {
+        UIView.performWithoutAnimation {
             self.view.superview?.layoutIfNeeded() ?? self.view.layoutIfNeeded()
         }
     }

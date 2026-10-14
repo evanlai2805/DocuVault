@@ -78,9 +78,8 @@ struct KeyboardRootView: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            if Self.matchCount(model) > 0 {
-                matchCard.transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+            // No slide: the card appears with the resize, in one frame (Evan, 14 Oct).
+            if Self.matchCount(model) > 0 { matchCard }
             bar
             ZStack(alignment: .topLeading) {
                 content
@@ -104,7 +103,7 @@ struct KeyboardRootView: View {
         .padding(.horizontal, 6).padding(.top, 8).padding(.bottom, model.panel == .search ? 0 : 6)
         .background(Palette.canvas)
         .tint(Palette.accent)
-        .animation(.snappy(duration: 0.22), value: Self.matchCount(model) > 0)
+        // No animation on panel changes: panels swap in one frame, as Apple's keyboard swaps to emoji.
     }
 
     @ViewBuilder private var content: some View {
